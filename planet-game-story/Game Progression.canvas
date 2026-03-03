@@ -1,0 +1,41 @@
+{
+	"nodes":[
+		{"id":"6762755cf87480b9","type":"group","x":-1100,"y":-280,"width":2300,"height":190,"label":"End of Game"},
+		{"id":"efed0d95f046a491","type":"group","x":-840,"y":-1080,"width":1900,"height":220,"label":"Scare"},
+		{"id":"a70f833ceeb7bbad","type":"group","x":-340,"y":-760,"width":760,"height":160,"label":"Photo Opportunity"},
+		{"id":"a33e9f9b14d15fa0","type":"group","x":-360,"y":-520,"width":700,"height":160,"label":"Recovery Mission"},
+		{"id":"8054648f4e00c00a","type":"text","text":"Travel to a remote natural location, near a derelict factory.","x":-320,"y":-740,"width":314,"height":69,"color":"2"},
+		{"id":"e3e3293d8df7caeb","type":"text","text":"[[MC]] is requested to take a good photo of a lake, one of the last natural bodies of water on [[The Planet]].","x":40,"y":-720,"width":362,"height":103,"color":"2"},
+		{"id":"c837a4db8520fa83","type":"text","text":"The animal misses a jump and falls into a hole, banging on things as it falls. There is silence as the timer runs, and the player waits.","x":-60,"y":-1060,"width":340,"height":120,"color":"5"},
+		{"id":"539bf4d5c0ea254b","type":"text","text":"There is a long process the [[MC]] must start and wait for. While this happens, there is nothing for the player to do.","x":-820,"y":-1040,"width":360,"height":100,"color":"2"},
+		{"id":"b9039cd339d4a881","type":"text","text":"The [[Animal]] appears and is jumping around, scavenging as it often does.","x":-400,"y":-1000,"width":280,"height":100,"color":"5"},
+		{"id":"6f5f487a90941d14","type":"text","text":"The [[MC]] sets up camp with nothing being different. Player goes to sleep for the night.","x":340,"y":-980,"width":300,"height":100,"color":"2"},
+		{"id":"2089ced51508e794","type":"text","text":"Travel to [[Superdeep Borehole Facility]]","x":-1080,"y":-260,"width":250,"height":60,"color":"2"},
+		{"id":"e7d7fc55461da9e2","type":"text","text":"Shot of [[The Planet]] exploding. Maybe glowing and then fade to white with rumbling or complete silence.","x":880,"y":-260,"width":300,"height":120,"color":"1"},
+		{"id":"f4685b970da390f5","type":"text","text":"Travel to [[Unknown Facility|recently active facility]], off route, for a recovery mission. Details are given on a need-to-know basis.","x":-340,"y":-500,"width":340,"height":120,"color":"2"},
+		{"id":"a9d8a967342ba07c","type":"text","text":"[[MC]] retrieves a personal item left behind by [[VIP]].","x":60,"y":-440,"width":240,"height":57,"color":"2"},
+		{"id":"6c8cc16215601236","type":"text","text":"The [[Animal]] is deliberately separated from the [[MC]].","x":-780,"y":-200,"width":280,"height":80,"color":"1"},
+		{"id":"60a8386a813f1dd1","type":"text","text":"Fight a [[Giant Deadly Robot]].","x":-440,"y":-240,"width":280,"height":60,"color":"2"},
+		{"id":"1d08a28ac18dc239","type":"text","text":"[[MC]] logs into terminal and presses some buttons to initiate [[World Break]].","x":-100,"y":-220,"width":260,"height":100,"color":"2"},
+		{"id":"c234c061413768da","type":"text","text":"Travel to launch platform to leave planet","x":220,"y":-240,"width":260,"height":80,"color":"2"},
+		{"id":"a2bd9faed8e6104f","type":"text","text":"[[MC]] launches off in a rocket. Scene of [[Animal]] watching from a safe distance.\n","x":540,"y":-220,"width":280,"height":100,"color":"1"},
+		{"id":"caa9ae856aa4cc5d","type":"file","file":"Sequences/Night Scene.md","subpath":"#^68cd6a","x":720,"y":-1020,"width":267,"height":80,"color":"1"}
+	],
+	"edges":[
+		{"id":"059782638e6a842f","fromNode":"1d08a28ac18dc239","fromSide":"right","toNode":"c234c061413768da","toSide":"left","color":"2"},
+		{"id":"b610558b8543952e","fromNode":"a2bd9faed8e6104f","fromSide":"right","toNode":"e7d7fc55461da9e2","toSide":"left","color":"1"},
+		{"id":"218192500b14c26f","fromNode":"c234c061413768da","fromSide":"right","toNode":"a2bd9faed8e6104f","toSide":"left","color":"2"},
+		{"id":"8ddb2e02894b3993","fromNode":"6c8cc16215601236","fromSide":"right","toNode":"60a8386a813f1dd1","toSide":"left","color":"2"},
+		{"id":"051b6d1b40509806","fromNode":"f4685b970da390f5","fromSide":"right","toNode":"a9d8a967342ba07c","toSide":"left","color":"2"},
+		{"id":"c394109eaac931f7","fromNode":"a33e9f9b14d15fa0","fromSide":"bottom","toNode":"6762755cf87480b9","toSide":"top"},
+		{"id":"8f7aed72f99a7bb5","fromNode":"8054648f4e00c00a","fromSide":"right","toNode":"e3e3293d8df7caeb","toSide":"left","color":"2"},
+		{"id":"3397d76a79f03b43","fromNode":"a70f833ceeb7bbad","fromSide":"bottom","toNode":"a33e9f9b14d15fa0","toSide":"top"},
+		{"id":"9e8b989fbf05e02a","fromNode":"60a8386a813f1dd1","fromSide":"right","toNode":"1d08a28ac18dc239","toSide":"left","color":"2"},
+		{"id":"b69bb66b82bffa55","fromNode":"2089ced51508e794","fromSide":"right","toNode":"6c8cc16215601236","toSide":"left","color":"2"},
+		{"id":"1b11cb7fd7652946","fromNode":"539bf4d5c0ea254b","fromSide":"right","toNode":"b9039cd339d4a881","toSide":"left","color":"5"},
+		{"id":"ea45e79ad59f5007","fromNode":"b9039cd339d4a881","fromSide":"right","toNode":"c837a4db8520fa83","toSide":"left","color":"5"},
+		{"id":"010ac46fe4f6e258","fromNode":"c837a4db8520fa83","fromSide":"right","toNode":"6f5f487a90941d14","toSide":"left","color":"2"},
+		{"id":"0d23f7ab770a5043","fromNode":"efed0d95f046a491","fromSide":"bottom","toNode":"a70f833ceeb7bbad","toSide":"top"},
+		{"id":"ea1c2608696bcee5","fromNode":"6f5f487a90941d14","fromSide":"right","toNode":"caa9ae856aa4cc5d","toSide":"left","color":"2"}
+	]
+}
