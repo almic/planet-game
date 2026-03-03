@@ -12,3 +12,7 @@ https://www.artstation.com/artwork/5W0E91
 ![[handgun_with_lights.png]]
 Very cool outline, remove the lights (cool but totally not tactical)
 https://www.artstation.com/artwork/G8dxWW
+
+![[decent_handgun.png]]
+Nice metal, guard encloses the entire hand (kinda like), the rail on the back is weird, but the side cuts are pretty logical though definitely difficult and probably painful to use. Safety should probably be on the inside only for a handgun.
+https://www.artstation.com/artwork/GvvDZN
