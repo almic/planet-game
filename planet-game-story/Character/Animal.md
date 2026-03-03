@@ -1,3 +1,5 @@
+#graph
+
 There is a small animal that follows the [[MC]] closely, at their feet, like a pet.
 
 It does not want to harm the MC, and does not feel threatened by them. It is totally passive. The animal is supposed to represent the player's perspective of the [[MC]] and the events of the game. It is highly intelligent compared to most animals on Earth.

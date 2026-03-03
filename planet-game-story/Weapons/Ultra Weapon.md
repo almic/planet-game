@@ -1,3 +1,5 @@
+#graph
+
 A weapon that is giga powerful, with almost no ammo given.
 
 As a gag, it could literally one-shot the [[Giant Deadly Robot|final boss]] in the game, provided the player held onto at least one shot until the boss fight.

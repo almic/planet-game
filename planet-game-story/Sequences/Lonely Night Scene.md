@@ -1,6 +1,6 @@
-# Night Cutscene
+###### The night following the supposed death of the [[Animal]]
 
-^68cd6a
+# Sequence
 
 Player does the normal interaction to pass the night, nothing seems different.
 
