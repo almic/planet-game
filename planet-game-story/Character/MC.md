@@ -12,6 +12,9 @@ He is from a different place. There is no connection to the planet, or really an
 What are the MC's qualifications for the mission?
 A lot of combat experience, probably some armed conflicts with people. Definitely an accomplished robotics engineer, particularly with mining machines. Interested in machines since childhood, joined a defense company late teens/ early 20s.
 
+How old is the MC?
+At least 25, no older than 28. Definitely younger than [[Mission Leader]], even by a few days.
+
 # Concept Art
 
 ![[great_armor.png]]

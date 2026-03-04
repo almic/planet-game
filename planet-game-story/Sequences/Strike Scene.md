@@ -23,3 +23,11 @@ The sky glows red, then the top of a fireball can be seen over the obscuring ter
 "Good splash"
 
 MC turns and walks off camera, animal stays for a moment longer, then turns and walks off towards the MC.
+
+The shot lingers another few seconds, showing the fireball dissipate, only a thin smoke trail remaining.
+
+Cut to MC entering own vehicle, radio activates as the animal jumps into the back.
+
+"Don't head home yet, a new opportunity just came up. A photograph. The client wants to have the 'last picture from the surface.'"
+
+Fade to black.
