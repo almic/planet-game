@@ -1,7 +1,7 @@
 Side arm, light handgun, powerful ammunition. Best at removing single machines.
 
 # Function
-Initial weapon, secondary. When the first gun runs out of bullets. Ammunition is carried on planet and by weaker armed machines. Can focus weak points, the large and slower slug can stun individual machines, can take down any unarmored machine.
+Initial weapon, secondary. For when your first gun runs out of bullets. Ammunition is carried on planet and by weaker armed machines. Can focus weak points, the large and slower slug can stun individual machines, can take down any unarmored machine.
 
 # Concept Art
 
