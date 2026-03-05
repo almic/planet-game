@@ -8,5 +8,5 @@ She refuses to give her name initially, prompting the [[Mission Leader]] to open
 White Metal is actually a senior manager from the [[Weapon Facility]], closely involved in site operations, especially the weapons testing program. This information is not revealed in the game, only hinted at by the tone of their voice and the questions they ask to the [[MC]].
 
 ### How Old?
-The oldest character in the game. At least older than the [[Pirate]].
+The oldest character in the game. At least older than the [[Researcher]].
 Range: 37-50.

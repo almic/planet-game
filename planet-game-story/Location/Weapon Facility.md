@@ -8,7 +8,7 @@ The [[MC]] is sent here to recover a personal item of the [[VIP]], details of th
 
 This facility was active until the last day before the planned [[World Break]], performing weapons tests on the surface of the planet. Better to bomb and destroy the surface of a planet than risk destroying a station in space.
 
-While moving everything off planet, a [[Pirate|group]] stole a weapon and sought to sell it for profit.
+While moving everything off planet, a [[Researcher|group]] stole a weapon and sought to sell it for profit.
 
 ### Why are there [[Hostile robots]]?
 [[White Metal]] left behind the personal item and autonomous robots to perform a "live exercise" of the [[Ultra Weapon]] and [[The Sword]]. These are prototypes and soon-to-be-commercial machines. Some are completely unique encounters.

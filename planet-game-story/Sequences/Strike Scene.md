@@ -1,4 +1,4 @@
-###### Sequence showing the [[Pirate]] being destroyed once they leave the [[Superdeep Borehole Facility]]
+###### Sequence showing the [[Researcher]] being destroyed once they leave the [[Superdeep Borehole Facility]]
 
 # Sequence
 

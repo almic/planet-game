@@ -1,22 +1,22 @@
 #graph
 
-The motivating incident, the reason the [[MC]] is sent to the surface of the planet.  A group of pirates were stealing a weapon from the [[Weapon Facility]] on the day before [[World Break]]. One pirate survives the [[Wreckage|wreck]] of the vehicle, and travels to the [[Superdeep Borehole Facility|SBF]] to barricade themselves and sabotage the charge activation system.
+The motivating incident, the reason the [[MC]] is sent to the surface of the planet.  A group of pirates were stealing a weapon from the [[Weapon Facility]] on the day before [[World Break]]. The plan was for the Researcher to disable the tracking device and move it to the [[Superdeep Borehole Facility]], reactivate it as the main group travels across the inner ring, and be picked up by a team from the [[Weapon Facility]], feigning ignorance about the tracker being on him.
 ### Qualifications
-Certainly an employee from the [[Weapon Facility]], along with the rest of his group. He is very good with planetary systems and hacking. He is intelligent and plotting, laying backup plans that come into play after his sudden death.
+Researcher from the [[Weapon Facility]], along with the rest of his group. He is very good with planetary systems and hacking. He is intelligent and plotting, laying backup plans that come into play after his sudden death.
 
 ### How old?
 One of the oldest characters in the game, at least 30s. Must be old enough to be trusted with information and systems around the [[Ultra Weapon]] (possibly even involved), but young enough to not have realized long-term security with the company.
 Range: 30-39.
 
 ### Sequence of Events
-1. Group obtains the [[Ultra Weapon]], disabling and removing the tracking device. Pirate keeps the tracking device.
+1. Group obtains the [[Ultra Weapon]], disabling and removing the tracking device. Researcher keeps the tracking device to be a diversion.
 2. Group travels using an off-road vehicle to the [[Ship Platform]].
-3. [[Hostile robots|Rogue robots]] encountered, disable the vehicle and kill all but the main pirate. The [[Ultra Weapon]] is left behind intentionally.
-4. Pirate escapes to the [[Superdeep Borehole Facility|SBF]] and barricades himself. Activates local machines for personal defense.
-5. Activates the tracking device, bringing attention to himself.
-6. Learns that the [[MC]] is sent after him, plans instead to activate the [[Giant Deadly Robot]] to kill the MC and obtain their armor suit. Intends to escape by force.
-7. Fails to activate the [[Giant Deadly Robot]] in time, reverts to plan to trade the location of the [[Ultra Weapon]] for secure passage off planet.
-8. [[MC]] provides a one-way communication device for the pirate.
+3. Tracker is activated at the [[Superdeep Borehole Facility]]. Then [[MC]] arrives.
+4. Seeing the arrival of [[MC]], the researcher decides to activate the [[Giant Deadly Robot]] to kill the [[MC]] and escape later. Also hacks many on-site robots.
+5. [[Hostile robots|Special Defense Robots]] strike the vehicle, disable it and kill all occupants. Then [[White Metal]] decides to use the situation as a live test for the weapon with [[MC]].
+6. Researcher notices the vehicle is hit, barricades himself deeper into the facility.
+7. Fails to activate the [[Giant Deadly Robot]] in time, [[MC]] arrives.
+8. [[Pirate Scene]] plays
 9. Activates the [[Giant Deadly Robot]] while [[MC]] is gone.
 10. Initiates a delayed shutdown of the [[Relay Station]], plans to reveal this information to [[Mission Leader]] via the communication device. This is meant to guarantee his survival at least until he is off planet/ at the [[Ship Platform]].
 11. [[MC]] recovers the [[Ultra Weapon]] and confirms all pirates are accounted for.
