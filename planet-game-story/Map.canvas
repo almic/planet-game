@@ -1,0 +1,25 @@
+{
+	"nodes":[
+		{"id":"96c0b6fca45ada5e","type":"text","text":"# [[Wreckage]]\n\n18.2km","x":-260,"y":-40,"width":200,"height":100,"color":"5"},
+		{"id":"9a17280a1d180872","type":"text","text":"# [[Superdeep Borehole Facility|SBF]]\n\n20km\n","x":120,"y":20,"width":160,"height":140,"color":"5"},
+		{"id":"21dec13b46134a2a","type":"text","text":"# [[Ship Platform]]\n\nStarting location","x":-260,"y":-320,"width":200,"height":180,"color":"5"},
+		{"id":"739647afb918f3ad","type":"text","text":"About 0.5km usable road, the rest is offoad.\n12 min drive.","x":-40,"y":-120,"width":180,"height":120},
+		{"id":"b8e1379a4bdd860f","type":"text","text":"Straight shot to SBF from platform. 15 min drive.","x":-40,"y":-300,"width":250,"height":60},
+		{"id":"0ff30fa447fd405f","type":"text","text":"Completely offroad. 18 min drive.","x":-400,"y":120,"width":220,"height":80},
+		{"id":"095b01e233573b42","type":"text","text":"# [[Derelict Factory]]\n\n24km","x":-180,"y":280,"width":160,"height":140,"color":"5"},
+		{"id":"bec8bf059bd5cd3e","type":"text","text":"# [[Relay Station]]\n\n28.4km","x":-440,"y":520,"width":160,"height":140,"color":"5"},
+		{"id":"445d5a56696f1956","type":"text","text":"Roads connect facilities. 0.3km off-road direct paths.\n14 min drive.","x":240,"y":320,"width":240,"height":120},
+		{"id":"aaaf922f815d66bd","type":"text","text":"8km of road, the rest are direct paths off-road.\n8 min drive.","x":-240,"y":680,"width":260,"height":100},
+		{"id":"97bbc89384dbae4e","type":"text","text":"# [[Weapon Facility]]\n\n36.3km","x":60,"y":580,"width":180,"height":160,"color":"5"},
+		{"id":"490059ab4d24f8da","type":"file","file":"Image/map.png","x":-720,"y":-280,"width":400,"height":294,"color":"#ffffff"},
+		{"id":"bc4317b3a3b7dee0","type":"text","text":"Last 0.5km has usable road.\n18 min drive.","x":-540,"y":320,"width":170,"height":90}
+	],
+	"edges":[
+		{"id":"a036cfb594c79d72","fromNode":"21dec13b46134a2a","fromSide":"right","toNode":"9a17280a1d180872","toSide":"top","fromEnd":"arrow","label":"20km"},
+		{"id":"89cd9167e5e3f7cb","fromNode":"97bbc89384dbae4e","fromSide":"top","toNode":"9a17280a1d180872","toSide":"bottom","label":"17.8km"},
+		{"id":"30f8c9479e89c1b0","fromNode":"96c0b6fca45ada5e","fromSide":"bottom","toNode":"095b01e233573b42","toSide":"top","label":"5.9km"},
+		{"id":"b2f7ff5812a38d6b","fromNode":"9a17280a1d180872","fromSide":"left","toNode":"96c0b6fca45ada5e","toSide":"right","label":"4.4km"},
+		{"id":"48aa7f30f799cc32","fromNode":"095b01e233573b42","fromSide":"left","toNode":"bec8bf059bd5cd3e","toSide":"top","label":"6.5km"},
+		{"id":"ef1955140be52617","fromNode":"bec8bf059bd5cd3e","fromSide":"right","toNode":"97bbc89384dbae4e","toSide":"left","label":"8.5km"}
+	]
+}
