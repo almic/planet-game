@@ -1,10 +1,10 @@
 #graph #location
 
-Recently active location, workplace and home of the [[VIP]]. The [[MC]] is not given any information on the function of this facility, but it was in active use up until the initial preparations for [[World Break]].
+Recently active location, workplace and home of [[White Metal]]. The [[MC]] is not given any information on the function of this facility, but it was in active use up until the initial preparations for [[World Break]].
 
 Could be the location where the charge material was manufactured.
 
-The [[MC]] is sent here to recover a personal item of the [[VIP]], details of the mission are provided on a need-to-know basis.
+The [[MC]] is sent here to recover an undisclosed special asset, details of the mission are provided on a need-to-know basis by [[White Metal]].
 
 This facility was active until the last day before the planned [[World Break]], performing weapons tests on the surface of the planet. Better to bomb and destroy the surface of a planet than risk destroying a station in space.
 
