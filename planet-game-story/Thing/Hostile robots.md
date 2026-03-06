@@ -26,15 +26,33 @@ Some have transport functions, some are multipurpose, some are for [[The Planet#
 - They have "structure" points which if depleted removes the part (dismantle). [[Shotgun]] can apply high structure damage to dismantle quickly.
 - They have "armor" points which, while present, reduce front damage. [[Rifle]] can have high armor damage, quickly removing armor, or piercing it. [[Shotgun]] less effective against armor, blocks dismantle, but does stagger armor.
 - Can be staggered by [[Shotgun]] due to impact force.
+- Dismantle mechanics, https://youtu.be/1e4fh01oViM
 
 ## Maybe Ideas
 - ~~"Swarm" machines where enough damage can disable a "hive mind" unit. Like 100 bees, and when there are less than 20, the rest of them just die.~~
 
-# Concept Art
+## Dismantle Mechanic
+Inspired from: https://youtu.be/1e4fh01oViM
 
-![[support_drone.png]]
-Technically a smoke-screen support drone, but i like the large flat top and missiles around the center with the four legs. Feels very sturdy.
-https://www.artstation.com/artwork/3o2E0m
+NEEDS WORK! RECONSIDER WHEN IMPLEMENTING!
+1. Construct the robot such that each removable part can be exported as a mesh. The bones become joints which can be destroyed.
+2. Animate the skeleton as normal
+3. In Godot, import the skeleton and animations, and each mesh part
+4. Use bone attachments to place a disabled rigid body with the mesh and appropriate colliders
+5. Create hitboxes for parts and joints, each with health and structure points, and assign connected joints/ parts
+6. Damaging parts can apply structure damage to nearby connected joints. Joints can damaged directly, also applying structure damage to parts.
+7. When joints are destroyed, can activate connected rigid body and move to world node for simulation. Should apply health point damage to main body.
+8. When parts take enough structure damage, they should break into pieces and destroy child joints so the parts detach.
+
+This requires a lot of setup and wiring. Code needs to handle arbitrary part layouts, should read the scene tree to connect everything.
+
+### Questions for Dismantle
+- How does removing a leg affect a walking bot?
+- Can you break sensors, blinding a bot?
+- How does [[The Sword]] cut parts?
+- How is the robot scene constructed? Is the dismantle stuff a component node, or built-in to all robots?
+
+# Concept Art
 
 ![[military_drone.png]]
 Tank design, bipedal. Big guns.
@@ -43,6 +61,10 @@ https://www.artstation.com/artwork/9eOP5Q
 ![[all_legs_bot.png|500]]
 This is what I think of when I think biped security bot. Make it person sized, shrink the torso. Just all legs, with arms.
 https://www.artstation.com/artwork/Bmx42m
+
+![[support_drone.png]]
+Technically a smoke-screen support drone, but i like the large flat top and missiles around the center with the four legs. Feels very sturdy.
+https://www.artstation.com/artwork/3o2E0m
 
 ![[rover_science_bot.png]]
 Like a rover, front facing camera, could mount weapons on the top.

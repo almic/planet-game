@@ -11,7 +11,7 @@
 
 # DO this
 - Single weapon script (no inheritance, no components) that handles state and animation (but no functional anims!)
-- Parameterize things with resources, all weapons should just be a list of slider that the weapon script uses.
+- Parameterize things with resources, all weapons should just be a list of slider that the weapon script uses. Resources ARE the weapons, they hold ammo state and remember it. Makes it possible to duplicate a weapon and change parameters in real-time.
 - Every weapon should be strong in its use-case
 - Any weapon can get the job done
 - Be able to experiment without harsh punishment
