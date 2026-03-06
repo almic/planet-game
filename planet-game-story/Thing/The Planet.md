@@ -26,10 +26,10 @@ https://www.artstation.com/artwork/wgZGX
 Foreground only, take out background spike. Can be like overground quarries, exposed cut rock.
 https://www.artstation.com/artwork/3dOmJ2
 
-![[field_pipes.png]]
+![[field_pipes.png|350]]
 Large pipes with smaller pipes surrounding them, presumably old pumps for oceans.
 https://www.artstation.com/artwork/x3POxr
 
-![[blue_road.png]]
+![[blue_road.png|350]]
 Field with structure overhead, flat blue light
 https://www.artstation.com/artwork/dy3V41

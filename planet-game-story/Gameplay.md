@@ -8,3 +8,4 @@ What is the end goal?
 To initiate [[World Break]]
 
 What are the sub-plots, the "peaks" along the way?
+Getting new weapons, stuff

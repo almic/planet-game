@@ -17,7 +17,24 @@ At least 25, no older than 28. Definitely younger than [[Mission Leader]], even 
 
 # Concept Art
 
-![[great_armor.png]]
-![[armor_nice_helmet.png]]
+![[great_armor.png|500]]
+![[armor_nice_helmet.png|500]]
 Love it. Great silhouette on the green armor, prefer the helmet of the second image.
 https://www.artstation.com/artwork/3Kr32
+
+![[moon_walker.png|300]]
+Very utility, non-combat look. Could look nice for [[Researcher]] actually.
+https://www.artstation.com/artwork/G5rkB
+
+![[tac_unit_armor.png|300]]
+"Tac Unit". I like the use of color, neck protection. Looks light, possible force amplifiers with lever-like straps.
+https://www.artstation.com/artwork/ko3Bz
+
+![[mask_design_side.png|500]]
+![[mask_design_front.png|300]]
+Cool mask, like the front profile and the eyes holes. Would need to be a proper helmet though, this is not very protective. Remove the port holes around, replace with deflective armor. Great "mean" look. Fits the bone structure of the face.
+https://www.artstation.com/artwork/0nKzyV
+
+![[mark_v_helmet.png]]
+Master chief visor
+https://www.artstation.com/artwork/98PDR

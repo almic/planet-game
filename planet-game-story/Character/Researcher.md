@@ -32,3 +32,9 @@ Once the [[MC]] leaves, he is able to reactivate the [[Giant Deadly Robot]], but
 
 ### Death
 When the weapon is retrieved, and body counts confirmed, the pirate is told to travel to the [[Ship Platform]] and await further instructions. Once he leaves the compound, he is spotted by satellites and destroyed. It was his plan to alert the [[Mission Leader]] about his sabotage of the [[Relay Station]], but is unable to make that communication. He accepted the risk and left the facility anyway.
+
+# Concept Art
+
+![[moon_walker.png|300]]
+Very utility, non-combat look. Possible relevance for [[MC]] suit.
+https://www.artstation.com/artwork/G5rkB
