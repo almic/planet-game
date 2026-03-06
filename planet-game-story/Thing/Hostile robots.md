@@ -22,6 +22,10 @@ Some have transport functions, some are multipurpose, some are for [[The Planet#
 - Ancient robots that cannot move very quickly, see very well, are deaf, that just punch you
 - Crawling spider machines that go on any surface, walls and ceilings
 - [[Giant Deadly Robot]]
+- Robots parts have individual health bars
+- They have "structure" points which if depleted removes the part (dismantle). [[Shotgun]] can apply high structure damage to dismantle quickly.
+- They have "armor" points which, while present, reduce front damage. [[Rifle]] can have high armor damage, quickly removing armor, or piercing it. [[Shotgun]] less effective against armor, blocks dismantle, but does stagger armor.
+- Can be staggered by [[Shotgun]] due to impact force.
 
 ## Maybe Ideas
 - ~~"Swarm" machines where enough damage can disable a "hive mind" unit. Like 100 bees, and when there are less than 20, the rest of them just die.~~

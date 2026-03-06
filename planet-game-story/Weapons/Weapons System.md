@@ -23,11 +23,17 @@
 - Particle/ light effect
 - Sounds
 - Raycast for projectiles, hitbox for melee
-- Tell entities about damage
-- Input for "im pressing/ not pressing the button" (no return values)
+- Melee could support raycast for decal placement, but focus on hitbox for impact
+- Tell entities about damage (and other details for dismantle, [[The Sword]])
+- Tell entities about stun from [[Future Tool]], the entity will decide what to do
+- Damage types: piercing, stagger ([[Shotgun]]), stun and charged stun ([[Future Tool]]), structure (dismantle), critical (piercing-structure type, spreads remaining damage to connected parts, [[Ultra Weapon]]).
+- Input for "pressing/ not pressing the button" (no return values)
+- Charged behavior, what that does
 - Must know if it has ammo, and is loaded
 - Input for "reload" (do not return anything)
-- Provides a Control node for Player to put in their UI
+- Provides a Control node for Player to put in their UI, for ammo status
+- Control node for targeting (reticle, [[Ultra Weapon]] target system)
+- Switches to disable unused elements, to be used for enemies/ multiplayer. Disables ui updates, disables ammo tracking, purely input driven. For example, a "sidearm" can be given to a weak enemy and it just shoots it without reloading or ui.
 
 # Want This
 - [[Shotgun]] is for crowd control, can stun fast enemies and take down groups of weak enemies. Can dismantle robots very quickly.
