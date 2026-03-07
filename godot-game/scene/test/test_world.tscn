@@ -1,0 +1,51 @@
+[gd_scene format=3 uid="uid://blroynww2chph"]
+
+[ext_resource type="PackedScene" uid="uid://cetgr3wj5qd6v" path="res://character/player/player.tscn" id="1_fbyci"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4xc13"]
+albedo_color = Color(0.14767182, 0.14767179, 0.14767179, 1)
+
+[sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_fbyci"]
+
+[sub_resource type="Sky" id="Sky_4xc13"]
+sky_material = SubResource("PhysicalSkyMaterial_fbyci")
+
+[sub_resource type="Environment" id="Environment_1vq1p"]
+background_mode = 2
+sky = SubResource("Sky_4xc13")
+
+[sub_resource type="CameraAttributesPhysical" id="CameraAttributesPhysical_fbyci"]
+auto_exposure_enabled = true
+frustum_focal_length = 20.0
+auto_exposure_max_exposure_value = 1.0
+
+[node name="World" type="Node3D" unique_id=458844105]
+
+[node name="CSGCombiner3D" type="CSGCombiner3D" parent="." unique_id=589922605]
+use_collision = true
+collision_layer = 16
+collision_mask = 0
+
+[node name="CSGBox3D" type="CSGBox3D" parent="CSGCombiner3D" unique_id=1741334788]
+size = Vector3(100, 0.1, 100)
+material = SubResource("StandardMaterial3D_4xc13")
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="CSGCombiner3D" unique_id=1454939828]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -1.7)
+size = Vector3(1, 0.5, 1)
+
+[node name="Player" parent="." unique_id=1957397594 instance=ExtResource("1_fbyci")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1485511729]
+environment = SubResource("Environment_1vq1p")
+camera_attributes = SubResource("CameraAttributesPhysical_fbyci")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="WorldEnvironment" unique_id=1774272102]
+transform = Transform3D(0.46783724, 0.82738996, -0.31073177, 0, 0.35158026, 0.93615776, 0.88381463, -0.43796948, 0.16448234, 0, 0, 0)
+shadow_enabled = true
+directional_shadow_mode = 0
+
+[node name="Camera3D2" type="Camera3D" parent="." unique_id=1414495947]
+transform = Transform3D(-0.7071068, 0.18301272, -0.6830127, 0, 0.9659259, 0.25881907, 0.7071068, 0.18301272, -0.6830127, -2.2, 1.9000001, -1.9)
+fov = 80.0

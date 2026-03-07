@@ -1,0 +1,31 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Planet Game"
+run/main_scene="uid://blroynww2chph"
+config/features=PackedStringArray("4.6", "Forward Plus")
+config/icon="res://icon.svg"
+
+[layer_names]
+
+3d_physics/layer_5="StaticWorld"
+
+[physics]
+
+3d/physics_engine="Jolt Physics"
+
+[rendering]
+
+rendering_device/driver.windows="d3d12"
+lights_and_shadows/use_physical_light_units=true
+lights_and_shadows/positional_shadow/soft_shadow_filter_quality=0
+anti_aliasing/quality/use_debanding=true

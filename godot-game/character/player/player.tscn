@@ -1,0 +1,56 @@
+[gd_scene format=3 uid="uid://cetgr3wj5qd6v"]
+
+[ext_resource type="Script" uid="uid://gy5qwm8j5pbh" path="res://character/CharacterController.gd" id="1_y0s34"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_y0s34"]
+radius = 0.32
+height = 1.39
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_y0s34"]
+height = 1.39
+radius = 0.3
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_8eijk"]
+radius = 0.3
+height = 1.7
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_y0s34"]
+radius = 0.05
+height = 0.25
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8eijk"]
+albedo_color = Color(0, 0.78431374, 1, 1)
+
+[node name="Player" type="RigidBody3D" unique_id=1957397594 node_paths=PackedStringArray("shape_cast")]
+collision_mask = 17
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
+mass = 100.0
+continuous_cd = true
+script = ExtResource("1_y0s34")
+shape_cast = NodePath("CollisionShape3D/ShapeCast3D")
+metadata/_custom_type_script = "uid://gy5qwm8j5pbh"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=296855449]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.025, 0)
+shape = SubResource("CapsuleShape3D_y0s34")
+
+[node name="ShapeCast3D" type="ShapeCast3D" parent="CollisionShape3D" unique_id=1331581551]
+shape = SubResource("CylinderShape3D_y0s34")
+target_position = Vector3(0, -0.33, 0)
+collision_mask = 16
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=662592939]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
+mesh = SubResource("CapsuleMesh_8eijk")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=532242651]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
+current = true
+fov = 90.0
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="Camera3D" unique_id=1175774347]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, -0.25536436)
+mesh = SubResource("CapsuleMesh_y0s34")
+surface_material_override/0 = SubResource("StandardMaterial3D_8eijk")
