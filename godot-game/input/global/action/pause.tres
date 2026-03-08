@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="GUIDEAction" format=3 uid="uid://djvqcq1sg55wm"]
+
+[ext_resource type="Script" uid="uid://cluhc11vixkf1" path="res://addons/guide/guide_action.gd" id="1_gkx6d"]
+
+[resource]
+script = ExtResource("1_gkx6d")
+name = &"pause"
+is_remappable = true
+display_name = "Pause"
+metadata/_custom_type_script = "uid://cluhc11vixkf1"

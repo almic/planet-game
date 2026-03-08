@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="GUIDEAction" format=3 uid="uid://b20e7e3b8jehd"]
+
+[ext_resource type="Script" uid="uid://cluhc11vixkf1" path="res://addons/guide/guide_action.gd" id="1_a21m5"]
+
+[resource]
+script = ExtResource("1_a21m5")
+name = &"camera_toggle"
+is_remappable = true
+display_name = "Toggle Camera"
+metadata/_custom_type_script = "uid://cluhc11vixkf1"

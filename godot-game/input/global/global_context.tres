@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="GUIDEMappingContext" format=3 uid="uid://d03wntb6hv3sf"]
+
+[ext_resource type="Script" uid="uid://cpplm41b5bt6m" path="res://addons/guide/guide_action_mapping.gd" id="1_awoth"]
+[ext_resource type="Script" uid="uid://dsa1dnifd6w32" path="res://addons/guide/guide_mapping_context.gd" id="2_dipsq"]
+[ext_resource type="Resource" uid="uid://djvqcq1sg55wm" path="res://input/global/action/pause.tres" id="2_xbm0i"]
+[ext_resource type="Script" uid="uid://mtx1unc2aqn7" path="res://addons/guide/guide_input_mapping.gd" id="3_dnmtw"]
+[ext_resource type="Script" uid="uid://cw71o87tvdx3q" path="res://addons/guide/inputs/guide_input_key.gd" id="4_5gd5r"]
+[ext_resource type="Script" uid="uid://bl8rjl4oaldje" path="res://addons/guide/modifiers/guide_modifier.gd" id="5_ntnj7"]
+[ext_resource type="Script" uid="uid://x74mnwgr08a7" path="res://addons/guide/triggers/guide_trigger.gd" id="6_mqr6k"]
+[ext_resource type="Script" uid="uid://b52rqq28tuqpg" path="res://addons/guide/triggers/guide_trigger_pressed.gd" id="7_gka2y"]
+[ext_resource type="Resource" uid="uid://b20e7e3b8jehd" path="res://input/global/action/camera_toggle.tres" id="8_dnmtw"]
+
+[sub_resource type="Resource" id="Resource_f4djr"]
+script = ExtResource("4_5gd5r")
+key = 4194305
+
+[sub_resource type="Resource" id="Resource_wod7k"]
+script = ExtResource("7_gka2y")
+
+[sub_resource type="Resource" id="Resource_0oo10"]
+script = ExtResource("3_dnmtw")
+input = SubResource("Resource_f4djr")
+triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_wod7k")])
+
+[sub_resource type="Resource" id="Resource_xbm0i"]
+script = ExtResource("4_5gd5r")
+key = 4194305
+
+[sub_resource type="Resource" id="Resource_dnmtw"]
+script = ExtResource("7_gka2y")
+
+[sub_resource type="Resource" id="Resource_5gd5r"]
+script = ExtResource("3_dnmtw")
+input = SubResource("Resource_xbm0i")
+triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_dnmtw")])
+
+[sub_resource type="Resource" id="Resource_e6so0"]
+script = ExtResource("1_awoth")
+action = ExtResource("2_xbm0i")
+input_mappings = Array[ExtResource("3_dnmtw")]([SubResource("Resource_0oo10"), SubResource("Resource_5gd5r")])
+
+[sub_resource type="Resource" id="Resource_ntnj7"]
+script = ExtResource("4_5gd5r")
+key = 49
+shift = true
+
+[sub_resource type="Resource" id="Resource_mqr6k"]
+script = ExtResource("7_gka2y")
+
+[sub_resource type="Resource" id="Resource_gka2y"]
+script = ExtResource("3_dnmtw")
+input = SubResource("Resource_ntnj7")
+triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_mqr6k")])
+
+[sub_resource type="Resource" id="Resource_df6c6"]
+script = ExtResource("1_awoth")
+action = ExtResource("8_dnmtw")
+input_mappings = Array[ExtResource("3_dnmtw")]([SubResource("Resource_gka2y")])
+
+[resource]
+script = ExtResource("2_dipsq")
+mappings = Array[ExtResource("1_awoth")]([SubResource("Resource_e6so0"), SubResource("Resource_df6c6")])
+metadata/_custom_type_script = "uid://dsa1dnifd6w32"

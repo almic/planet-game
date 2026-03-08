@@ -8,15 +8,30 @@
 
 config_version=5
 
+[Guide]
+
+"Editor/Joy Icons"=2
+"Editor/Joy Type"=1
+
 [application]
 
 config/name="Planet Game"
 run/main_scene="uid://blroynww2chph"
-config/features=PackedStringArray("4.6", "Forward Plus")
+config/features=PackedStringArray("4.6", "Double Precision", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+GUIDE="*uid://p2jwrgjcbexr"
+InputManager="*uid://c2hqe7e4hjota"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/guide/plugin.cfg")
 
 [layer_names]
 
+3d_render/layer_2="ThirdPersonOnly"
 3d_physics/layer_5="StaticWorld"
 
 [physics]

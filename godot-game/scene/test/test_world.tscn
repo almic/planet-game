@@ -3,7 +3,8 @@
 [ext_resource type="PackedScene" uid="uid://cetgr3wj5qd6v" path="res://character/player/player.tscn" id="1_fbyci"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4xc13"]
-albedo_color = Color(0.14767182, 0.14767179, 0.14767179, 1)
+transparency = 1
+albedo_color = Color(0.14901961, 0.14901961, 0.14901961, 0.4745098)
 
 [sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_fbyci"]
 
@@ -30,12 +31,17 @@ collision_mask = 0
 size = Vector3(100, 0.1, 100)
 material = SubResource("StandardMaterial3D_4xc13")
 
-[node name="CSGBox3D2" type="CSGBox3D" parent="CSGCombiner3D" unique_id=1454939828]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -1.7)
-size = Vector3(1, 0.5, 1)
+[node name="CSGCombiner3D2" type="CSGCombiner3D" parent="." unique_id=72050405]
+use_collision = true
+collision_layer = 16
+collision_mask = 0
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="CSGCombiner3D2" unique_id=408352620]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, -1.7)
+size = Vector3(1, 0.6, 1)
 
 [node name="Player" parent="." unique_id=1957397594 instance=ExtResource("1_fbyci")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0.5)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1485511729]
 environment = SubResource("Environment_1vq1p")
@@ -47,5 +53,5 @@ shadow_enabled = true
 directional_shadow_mode = 0
 
 [node name="Camera3D2" type="Camera3D" parent="." unique_id=1414495947]
-transform = Transform3D(-0.7071068, 0.18301272, -0.6830127, 0, 0.9659259, 0.25881907, 0.7071068, 0.18301272, -0.6830127, -2.2, 1.9000001, -1.9)
+transform = Transform3D(0, 0, -1, 0, 1.0000000778272, 0, 1.00000002660624, 0, 0, -3.5, 1.4000001, -1.7)
 fov = 80.0

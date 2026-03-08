@@ -1,13 +1,17 @@
 [gd_scene format=3 uid="uid://cetgr3wj5qd6v"]
 
-[ext_resource type="Script" uid="uid://gy5qwm8j5pbh" path="res://character/CharacterController.gd" id="1_y0s34"]
+[ext_resource type="Script" uid="uid://6l6ugv6t1q5e" path="res://character/player/player.gd" id="1_y0s34"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_y0s34"]
+friction = 0.0
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_y0s34"]
+margin = 0.0
 radius = 0.32
 height = 1.39
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_y0s34"]
-height = 1.39
+[sub_resource type="SphereShape3D" id="SphereShape3D_y0s34"]
+margin = 0.0
 radius = 0.3
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_8eijk"]
@@ -21,36 +25,81 @@ height = 0.25
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8eijk"]
 albedo_color = Color(0, 0.78431374, 1, 1)
 
+[sub_resource type="SphereShape3D" id="SphereShape3D_8eijk"]
+
 [node name="Player" type="RigidBody3D" unique_id=1957397594 node_paths=PackedStringArray("shape_cast")]
 collision_mask = 17
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
 mass = 100.0
+physics_material_override = SubResource("PhysicsMaterial_y0s34")
 continuous_cd = true
 script = ExtResource("1_y0s34")
-shape_cast = NodePath("CollisionShape3D/ShapeCast3D")
+shape_cast = NodePath("ShapeCast3D")
+height_offset = -0.03
+spring_stiffness = 2.4
+spring_damping = 2.7
 metadata/_custom_type_script = "uid://gy5qwm8j5pbh"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=296855449]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.025, 0)
 shape = SubResource("CapsuleShape3D_y0s34")
 
-[node name="ShapeCast3D" type="ShapeCast3D" parent="CollisionShape3D" unique_id=1331581551]
-shape = SubResource("CylinderShape3D_y0s34")
-target_position = Vector3(0, -0.33, 0)
+[node name="ShapeCast3D" type="ShapeCast3D" parent="." unique_id=1331581551]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.67, 0)
+shape = SubResource("SphereShape3D_y0s34")
+target_position = Vector3(0, -0.37, 0)
+max_results = 1
 collision_mask = 16
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=662592939]
+[node name="mesh_yaw" type="Node3D" parent="." unique_id=1705262676]
+unique_name_in_owner = true
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="mesh_yaw" unique_id=662592939]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
+layers = 2
 mesh = SubResource("CapsuleMesh_8eijk")
 
-[node name="Camera3D" type="Camera3D" parent="." unique_id=532242651]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
-current = true
-fov = 90.0
-
-[node name="MeshInstance3D2" type="MeshInstance3D" parent="Camera3D" unique_id=1175774347]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, -0.25536436)
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="mesh_yaw" unique_id=1175774347]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0, 1.4, -0.2553644)
+layers = 2
 mesh = SubResource("CapsuleMesh_y0s34")
 surface_material_override/0 = SubResource("StandardMaterial3D_8eijk")
+
+[node name="fp_camera_yaw" type="Node3D" parent="." unique_id=828140160]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.28, 0)
+
+[node name="fp_camera_pitch" type="Node3D" parent="fp_camera_yaw" unique_id=607697951]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
+
+[node name="fp_camera" type="Camera3D" parent="fp_camera_yaw/fp_camera_pitch" unique_id=532242651]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.05)
+cull_mask = 1048573
+doppler_tracking = 2
+current = true
+fov = 90.0
+far = 2000.0
+
+[node name="tp_camera_yaw" type="Node3D" parent="." unique_id=135713763]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+
+[node name="tp_camera_pitch" type="Node3D" parent="tp_camera_yaw" unique_id=551971288]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+
+[node name="tp_camera_cast" type="ShapeCast3D" parent="tp_camera_yaw/tp_camera_pitch" unique_id=1306770407]
+unique_name_in_owner = true
+shape = SubResource("SphereShape3D_8eijk")
+target_position = Vector3(1.1, 0.6, 2.2)
+max_results = 0
+collision_mask = 16
+
+[node name="tp_camera" type="Camera3D" parent="tp_camera_yaw/tp_camera_pitch" unique_id=1835286353]
+unique_name_in_owner = true
+doppler_tracking = 2
+far = 2000.0
