@@ -28,18 +28,18 @@ albedo_color = Color(0, 0.78431374, 1, 1)
 [sub_resource type="SphereShape3D" id="SphereShape3D_8eijk"]
 
 [node name="Player" type="RigidBody3D" unique_id=1957397594 node_paths=PackedStringArray("shape_cast")]
+physics_interpolation_mode = 1
 collision_mask = 17
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
 mass = 100.0
 physics_material_override = SubResource("PhysicsMaterial_y0s34")
+custom_integrator = true
 continuous_cd = true
 script = ExtResource("1_y0s34")
 shape_cast = NodePath("ShapeCast3D")
 height_offset = -0.03
-spring_stiffness = 2.4
-spring_damping = 2.7
 metadata/_custom_type_script = "uid://gy5qwm8j5pbh"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=296855449]

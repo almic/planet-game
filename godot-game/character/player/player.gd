@@ -37,7 +37,6 @@ func _ready() -> void:
     GUIDE.enable_mapping_context(input_context_look)
     GUIDE.enable_mapping_context(input_context_move)
 
-
 func _process(delta: float) -> void:
     camera_pitch.rotation.x = clampf(
             camera_pitch.rotation.x - input_action_look.value_axis_2d.y * input_look_speed,
@@ -49,6 +48,8 @@ func _process(delta: float) -> void:
 
     if input_action_camera_toggle.is_triggered():
         camera_third_person = not camera_third_person
+
+    if camera_third_person != tp_camera.current:
         if camera_third_person:
             tp_camera.make_current()
         else:

@@ -1,10 +1,10 @@
 [gd_scene format=3 uid="uid://blroynww2chph"]
 
+[ext_resource type="Material" uid="uid://c4w0dvvh00ltw" path="res://material/dev/grid_black.tres" id="1_1vq1p"]
 [ext_resource type="PackedScene" uid="uid://cetgr3wj5qd6v" path="res://character/player/player.tscn" id="1_fbyci"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4xc13"]
-transparency = 1
-albedo_color = Color(0.14901961, 0.14901961, 0.14901961, 0.4745098)
+[ext_resource type="Texture2D" uid="uid://31027fxl4rpb" path="res://texture/dev/grid_orange.png" id="3_6i6gv"]
+[ext_resource type="Script" uid="uid://c4jqtv6g5d6tu" path="res://scene/test/launcher.gd" id="4_w5krq"]
+[ext_resource type="Texture2D" uid="uid://bs0wm5rj1jdy2" path="res://texture/dev/grid_red.png" id="5_qsqev"]
 
 [sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_fbyci"]
 
@@ -20,6 +20,34 @@ auto_exposure_enabled = true
 frustum_focal_length = 20.0
 auto_exposure_max_exposure_value = 1.0
 
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_1vq1p"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_w5krq"]
+height = 0.15
+radius = 4.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qsqev"]
+albedo_texture = ExtResource("3_6i6gv")
+uv1_scale = Vector3(8, 8, 8)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_qyrsn"]
+material = SubResource("StandardMaterial3D_qsqev")
+top_radius = 4.0
+bottom_radius = 4.0
+height = 0.15
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_qyrsn"]
+size = Vector3(2, 2, 0.1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6enav"]
+albedo_texture = ExtResource("5_qsqev")
+uv1_scale = Vector3(2, 2, 2)
+uv1_triplanar = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_dunqf"]
+material = SubResource("StandardMaterial3D_6enav")
+size = Vector3(2, 2, 0.1)
+
 [node name="World" type="Node3D" unique_id=458844105]
 
 [node name="CSGCombiner3D" type="CSGCombiner3D" parent="." unique_id=589922605]
@@ -29,7 +57,7 @@ collision_mask = 0
 
 [node name="CSGBox3D" type="CSGBox3D" parent="CSGCombiner3D" unique_id=1741334788]
 size = Vector3(100, 0.1, 100)
-material = SubResource("StandardMaterial3D_4xc13")
+material = ExtResource("1_1vq1p")
 
 [node name="CSGCombiner3D2" type="CSGCombiner3D" parent="." unique_id=72050405]
 use_collision = true
@@ -40,9 +68,6 @@ collision_mask = 0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, -1.7)
 size = Vector3(1, 0.6, 1)
 
-[node name="Player" parent="." unique_id=1957397594 instance=ExtResource("1_fbyci")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0.5)
-
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1485511729]
 environment = SubResource("Environment_1vq1p")
 camera_attributes = SubResource("CameraAttributesPhysical_fbyci")
@@ -52,6 +77,70 @@ transform = Transform3D(0.46783724, 0.82738996, -0.31073177, 0, 0.35158026, 0.93
 shadow_enabled = true
 directional_shadow_mode = 0
 
-[node name="Camera3D2" type="Camera3D" parent="." unique_id=1414495947]
-transform = Transform3D(0, 0, -1, 0, 1.0000000778272, 0, 1.00000002660624, 0, 0, -3.5, 1.4000001, -1.7)
-fov = 80.0
+[node name="Player" parent="." unique_id=1957397594 instance=ExtResource("1_fbyci")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.7, 0.05, -12.6)
+mass = 1000.0
+
+[node name="RotatingFloor" type="RigidBody3D" parent="." unique_id=1380169061]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.9, 0.15, 0)
+collision_layer = 16
+collision_mask = 17
+axis_lock_linear_x = true
+axis_lock_linear_y = true
+axis_lock_linear_z = true
+axis_lock_angular_x = true
+axis_lock_angular_z = true
+mass = 2000.0
+physics_material_override = SubResource("PhysicsMaterial_1vq1p")
+angular_damp = 0.6
+constant_torque = Vector3(0, 4000, 0)
+
+[node name="collider" type="CollisionShape3D" parent="RotatingFloor" unique_id=2145421092]
+shape = SubResource("CylinderShape3D_w5krq")
+
+[node name="floor" type="MeshInstance3D" parent="RotatingFloor" unique_id=1307487805]
+mesh = SubResource("CylinderMesh_qyrsn")
+
+[node name="Elevator" type="RigidBody3D" parent="." unique_id=1060895025]
+transform = Transform3D(0, 1, 0, 0, 0, 1, 1, 0, 0, 6.7, 0.1, -14)
+collision_layer = 16
+collision_mask = 17
+axis_lock_linear_x = true
+axis_lock_linear_z = true
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
+mass = 1000.0
+custom_integrator = true
+continuous_cd = true
+script = ExtResource("4_w5krq")
+extension_acceleration = 1.0
+
+[node name="collider" type="CollisionShape3D" parent="Elevator" unique_id=688705529]
+shape = SubResource("BoxShape3D_qyrsn")
+
+[node name="floor" type="MeshInstance3D" parent="Elevator" unique_id=1515547502]
+mesh = SubResource("BoxMesh_dunqf")
+
+[node name="Slider" type="RigidBody3D" parent="." unique_id=1904876756]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 2, 0.1, -14)
+collision_layer = 16
+collision_mask = 17
+axis_lock_linear_y = true
+axis_lock_linear_z = true
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
+mass = 1000.0
+custom_integrator = true
+continuous_cd = true
+script = ExtResource("4_w5krq")
+extension_acceleration = 2.0
+
+[node name="collider" type="CollisionShape3D" parent="Slider" unique_id=1572990332]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
+shape = SubResource("BoxShape3D_qyrsn")
+
+[node name="floor" type="MeshInstance3D" parent="Slider" unique_id=1315665247]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
+mesh = SubResource("BoxMesh_dunqf")

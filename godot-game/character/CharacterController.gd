@@ -30,10 +30,9 @@ var deceleration: float = 8.0
 @export_range(-10.0, 10.0, 0.01, 'or_less', 'or_greater')
 var height_offset: float = 0.0
 
-@export var spring_stiffness: float = 1.0
+@export var spring_stiffness: float = 1.5
 
-@export var spring_damping: float = 2.0
-
+@export var spring_damping: float = 1.2
 
 
 var is_on_floor: bool = false
@@ -60,29 +59,48 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     if not shape_cast.is_colliding():
         if is_on_floor:
             is_on_floor = false
+        state.linear_velocity += state.total_gravity * state.step
         return
 
     if not is_on_floor:
         is_on_floor = true
-
-    if desired_velocity.is_zero_approx():
-        linear_velocity -= linear_velocity * deceleration * state.step
-    else:
-        linear_velocity = linear_velocity * 0.75 + desired_velocity * 0.25
 
     var max_length: float = shape_cast.target_position.length()
     var spring_direction: Vector3 = -(shape_cast.target_position / max_length)
     var length: float = shape_cast.get_closest_collision_safe_fraction() * max_length
     var normal: Vector3 = shape_cast.get_collision_normal(0)
 
-    var up_velocity: float = spring_direction.dot(state.linear_velocity)
+    var offset: float = (max_length - height_offset) - length
+    var spring: float = mass * 100.0 * spring_stiffness * offset
 
-    var offset: float = max_length - length - height_offset
-    var spring: float = 100.0 * spring_stiffness * offset
-    var damp: float = minf(10.0 * spring_damping * up_velocity, spring)
+    var push: Vector3
 
-    var push: Vector3 = (
-            clampf(spring - damp, 0.0, 1e8) * mass
-            * spring_direction * clampf(normal.dot(spring_direction), 0.5, 1.0)
+    var ground: Object = shape_cast.get_collider(0)
+    var ground_velocity: Vector3 = state.linear_velocity - (global_basis.y * global_basis.tdoty(state.linear_velocity))
+    if ground is RigidBody3D:
+        var body_state := PhysicsServer3D.body_get_direct_state(ground.get_rid())
+        var local_position: Vector3 = shape_cast.get_collision_point(0) - ground.global_position
+
+        var body_contact_velocity = body_state.get_velocity_at_local_position(local_position)
+
+        var vertical_velocity: Vector3 = global_basis.y * global_basis.tdoty(body_contact_velocity)
+
+        var spring_velocity: float = spring_direction.dot(state.linear_velocity - body_contact_velocity)
+        var damp: float = minf(mass * 10.0 * spring_damping * spring_velocity, spring)
+
+        push = (
+            clampf(spring - damp, 0.0, 1e8) * spring_direction * clampf(normal.dot(spring_direction), 0.5, 1.0)
         )
-    state.apply_central_force(push)
+        ground_velocity -= body_contact_velocity - vertical_velocity
+        body_state.apply_force(-1.0 * (push + (ground_velocity * mass)), local_position)
+    else:
+        var spring_velocity: float = spring_direction.dot(state.linear_velocity)
+        var damp: float = minf(mass * 10.0 * spring_damping * spring_velocity, spring)
+        push = (
+            clampf(spring - damp, 0.0, 1e8) * spring_direction * clampf(normal.dot(spring_direction), 0.5, 1.0)
+        )
+
+    var forward: Vector3 = desired_velocity
+    var friction: Vector3 = ground_velocity
+
+    state.linear_velocity += (state.step * (state.total_gravity + push * state.inverse_mass)) + forward - friction
