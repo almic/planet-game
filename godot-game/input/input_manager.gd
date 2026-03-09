@@ -4,6 +4,7 @@ extends Node
 
 var input_global_context: GUIDEMappingContext = preload("uid://d03wntb6hv3sf")
 var input_action_pause: GUIDEAction = preload("uid://djvqcq1sg55wm")
+var input_action_speed: GUIDEAction = preload("uid://c8lqf68owbwtc")
 
 
 ## If the mouse is currently within the game window
@@ -38,6 +39,10 @@ func _process(_delta: float) -> void:
             unpause()
         else:
             pause()
+
+    if input_action_speed.is_triggered():
+        print('Time scale: %.4f' % input_action_speed.value_axis_1d)
+        Engine.time_scale = clampf(input_action_speed.value_axis_1d, 0.25, 1.0)
 
 
 func on_mouse_entered() -> void:
