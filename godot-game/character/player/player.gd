@@ -5,6 +5,9 @@ const LOOK_UP_MAX: float = deg_to_rad(89)
 const LOOK_DOWN_MAX: float = deg_to_rad(-88)
 
 
+@export_range(0.001, 10.0, 0.001, 'or_greater')
+var max_speed: float = 5.35
+
 @export_group('Input', 'input')
 
 @export_subgroup('Look')
@@ -64,7 +67,12 @@ func _process(delta: float) -> void:
 
 
 func _handle_input() -> void:
-    if input_action_move.value_axis_3d.length_squared() > 1e-3:
-        desired_velocity = camera.global_basis * input_action_move.value_axis_3d.normalized() * 4.0
+    if input_action_move and input_action_move.value_axis_3d.length_squared() > 1e-3:
+        desired_direction = input_action_move.value_axis_3d.normalized()
+        if camera_third_person:
+            desired_direction = tp_camera_yaw.global_basis * desired_direction
+        else:
+            desired_direction = camera_yaw.global_basis * desired_direction
+        desired_speed = max_speed
     else:
-        desired_velocity = Vector3.ZERO
+        desired_speed = 0.0

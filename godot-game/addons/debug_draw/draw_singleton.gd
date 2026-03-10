@@ -107,7 +107,7 @@ func _draw_text(pos: Vector3, string: String, color: Color) -> void:
             string,
             HORIZONTAL_ALIGNMENT_CENTER,
             -1.0,
-            32.0 / pos.distance_to(camera.global_position),
+            64.0 / pos.distance_to(camera.global_position),
             color
     )
 

@@ -3,20 +3,17 @@ class_name CharacterController extends RigidBody3D
 
 @export_group('Movement')
 
-## Acceleration rate in the desired direction. Set this to zero to always move
-## at max_speed.
+## Acceleration rate in the desired direction.
 @export_range(0.0, 3.0, 0.01, 'or_greater')
-var acceleration: float = 1.0
-
-## Maximum speed, will stop accelerating from input when this speed is reached.
-## Set to zero to have no limit, requires acceleration to be positive, otherwise
-## 1.0 is used as the max speed.
-@export_range(0.0, 10.0, 0.01, 'or_greater')
-var max_speed: float = 5.0
+var acceleration: float = 16.0
 
 ## Stopping rate when controller should not move. Set to zero to disable stopping.
 @export_range(0.0, 20.0, 0.01, 'or_greater')
-var deceleration: float = 14.0
+var deceleration: float = 18.0
+
+## How much speed to maintain when turning, reduces by this fraction every 15 degrees.
+@export_range(0.001, 1.0, 0.001)
+var turning_retention: float = 0.67
 
 
 @export_group('Floor Collision')
@@ -52,6 +49,7 @@ var _normal_debug_vec: int = 0
 
 @export var debug_friction: bool = false
 var _friction_debug_vec: int = 0
+var _friction_movement_debug_vec: int = 0
 
 @export var debug_spring: bool = false
 var _spring_debug_vec: int = 0
@@ -62,7 +60,9 @@ var is_on_floor: bool = false
 ## Force the controller to project desired velocity onto the ground, or if in
 ## the air, remove any vertical component and reproject to lateral movement
 var force_ground_movement: bool = true
-var desired_velocity: Vector3 = Vector3.ZERO
+
+var desired_direction: Vector3 = Vector3.ZERO
+var desired_speed: float = 0.0
 
 ## The body's total speed
 var linear_speed: float
@@ -110,13 +110,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     vertical_speed = vertical_velocity.length()
     lateral_speed = linear_speed - vertical_speed
 
-    var friction: Vector3 = Vector3.ZERO
-
     # "Air drag"
     # (1/2) * Density * v^2 * Area * Coefficient
+    var air_friction: Vector3 = Vector3.ZERO
     if not is_zero_approx(lateral_speed + vertical_speed):
         var lateral_ratio: float = clampf(lateral_speed / (lateral_speed + vertical_speed), 0.0, 1.0)
-        friction += (
+        air_friction = (
                 0.5 * -1.21
                 * state.linear_velocity.normalized() * linear_speed * linear_speed
                 # Surface area, rough estimates
@@ -153,29 +152,46 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     elif is_on_floor:
         is_on_floor = false
         ground_normal = Vector3.ZERO
-        ground_velocity = Vector3.ZERO
         ground_friction = Vector3.ZERO
+        ground_velocity = Vector3.ZERO
         spring_force = Vector3.ZERO
 
     var forward: Vector3 = Vector3.ZERO
+
     if is_on_floor:
-        if not desired_velocity.is_zero_approx():
+        if desired_speed > 0.0 and not desired_direction.is_zero_approx():
             # Moving on ground
             if force_ground_movement:
-                var desired_speed: float = desired_velocity.length()
-                var desired_direction: Vector3 = desired_velocity / desired_speed
                 forward = global_basis.y.cross(desired_direction).cross(ground_normal).normalized()
-                forward *= desired_speed
             else:
-                forward = desired_velocity
+                forward = desired_direction
 
             # Reduce ground friction up to forward movement amount
             if not ground_friction.is_zero_approx():
-                var ground_friction_dir: Vector3 = ground_friction.normalized()
-                var friction_reduction: Vector3 = ground_friction_dir * ground_friction_dir.dot(-forward)
-                ground_friction -= friction_reduction.limit_length(ground_friction.length())
+                var ground_friction_speed: float = ground_friction.length()
+                var ground_friction_dir: Vector3 = ground_friction / ground_friction_speed
+                ground_friction -= ground_friction_dir * minf(desired_speed, ground_friction_speed)
 
-        elif not ground_velocity.is_zero_approx():
+            # Reduce air friction up to forward movement amount
+            if not air_friction.is_zero_approx():
+                var air_friction_speed: float = air_friction.length()
+                var air_friction_dir: Vector3 = air_friction / air_friction_speed
+                air_friction -= air_friction_dir * minf(desired_speed, air_friction_speed)
+
+            # Add extra ground friction for turning/ changing direction
+            if not ground_velocity.is_zero_approx():
+                var move_friction: Vector3 = _calculate_move_friction(forward)
+                if debug_enabled and debug_friction:
+                    _friction_movement_debug_vec = DebugDraw.vector(
+                            global_position + (Vector3.UP * 0.45),
+                            move_friction,
+                            Color.DARK_GREEN,
+                            _friction_movement_debug_vec,
+                            2.0
+                    )
+                ground_friction += move_friction
+
+        elif deceleration > 0.0 and not ground_velocity.is_zero_approx():
             # Stop quickly
             var max_stop_speed: float = ground_velocity.length()
             var ground_dir: Vector3 = ground_velocity / max_stop_speed
@@ -186,14 +202,23 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             # Delta
             max_stop_speed /= state.step
 
-            friction += -ground_dir * minf(deceleration, max_stop_speed)
+            ground_friction += -ground_dir * minf(deceleration, max_stop_speed)
+    elif not force_ground_movement:
+        forward = desired_direction
 
-    # Add final ground friction
-    friction += ground_friction
+    # Add final friction values
+    var friction: Vector3 = ground_friction + air_friction
 
-    state.linear_velocity += state.step * (state.total_gravity + (spring_force * state.inverse_mass) + forward + friction)
+    state.linear_velocity += state.step * (state.total_gravity + (spring_force * state.inverse_mass) + friction)
+
     if state.linear_velocity.length_squared() < 1.6e-5:
         state.linear_velocity = Vector3.ZERO
+
+    # Limit forward acceleration
+    var speed_in_dir: float = state.linear_velocity.dot(forward)
+    if speed_in_dir < desired_speed:
+        forward *= minf(acceleration, maxf(desired_speed - speed_in_dir, 0.0) / state.step)
+        state.linear_velocity += forward * state.step
 
     if debug_enabled:
         if debug_velocity:
@@ -211,9 +236,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             )
 
         if debug_forward:
+            var norm: Vector3 = forward
+            if not norm.is_zero_approx():
+                norm = norm.normalized()
             _forward_debug_vec = DebugDraw.vector(
                     global_position + (Vector3.UP * 0.5),
-                    forward.normalized(),
+                    norm,
                     Color.GREEN_YELLOW,
                     _forward_debug_vec,
                     2.0
@@ -292,3 +320,30 @@ func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
         # Apply opposing spring force to body, invert ground velocity to push back
         #print(ground_friction)
         ground_state.apply_force(-1.0 * (spring_force + ground_velocity * mass), local_position)
+
+## Calculate additional ground friction for turning/ changing direction
+func _calculate_move_friction(forward: Vector3) -> Vector3:
+    var ground_direction: Vector3 = ground_velocity.normalized()
+    var cos_theta: float = clampf(ground_direction.dot(forward), -1.0, 1.0)
+
+    # No friction if wish direction and movement match
+    if cos_theta == 1.0:
+        return Vector3.ZERO
+
+    var angle: float = acos(cos_theta)
+
+    # More friction in similar directions, reduce slidey feel when
+    # strafing perpendicular to direction of motion
+    if cos_theta > 0.5:
+        cos_theta = angle * (2 / PI)
+
+    var loss: float = (1.0 - cos_theta) * deceleration
+
+    # Retain some speed when turning, multiplier is per 15* of difference
+    var keep: float = pow(clampf(turning_retention, 0.001, 0.943), angle * (12.0 / PI))
+
+    # Allow counter-strafing at "half" the normal rate, reduces jumpy feeling
+    if cos_theta <= 0.0:
+        keep *= keep
+
+    return -ground_direction * loss + forward * loss * keep
