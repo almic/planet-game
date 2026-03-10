@@ -18,11 +18,17 @@ enum PLANE {
 
 enum TYPE {
     VECTOR = 1,
+    TEXT,
 }
 
 var id_counter: int = 1
 var items: Dictionary = {}
+var font: Font
 
+
+func _init() -> void:
+    font = SystemFont.new()
+    font.font_names = ['monospace', 'mono']
 
 func _process(delta: float) -> void:
 
@@ -60,17 +66,50 @@ func _draw() -> void:
             items.erase(k)
             continue
 
-
         if d.type == TYPE.VECTOR:
             var coords: Vector3 = d.get(&'pos')
             var vec: Vector3 = d.get(&'vec')
             var color: Color = d.get(&'color')
 
             _draw_vector(coords, vec, color)
+        elif d.type == TYPE.TEXT:
+            var coords: Vector3 = d.get(&'pos')
+            var string: String = d.get(&'str')
+            var color: Color = d.get(&'color')
+
+            _draw_text(coords, string, color)
         else:
             push_error('DebugDraw: Unknown type id %d!' % d.type)
             items.erase(k)
 
+
+func text(coordinates: Vector3, string: String, color: Color, id: int = 0, time: float = 0.0) -> int:
+    var d: Dictionary = {}
+    id = _get_item(id, TYPE.TEXT, d)
+
+    d.set(&'pos', coordinates)
+    d.set(&'str', string)
+    d.set(&'color', color)
+    d.set(&'t', time)
+
+    items.set(id, d)
+    queue_redraw()
+    return id
+
+func _draw_text(pos: Vector3, string: String, color: Color) -> void:
+    if not camera.is_position_in_frustum(pos):
+        return
+
+    var screen: Vector2 = camera.unproject_position(pos)
+    draw_string(
+            font,
+            screen,
+            string,
+            HORIZONTAL_ALIGNMENT_CENTER,
+            -1.0,
+            32.0 / pos.distance_to(camera.global_position),
+            color
+    )
 
 ## Draw a vector at a given position. Returns an ID that can be used to update this
 ## vector later.

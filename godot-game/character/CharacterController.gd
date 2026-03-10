@@ -42,6 +42,7 @@ var debug_enabled: bool = false
 
 @export var debug_velocity: bool = false
 var _velocity_debug_vec: int = 0
+var _velocity_debug_text: int = 0
 
 @export var debug_forward: bool = false
 var _forward_debug_vec: int = 0
@@ -63,6 +64,30 @@ var is_on_floor: bool = false
 var force_ground_movement: bool = true
 var desired_velocity: Vector3 = Vector3.ZERO
 
+## The body's total speed
+var linear_speed: float
+
+## Velocity in the body's up direction
+var vertical_velocity: Vector3
+
+## Speed in the body's up direction
+var vertical_speed: float
+
+## Speed in the body's lateral direction, equivalent to linear_speed - vertical_speed
+var lateral_speed: float
+
+## Normal of the ground, is ZERO when no ground is detected
+var ground_normal: Vector3
+
+## Velocity of this body along the plane of the ground
+var ground_velocity: Vector3
+
+## Calculated ground friction vector
+var ground_friction: Vector3
+
+## Calculated spring force
+var spring_force: Vector3
+
 
 func _ready() -> void:
     # At least 1 result is needed for ground slope detection
@@ -80,82 +105,93 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
     _handle_input()
 
-    if not shape_cast.is_colliding():
-        if is_on_floor:
-            is_on_floor = false
-        state.linear_velocity += state.total_gravity * state.step
-        return
-
-    if not is_on_floor:
-        is_on_floor = true
-
-    var max_length: float = shape_cast.target_position.length()
-    var spring_direction: Vector3 = -(shape_cast.target_position / max_length)
-    var length: float = shape_cast.get_closest_collision_safe_fraction() * max_length
-    var normal: Vector3 = shape_cast.get_collision_normal(0)
-
-    var offset: float = (max_length + height_offset) - length
-    var spring: float = mass * 100.0 * spring_stiffness * offset
-
-    var push: Vector3
-
-    var ground: Object = shape_cast.get_collider(0)
-    var vertical_velocity: Vector3 = global_basis.y * global_basis.tdoty(state.linear_velocity)
-    var ground_velocity: Vector3 = state.linear_velocity - vertical_velocity
-    if ground is RigidBody3D:
-        var body_state := PhysicsServer3D.body_get_direct_state(ground.get_rid())
-        var local_position: Vector3 = shape_cast.get_collision_point(0) - ground.global_position
-
-        var body_contact_velocity = body_state.get_velocity_at_local_position(local_position)
-
-        var ground_vertical_velocity: Vector3 = global_basis.y * global_basis.tdoty(body_contact_velocity)
-
-        var spring_velocity: float = spring_direction.dot(state.linear_velocity - body_contact_velocity)
-        var damp: float = minf(mass * 10.0 * spring_damping * spring_velocity, spring)
-
-        push = (
-            clampf(spring - damp, 0.0, 1e8) * spring_direction * clampf(normal.dot(spring_direction), 0.5, 1.0)
-        )
-        ground_velocity -= body_contact_velocity - ground_vertical_velocity
-        body_state.apply_force(-1.0 * (push + (ground_velocity * mass)), local_position)
-    else:
-        var spring_velocity: float = spring_direction.dot(normal) * state.linear_velocity.dot(normal)
-        var damp: float = minf(mass * 10.0 * spring_damping * spring_velocity, spring)
-        push = (
-            clampf(spring - damp, 0.0, 1e8) * spring_direction * clampf(normal.dot(spring_direction), 0.5, 1.0)
-        )
-
-    var forward: Vector3 = desired_velocity
-    var wants_move: bool = not desired_velocity.is_zero_approx()
-    if force_ground_movement and wants_move:
-        var desired_speed: float = desired_velocity.length()
-        var desired_direction: Vector3 = desired_velocity / desired_speed
-        forward = global_basis.y.cross(desired_direction).cross(normal).normalized()
-        forward *= desired_speed
-
-    var linear_speed: float = state.linear_velocity.length()
-    var vertical_speed: float = vertical_velocity.length()
+    linear_speed = state.linear_velocity.length()
+    vertical_velocity = state.transform.basis.y * state.transform.basis.tdoty(state.linear_velocity)
+    vertical_speed = vertical_velocity.length()
+    lateral_speed = linear_speed - vertical_speed
 
     var friction: Vector3 = Vector3.ZERO
 
     # "Air drag"
     # (1/2) * Density * v^2 * Area * Coefficient
-    if not is_zero_approx(linear_speed + vertical_speed):
-        var lateral_ratio: float = clampf(linear_speed / (linear_speed + vertical_speed), 0.0, 1.0)
+    if not is_zero_approx(lateral_speed + vertical_speed):
+        var lateral_ratio: float = clampf(lateral_speed / (lateral_speed + vertical_speed), 0.0, 1.0)
         friction += (
-                0.5 * 1.21
-                * state.linear_velocity * state.linear_velocity.abs()
+                0.5 * -1.21
+                * state.linear_velocity.normalized() * linear_speed * linear_speed
+                # Surface area, rough estimates
                 * lerpf(0.09, 0.3, lateral_ratio)
-                * lerpf(0.01, 0.65, lateral_ratio)
+                # Drag coefficient, falling calculated to result in 112m/s terminal speed
+                # and lateral to roughly a sprinter's coefficient
+                * lerpf(0.0143, 0.65, lateral_ratio)
         )
 
-    if not wants_move and not ground_velocity.is_zero_approx():
-        # Stop quickly
-        var ground_speed: float = ground_velocity.length()
-        var ground_dir: Vector3 = ground_velocity / ground_speed
-        friction += ground_dir * minf(deceleration, ground_speed / state.step)
+    # Ground detection and force
+    if shape_cast.is_colliding():
+        if not is_on_floor:
+            is_on_floor = true
 
-    state.linear_velocity += state.step * (state.total_gravity + (push * state.inverse_mass) + forward - friction)
+        if debug_enabled and debug_normal:
+            _normal_debug_vec = DebugDraw.vector(
+                    shape_cast.get_collision_point(0),
+                    ground_normal * 0.5,
+                    Color.CORNFLOWER_BLUE,
+                    _normal_debug_vec,
+                    2.0
+            )
+
+        _calculate_ground_force(state)
+
+        if debug_enabled and debug_spring:
+            _spring_debug_vec = DebugDraw.vector(
+                shape_cast.global_position,
+                state.total_gravity + (spring_force * state.inverse_mass),
+                Color.DARK_SLATE_BLUE,
+                _spring_debug_vec
+            )
+
+    elif is_on_floor:
+        is_on_floor = false
+        ground_normal = Vector3.ZERO
+        ground_velocity = Vector3.ZERO
+        ground_friction = Vector3.ZERO
+        spring_force = Vector3.ZERO
+
+    var forward: Vector3 = Vector3.ZERO
+    if is_on_floor:
+        if not desired_velocity.is_zero_approx():
+            # Moving on ground
+            if force_ground_movement:
+                var desired_speed: float = desired_velocity.length()
+                var desired_direction: Vector3 = desired_velocity / desired_speed
+                forward = global_basis.y.cross(desired_direction).cross(ground_normal).normalized()
+                forward *= desired_speed
+            else:
+                forward = desired_velocity
+
+            # Reduce ground friction up to forward movement amount
+            if not ground_friction.is_zero_approx():
+                var ground_friction_dir: Vector3 = ground_friction.normalized()
+                var friction_reduction: Vector3 = ground_friction_dir * ground_friction_dir.dot(-forward)
+                ground_friction -= friction_reduction.limit_length(ground_friction.length())
+
+        elif not ground_velocity.is_zero_approx():
+            # Stop quickly
+            var max_stop_speed: float = ground_velocity.length()
+            var ground_dir: Vector3 = ground_velocity / max_stop_speed
+
+            # TODO: Account for gravity on slopes
+            #max_stop_speed += ground_normal.dot(state.total_gravity)
+
+            # Delta
+            max_stop_speed /= state.step
+
+            friction += -ground_dir * minf(deceleration, max_stop_speed)
+
+    # Add final ground friction
+    friction += ground_friction
+
+    state.linear_velocity += state.step * (state.total_gravity + (spring_force * state.inverse_mass) + forward + friction)
     if state.linear_velocity.length_squared() < 1.6e-5:
         state.linear_velocity = Vector3.ZERO
 
@@ -167,6 +203,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                     Color.FOREST_GREEN,
                     _velocity_debug_vec,
             )
+            _velocity_debug_text = DebugDraw.text(
+                    global_position + (Vector3.UP * 0.55),
+                    '%.3f m/s' % linear_speed,
+                    Color.FOREST_GREEN,
+                    _velocity_debug_text
+            )
 
         if debug_forward:
             _forward_debug_vec = DebugDraw.vector(
@@ -177,28 +219,76 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                     2.0
             )
 
-        if debug_normal:
-            _normal_debug_vec = DebugDraw.vector(
-                    shape_cast.get_collision_point(0),
-                    normal * 0.5,
-                    Color.CORNFLOWER_BLUE,
-                    _normal_debug_vec,
-                    2.0
-            )
-
         if debug_friction:
             _friction_debug_vec = DebugDraw.vector(
                 global_position + (Vector3.UP * 0.45),
-                -friction,
+                friction,
                 Color.FIREBRICK,
                 _friction_debug_vec,
                 2.0
             )
 
-        if debug_spring:
-            _spring_debug_vec = DebugDraw.vector(
-                shape_cast.global_position,
-                state.total_gravity + (push * state.inverse_mass),
-                Color.DARK_SLATE_BLUE,
-                _spring_debug_vec
-            )
+## Calculate a ground force using a spring-mass-damper simulation and friction
+func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
+
+    ground_normal = shape_cast.get_collision_normal(0)
+
+    var max_length: float = shape_cast.target_position.length()
+    var spring_direction: Vector3 = -(shape_cast.target_position / max_length)
+    var length: float = shape_cast.get_closest_collision_safe_fraction() * max_length
+
+    var offset: float = (max_length + height_offset) - length
+    var spring: float = mass * 100.0 * spring_stiffness * offset
+
+    var ground: Object = shape_cast.get_collider(0)
+    var ground_state: PhysicsDirectBodyState3D = null
+    var ground_contact_velocity: Vector3 = Vector3.ZERO
+
+    var friction_coef: float
+
+    if ground is PhysicsBody3D:
+        ground_state = PhysicsServer3D.body_get_direct_state(ground.get_rid())
+
+        friction_coef = absf(minf(
+                PhysicsServer3D.body_get_param(get_rid(), PhysicsServer3D.BODY_PARAM_FRICTION),
+                PhysicsServer3D.body_get_param(ground.get_rid(), PhysicsServer3D.BODY_PARAM_FRICTION)
+        ))
+    else:
+        friction_coef = absf(PhysicsServer3D.body_get_param(get_rid(), PhysicsServer3D.BODY_PARAM_FRICTION))
+
+    var local_position: Vector3 = Vector3.ZERO
+    if ground_state:
+        local_position = shape_cast.get_collision_point(0) - ground_state.transform.origin
+        ground_contact_velocity = ground_state.get_velocity_at_local_position(local_position)
+
+    if ground_contact_velocity.is_zero_approx():
+        ground_velocity = state.linear_velocity.slide(ground_normal)
+        ground_friction = friction_coef * -ground_velocity
+    else:
+        var relative_contact_velocity: Vector3 = ground_contact_velocity - state.linear_velocity
+
+        # Use relative velocity as ground velocity
+        ground_velocity = -relative_contact_velocity.slide(ground_normal)
+
+        # Ground friction in m/s^2
+        ground_friction = friction_coef * relative_contact_velocity.slide(ground_normal)
+
+    # NOTE: Math trick, these two lines are equivalent
+    #       1) A.dot(N) * B.dot(N)  OR  N.dot(A) * N.dot(B)
+    #       2) A.dot(N * N.dot(B))
+    var spring_velocity: float = (
+              ground_normal.dot(spring_direction)
+            * ground_normal.dot(state.linear_velocity - ground_contact_velocity)
+    )
+    var damp: float = minf(mass * 10.0 * spring_damping * spring_velocity, spring)
+
+    spring_force = (
+        clampf(spring - damp, 0.0, 1e8) * spring_direction
+        # TODO: check if this is needed
+        * clampf(ground_normal.dot(spring_direction), 0.0, 1.0)
+    )
+
+    if ground_state:
+        # Apply opposing spring force to body, invert ground velocity to push back
+        #print(ground_friction)
+        ground_state.apply_force(-1.0 * (spring_force + ground_velocity * mass), local_position)
