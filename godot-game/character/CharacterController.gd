@@ -99,10 +99,13 @@ var ground_normal: Vector3
 var ground_velocity: Vector3
 
 ## Direction of this body along the plane of the ground
-var ground_direction: Vector3 = ground_velocity.normalized()
+var ground_direction: Vector3
 
 ## Calculated ground friction vector
 var ground_friction: Vector3
+
+## Relative contact velocity with the ground
+var ground_rel_con_velocity: Vector3
 
 ## Calculated spring force
 var spring_force: Vector3
@@ -237,17 +240,36 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                 ground_friction += move_friction
 
         elif deceleration > 0.0 and not ground_velocity.is_zero_approx():
+            # TODO: Stopping friction is causing weird interactions on slopes.
+            #       This must be addressed by trying new ways to calculate it here.
+
             # Stop quickly
-            var max_stop_speed: float = ground_velocity.length()
-            var ground_dir: Vector3 = ground_velocity / max_stop_speed
+            var relative_ground: Vector3 = (
+                    # Vertical stopping component with spring correction
+                    state.transform.basis.y * state.transform.basis.tdoty(ground_velocity)
+                  + ground_rel_con_velocity.slide(state.transform.basis.y)
+            )
 
-            # TODO: Account for gravity on slopes
-            #max_stop_speed += ground_normal.dot(state.total_gravity)
+            var ground_speed: float = relative_ground.length()
+            var ground_dir: Vector3 = relative_ground / ground_speed
 
-            # Delta
-            max_stop_speed /= state.step
+            var max_stop_speed: float = ground_speed / state.step
+            var stop_len: float = minf(deceleration, max_stop_speed)
+            var stop_friction: Vector3 = -ground_dir * stop_len
 
-            ground_friction += -ground_dir * minf(deceleration, max_stop_speed)
+            if not stop_friction.is_zero_approx():
+
+                # remove spring + gravity
+                if not spring_force.is_zero_approx():
+                    var spring_vel: Vector3 = state.total_gravity + (spring_force * state.inverse_mass)
+                    var spring_len: float = spring_vel.length()
+                    var spring_dir: Vector3 = spring_vel / spring_len
+
+                    var cos_theta: float = ground_dir.dot(spring_dir)
+                    stop_friction += ground_dir * minf(spring_len * absf(cos_theta), stop_len)
+
+                ground_friction += stop_friction
+
     elif force_ground_movement:
         # Air control
         if air_control > 0.0 and desired_speed > 0.0 and not desired_direction.is_zero_approx():
@@ -345,13 +367,15 @@ func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
         ground_contact_velocity = ground_state.get_velocity_at_local_position(local_position)
 
     if ground_contact_velocity.is_zero_approx():
+        ground_rel_con_velocity = state.linear_velocity
         ground_velocity = state.linear_velocity.slide(ground_normal)
         ground_friction = friction_coef * -ground_velocity
     else:
         var relative_contact_velocity: Vector3 = ground_contact_velocity - state.linear_velocity
 
         # Use relative velocity as ground velocity
-        ground_velocity = -relative_contact_velocity.slide(ground_normal)
+        ground_rel_con_velocity = -relative_contact_velocity
+        ground_velocity = ground_rel_con_velocity.slide(ground_normal)
 
         # Ground friction in m/s^2
         ground_friction = friction_coef * relative_contact_velocity.slide(ground_normal)
