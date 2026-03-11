@@ -10,6 +10,11 @@ margin = 0.0
 radius = 0.32
 height = 1.39
 
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_8eijk"]
+margin = 0.0
+radius = 0.32
+height = 1.0
+
 [sub_resource type="SphereShape3D" id="SphereShape3D_y0s34"]
 margin = 0.0
 radius = 0.3
@@ -38,19 +43,27 @@ physics_material_override = SubResource("PhysicsMaterial_y0s34")
 custom_integrator = true
 continuous_cd = true
 script = ExtResource("1_y0s34")
-shape_cast = NodePath("ShapeCast3D")
+shape_cast = NodePath("spring_cast")
 height_offset = 0.03
 metadata/_custom_type_script = "uid://gy5qwm8j5pbh"
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=296855449]
+[node name="collider_stand" type="CollisionShape3D" parent="." unique_id=296855449]
+unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.025, 0)
 shape = SubResource("CapsuleShape3D_y0s34")
 debug_color = Color(0, 0.6392157, 0.39215687, 0.9254902)
 
-[node name="ShapeCast3D" type="ShapeCast3D" parent="." unique_id=1331581551]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.67, 0)
+[node name="collider_crouch" type="CollisionShape3D" parent="." unique_id=1430280379]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.22, 0)
+shape = SubResource("CapsuleShape3D_8eijk")
+disabled = true
+debug_color = Color(0, 0.6392157, 0.39215687, 0.9254902)
+
+[node name="spring_cast" type="ShapeCast3D" parent="." unique_id=1331581551]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.04, 0)
 shape = SubResource("SphereShape3D_y0s34")
-target_position = Vector3(0, -0.37, 0)
+target_position = Vector3(0, -0.74, 0)
 max_results = 1
 collision_mask = 16
 debug_shape_custom_color = Color(1, 0, 0, 1)

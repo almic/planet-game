@@ -80,6 +80,8 @@ var desired_direction: Vector3 = Vector3.ZERO
 var desired_speed: float = 0.0
 var desired_incline_effect: float = 1.0
 var desired_jump_power: float = 0.0
+## Additional offset for the spring height
+var desired_height_offset: float = 0.0
 
 ## The body's total speed
 var linear_speed: float
@@ -376,7 +378,7 @@ func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
     var spring_direction: Vector3 = -(shape_cast.target_position / max_length)
     var length: float = shape_cast.get_closest_collision_safe_fraction() * max_length
 
-    var offset: float = (max_length + height_offset) - length
+    var offset: float = (max_length + height_offset + desired_height_offset) - length
     var spring: float = mass * 100.0 * spring_stiffness * offset
 
     var ground: Object = shape_cast.get_collider(0)

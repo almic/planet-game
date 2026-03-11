@@ -20,6 +20,16 @@ var walk_slope_effect: float = 0.0
 @export_range(0.0, 10.0, 0.001)
 var jump_power: float = 5.0
 
+## How far down to crouch, applied as an offset to the set spring offset.
+## Should be no more than the length of the spring.
+@export_range(0.0, 1.0, 0.001, 'or_greater', 'suffix:m')
+var crouch_offset: float = 0.39
+
+## The safe fraction of the spring when the standing collider can be enabled.
+## Math may be required to determine this value, but you can just do trial-and-error.
+@export_range(0.0, 1.0, 0.001)
+var crouch_safe_fraction: float = 0.6
+
 
 @export_group('Input', 'input')
 
@@ -34,6 +44,7 @@ var jump_power: float = 5.0
 @export var input_action_move: GUIDEAction = preload("uid://dqaca6xu7ac6a")
 @export var input_action_walk: GUIDEAction = preload("uid://e6xtsr0uirai")
 @export var input_action_jump: GUIDEAction = preload("uid://oru4dn30hyrs")
+@export var input_action_crouch: GUIDEAction = preload("uid://cyig6itfyeel1")
 
 
 @onready var mesh_yaw: Node3D = %mesh_yaw
@@ -47,11 +58,17 @@ var jump_power: float = 5.0
 @onready var tp_camera_cast: ShapeCast3D = %tp_camera_cast
 @onready var tp_camera: Camera3D = %tp_camera
 
+@onready var collider_stand: CollisionShape3D = %collider_stand
+@onready var collider_crouch: CollisionShape3D = %collider_crouch
+
 ## Toggle the camera mode
 var camera_third_person: bool = false
 
 ## Toggle walk mode
 var walk_mode: bool = false
+
+## Toggle crouch mode
+var crouch_mode: bool = false
 
 
 func _ready() -> void:
@@ -93,6 +110,19 @@ func _process(delta: float) -> void:
     if input_action_jump.is_triggered():
         desired_jump_power = jump_power
 
+    if input_action_crouch.is_triggered():
+        crouch_mode = not crouch_mode
+
+    if crouch_mode:
+        if collider_crouch.disabled:
+            collider_crouch.disabled = false
+            collider_stand.disabled = true
+    elif collider_stand.disabled:
+        # Test if we can switch to the stand collider using the shape_cast result
+        if shape_cast.get_closest_collision_safe_fraction() >= crouch_safe_fraction:
+            collider_stand.disabled = false
+            collider_crouch.disabled = true
+
 func _handle_input() -> void:
     if not is_node_ready():
         return
@@ -112,3 +142,8 @@ func _handle_input() -> void:
 
     if input_action_jump.is_completed():
         desired_jump_power = 0.0
+
+    if crouch_mode:
+        desired_height_offset = -crouch_offset
+    else:
+        desired_height_offset = 0.0

@@ -82,16 +82,11 @@ shadow_enabled = true
 directional_shadow_mode = 0
 
 [node name="Player" parent="." unique_id=1957397594 instance=ExtResource("1_fbyci")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.159593, 0.05, -10.7555044)
-debug_enabled = true
-debug_velocity = true
-debug_forward = true
-debug_normal = true
-debug_friction = true
-debug_spring = true
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 4.129593, 0.15, -3.7555044)
+metadata/_edit_group_ = true
 
 [node name="Camera3D" type="Camera3D" parent="Player" unique_id=1880891728]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.115, 0.55, 1.4)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 2, 0.8, 0)
 size = 6.314
 
 [node name="Floor" type="CSGCombiner3D" parent="." unique_id=589922605]
