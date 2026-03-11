@@ -26,6 +26,10 @@ var incline_speed_reduction: float = 0.2
 @export_range(1.0, 2.0, 0.001, 'or_greater')
 var decline_speed_bonus: float = 1.1
 
+## How much control to give in the air for ground-based controllers
+@export_range(0.0, 1.0, 0.001)
+var air_control: float = 0.5
+
 
 @export_group('Floor Collision')
 
@@ -242,7 +246,13 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             max_stop_speed /= state.step
 
             ground_friction += -ground_dir * minf(deceleration, max_stop_speed)
-    elif not force_ground_movement:
+    elif force_ground_movement:
+        # Air control
+        if air_control > 0.0 and desired_speed > 0.0 and not desired_direction.is_zero_approx():
+            forward = state.transform.basis.y.cross(desired_direction).cross(state.transform.basis.y).normalized()
+            limit_in_dir *= air_control
+            accel_multiplier = air_control
+    else:
         forward = desired_direction
 
     # Add final friction values

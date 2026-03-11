@@ -246,7 +246,8 @@ custom_integrator = true
 continuous_cd = true
 linear_damp = 0.5
 script = ExtResource("4_w5krq")
-extension_acceleration = 0.8
+extension_acceleration = 20.0
+metadata/_edit_group_ = true
 
 [node name="collider" type="CollisionShape3D" parent="Elevator" unique_id=688705529]
 shape = SubResource("BoxShape3D_qyrsn")
@@ -267,6 +268,7 @@ mass = 1000.0
 custom_integrator = true
 continuous_cd = true
 script = ExtResource("4_w5krq")
+metadata/_edit_group_ = true
 
 [node name="collider" type="CollisionShape3D" parent="Slider" unique_id=1572990332]
 transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
@@ -292,6 +294,7 @@ continuous_cd = true
 script = ExtResource("4_w5krq")
 extension_length = 80.0
 extension_acceleration = 10.0
+metadata/_edit_group_ = true
 
 [node name="collider" type="CollisionShape3D" parent="MovingSlope" unique_id=97312998]
 shape = SubResource("ConvexPolygonShape3D_7wtpe")
@@ -318,6 +321,7 @@ continuous_cd = true
 script = ExtResource("4_w5krq")
 extension_length = 10.0
 extension_acceleration = 100.0
+metadata/_edit_group_ = true
 
 [node name="collider" type="CollisionShape3D" parent="Pusher" unique_id=694854347]
 shape = SubResource("BoxShape3D_w5krq")
