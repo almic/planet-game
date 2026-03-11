@@ -15,6 +15,17 @@ var deceleration: float = 18.0
 @export_range(0.001, 1.0, 0.001)
 var turning_retention: float = 0.67
 
+## How much speed to lose when traveling up slopes, reduces acceleration and
+## speed by this fraction every 15 degrees of incline.
+@export_range(0.0, 1.0, 0.001)
+var incline_speed_reduction: float = 0.2
+
+## How much speed to gain when traveling down slopes, increases acceleration
+## and speed by this fraction every 15 degrees of decline. Set to 1.0 to disable
+## speed up.
+@export_range(1.0, 2.0, 0.001, 'or_greater')
+var decline_speed_bonus: float = 1.1
+
 
 @export_group('Floor Collision')
 
@@ -82,6 +93,9 @@ var ground_normal: Vector3
 ## Velocity of this body along the plane of the ground
 var ground_velocity: Vector3
 
+## Direction of this body along the plane of the ground
+var ground_direction: Vector3 = ground_velocity.normalized()
+
 ## Calculated ground friction vector
 var ground_friction: Vector3
 
@@ -123,7 +137,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                 # Drag coefficient, falling calculated to result in 112m/s terminal speed
                 # and lateral to roughly a sprinter's coefficient
                 * lerpf(0.0143, 0.65, lateral_ratio)
-        )
+        ) * state.inverse_mass # NOTE: Proportional to mass!!!
 
     # Ground detection and force
     if shape_cast.is_colliding():
@@ -153,12 +167,17 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
         is_on_floor = false
         ground_normal = Vector3.ZERO
         ground_friction = Vector3.ZERO
+        ground_direction = Vector3.ZERO
         ground_velocity = Vector3.ZERO
         spring_force = Vector3.ZERO
 
     var forward: Vector3 = Vector3.ZERO
+    var speed_in_dir: float = linear_speed
+    var limit_in_dir: float = desired_speed
+    var accel_multiplier: float = 1.0
 
     if is_on_floor:
+
         if desired_speed > 0.0 and not desired_direction.is_zero_approx():
             # Moving on ground
             if force_ground_movement:
@@ -166,21 +185,41 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             else:
                 forward = desired_direction
 
+            # Limit forward acceleration
+            speed_in_dir = ground_velocity.dot(forward)
+            var slope_cos_theta: float = state.transform.basis.tdoty(ground_direction)
+            if slope_cos_theta > 0.0:
+                if incline_speed_reduction > 0.0:
+                    var angle: float = asin(slope_cos_theta)
+                    var loss: float = pow(clampf(1.0 - incline_speed_reduction, 0.001, 0.943), angle * (12.0 / PI))
+                    limit_in_dir *= loss
+                    accel_multiplier = loss
+            elif slope_cos_theta < 0.0:
+                if decline_speed_bonus > 1.0:
+                    var angle: float = asin(-slope_cos_theta)
+                    var bonus: float = 1.0 + clampf(decline_speed_bonus - 1.0, 0.0, 1.0) * angle * (12.0 / PI)
+                    limit_in_dir *= bonus
+                    accel_multiplier = bonus
+
             # Reduce ground friction up to forward movement amount
             if not ground_friction.is_zero_approx():
                 var ground_friction_speed: float = ground_friction.length()
                 var ground_friction_dir: Vector3 = ground_friction / ground_friction_speed
-                ground_friction -= ground_friction_dir * minf(desired_speed, ground_friction_speed)
+                ground_friction -= ground_friction_dir * minf(limit_in_dir, ground_friction_speed)
 
             # Reduce air friction up to forward movement amount
             if not air_friction.is_zero_approx():
                 var air_friction_speed: float = air_friction.length()
                 var air_friction_dir: Vector3 = air_friction / air_friction_speed
-                air_friction -= air_friction_dir * minf(desired_speed, air_friction_speed)
+                air_friction -= air_friction_dir * minf(limit_in_dir, air_friction_speed)
 
-            # Add extra ground friction for turning/ changing direction
+            # Add extra ground friction for turning/ changing direction/ over speed
             if not ground_velocity.is_zero_approx():
-                var move_friction: Vector3 = _calculate_move_friction(forward)
+                var move_friction: Vector3
+                if speed_in_dir > limit_in_dir:
+                    move_friction = -ground_direction * minf(deceleration, (speed_in_dir - limit_in_dir) / state.step)
+                else:
+                    move_friction = _calculate_move_friction(forward)
                 if debug_enabled and debug_friction:
                     _friction_movement_debug_vec = DebugDraw.vector(
                             global_position + (Vector3.UP * 0.45),
@@ -214,10 +253,14 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     if state.linear_velocity.length_squared() < 1.6e-5:
         state.linear_velocity = Vector3.ZERO
 
-    # Limit forward acceleration
-    var speed_in_dir: float = state.linear_velocity.dot(forward)
-    if speed_in_dir < desired_speed:
-        forward *= minf(acceleration, maxf(desired_speed - speed_in_dir, 0.0) / state.step)
+    if is_on_floor:
+        # NOTE: Should be updated using new velocity, it is a little wrong like this
+        speed_in_dir = ground_velocity.dot(forward)
+    else:
+        speed_in_dir = state.linear_velocity.dot(forward)
+
+    if speed_in_dir < limit_in_dir:
+        forward *= minf(acceleration * accel_multiplier, maxf(limit_in_dir - speed_in_dir, 0.0) / state.step)
         state.linear_velocity += forward * state.step
 
     if debug_enabled:
@@ -301,6 +344,11 @@ func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
         # Ground friction in m/s^2
         ground_friction = friction_coef * relative_contact_velocity.slide(ground_normal)
 
+    if not ground_velocity.is_zero_approx():
+        ground_direction = ground_velocity.normalized()
+    else:
+        ground_direction = Vector3.ZERO
+
     # NOTE: Math trick, these two lines are equivalent
     #       1) A.dot(N) * B.dot(N)  OR  N.dot(A) * N.dot(B)
     #       2) A.dot(N * N.dot(B))
@@ -318,12 +366,10 @@ func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
 
     if ground_state:
         # Apply opposing spring force to body, invert ground velocity to push back
-        #print(ground_friction)
         ground_state.apply_force(-1.0 * (spring_force + ground_velocity * mass), local_position)
 
 ## Calculate additional ground friction for turning/ changing direction
 func _calculate_move_friction(forward: Vector3) -> Vector3:
-    var ground_direction: Vector3 = ground_velocity.normalized()
     var cos_theta: float = clampf(ground_direction.dot(forward), -1.0, 1.0)
 
     # No friction if wish direction and movement match
