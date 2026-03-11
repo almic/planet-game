@@ -79,6 +79,7 @@ var force_ground_movement: bool = true
 var desired_direction: Vector3 = Vector3.ZERO
 var desired_speed: float = 0.0
 var desired_incline_effect: float = 1.0
+var desired_jump_power: float = 0.0
 
 ## The body's total speed
 var linear_speed: float
@@ -177,6 +178,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
         ground_friction = Vector3.ZERO
         ground_direction = Vector3.ZERO
         ground_velocity = Vector3.ZERO
+        ground_rel_con_velocity = Vector3.ZERO
         spring_force = Vector3.ZERO
 
     var forward: Vector3 = Vector3.ZERO
@@ -279,10 +281,42 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     else:
         forward = desired_direction
 
+    # Jumping, reset power to zero when activated
+    var jump: Vector3 = Vector3.ZERO
+    if desired_jump_power > 0.0:
+        if is_on_floor:
+            if forward.is_zero_approx():
+                jump = 0.6 * state.transform.basis.y + 0.4 * ground_normal
+            else:
+                jump = 0.8 * state.transform.basis.y + 0.2 * forward
+
+            jump *= desired_jump_power
+
+            # When landing, jump power is effectively lost just stopping the
+            # momentum of the body. So, allow up to double the power if needed
+            # to allow a jump to happen.
+            var speed_into_ground: float = ground_rel_con_velocity.dot(state.transform.basis.y)
+            if speed_into_ground < 0.0:
+                var extra: Vector3 = state.transform.basis.y * minf(desired_jump_power, -speed_into_ground)
+                if forward.is_zero_approx():
+                    extra *= 0.6
+                else:
+                    extra *= 0.8
+                jump += extra
+
+            desired_jump_power = 0.0
+        elif not force_ground_movement:
+            if forward.is_zero_approx():
+                jump = state.transform.basis.y
+            else:
+                jump = 0.8 * state.transform.basis.y + 0.2 * forward
+            jump *= desired_jump_power
+            desired_jump_power = 0.0
+
     # Add final friction values
     var friction: Vector3 = ground_friction + air_friction
 
-    state.linear_velocity += state.step * (state.total_gravity + (spring_force * state.inverse_mass) + friction)
+    state.linear_velocity += state.step * (state.total_gravity + (spring_force * state.inverse_mass) + friction) + jump
 
     if state.linear_velocity.length_squared() < 1.6e-5:
         state.linear_velocity = Vector3.ZERO

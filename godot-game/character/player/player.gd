@@ -16,6 +16,10 @@ var walk_speed: float = 1.65
 @export_range(0.0, 1.0, 0.001)
 var walk_slope_effect: float = 0.0
 
+## How much speed to jump off the ground with
+@export_range(0.0, 10.0, 0.001)
+var jump_power: float = 5.0
+
 
 @export_group('Input', 'input')
 
@@ -29,6 +33,7 @@ var walk_slope_effect: float = 0.0
 @export var input_context_move: GUIDEMappingContext = preload("uid://d1sotfpopn8ao")
 @export var input_action_move: GUIDEAction = preload("uid://dqaca6xu7ac6a")
 @export var input_action_walk: GUIDEAction = preload("uid://e6xtsr0uirai")
+@export var input_action_jump: GUIDEAction = preload("uid://oru4dn30hyrs")
 
 
 @onready var mesh_yaw: Node3D = %mesh_yaw
@@ -85,8 +90,14 @@ func _process(delta: float) -> void:
         else:
             desired_incline_effect = 1.0
 
+    if input_action_jump.is_triggered():
+        desired_jump_power = jump_power
+
 func _handle_input() -> void:
-    if input_action_move and input_action_move.value_axis_3d.length_squared() > 1e-3:
+    if not is_node_ready():
+        return
+
+    if input_action_move.value_axis_3d.length_squared() > 1e-3:
         desired_direction = input_action_move.value_axis_3d.normalized()
         if camera_third_person:
             desired_direction = tp_camera_yaw.global_basis * desired_direction
@@ -98,3 +109,6 @@ func _handle_input() -> void:
             desired_speed = max_speed
     else:
         desired_speed = 0.0
+
+    if input_action_jump.is_completed():
+        desired_jump_power = 0.0
