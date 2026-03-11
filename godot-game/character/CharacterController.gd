@@ -9,7 +9,7 @@ var acceleration: float = 16.0
 
 ## Stopping rate when controller should not move. Set to zero to disable stopping.
 @export_range(0.0, 20.0, 0.01, 'or_greater')
-var deceleration: float = 18.0
+var deceleration: float = 16.0
 
 ## How much speed to maintain when turning, reduces by this fraction every 15 degrees.
 @export_range(0.001, 1.0, 0.001)
@@ -78,6 +78,7 @@ var force_ground_movement: bool = true
 
 var desired_direction: Vector3 = Vector3.ZERO
 var desired_speed: float = 0.0
+var desired_incline_effect: float = 1.0
 
 ## The body's total speed
 var linear_speed: float
@@ -191,19 +192,20 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
             # Limit forward acceleration
             speed_in_dir = ground_velocity.dot(forward)
-            var slope_cos_theta: float = state.transform.basis.tdoty(ground_direction)
-            if slope_cos_theta > 0.0:
-                if incline_speed_reduction > 0.0:
-                    var angle: float = asin(slope_cos_theta)
-                    var loss: float = pow(clampf(1.0 - incline_speed_reduction, 0.001, 0.943), angle * (12.0 / PI))
-                    limit_in_dir *= loss
-                    accel_multiplier = loss
-            elif slope_cos_theta < 0.0:
-                if decline_speed_bonus > 1.0:
-                    var angle: float = asin(-slope_cos_theta)
-                    var bonus: float = 1.0 + clampf(decline_speed_bonus - 1.0, 0.0, 1.0) * angle * (12.0 / PI)
-                    limit_in_dir *= bonus
-                    accel_multiplier = bonus
+            if desired_incline_effect > 0.0:
+                var slope_cos_theta: float = state.transform.basis.tdoty(ground_direction)
+                if slope_cos_theta > 0.0:
+                    if incline_speed_reduction > 0.0:
+                        var angle: float = asin(slope_cos_theta)
+                        var loss: float = pow(clampf(1.0 - (incline_speed_reduction * desired_incline_effect), 0.001, 0.943), angle * (12.0 / PI))
+                        limit_in_dir *= loss
+                        accel_multiplier = loss
+                elif slope_cos_theta < 0.0:
+                    if decline_speed_bonus > 1.0:
+                        var angle: float = asin(-slope_cos_theta)
+                        var bonus: float = 1.0 + clampf((decline_speed_bonus - 1.0) * desired_incline_effect, 0.0, 1.0) * angle * (12.0 / PI)
+                        limit_in_dir *= bonus
+                        accel_multiplier = bonus
 
             # Reduce ground friction up to forward movement amount
             if not ground_friction.is_zero_approx():

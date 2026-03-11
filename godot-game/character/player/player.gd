@@ -6,7 +6,16 @@ const LOOK_DOWN_MAX: float = deg_to_rad(-88)
 
 
 @export_range(0.001, 10.0, 0.001, 'or_greater')
-var max_speed: float = 5.35
+var max_speed: float = 4.9
+
+@export_range(0.001, 5.0, 0.001, 'or_greater')
+var walk_speed: float = 1.65
+
+## Multiplier to slope speed changes when walking. Set to 0.0 to remove slope
+## effect, 1.0 leaves it unchanged.
+@export_range(0.0, 1.0, 0.001)
+var walk_slope_effect: float = 0.0
+
 
 @export_group('Input', 'input')
 
@@ -19,6 +28,7 @@ var max_speed: float = 5.35
 @export_subgroup('Move')
 @export var input_context_move: GUIDEMappingContext = preload("uid://d1sotfpopn8ao")
 @export var input_action_move: GUIDEAction = preload("uid://dqaca6xu7ac6a")
+@export var input_action_walk: GUIDEAction = preload("uid://e6xtsr0uirai")
 
 
 @onready var mesh_yaw: Node3D = %mesh_yaw
@@ -34,6 +44,9 @@ var max_speed: float = 5.35
 
 ## Toggle the camera mode
 var camera_third_person: bool = false
+
+## Toggle walk mode
+var walk_mode: bool = false
 
 
 func _ready() -> void:
@@ -65,6 +78,12 @@ func _process(delta: float) -> void:
         var offset: Vector3 = tp_camera_cast.target_position * tp_camera_cast.get_closest_collision_safe_fraction()
         tp_camera.position = offset
 
+    if input_action_walk.is_triggered():
+        walk_mode = not walk_mode
+        if walk_mode:
+            desired_incline_effect = walk_slope_effect
+        else:
+            desired_incline_effect = 1.0
 
 func _handle_input() -> void:
     if input_action_move and input_action_move.value_axis_3d.length_squared() > 1e-3:
@@ -73,6 +92,9 @@ func _handle_input() -> void:
             desired_direction = tp_camera_yaw.global_basis * desired_direction
         else:
             desired_direction = camera_yaw.global_basis * desired_direction
-        desired_speed = max_speed
+        if walk_mode:
+            desired_speed = walk_speed
+        else:
+            desired_speed = max_speed
     else:
         desired_speed = 0.0
