@@ -77,6 +77,9 @@ var _spring_debug_vec: int = 0
 
 var is_on_floor: bool = false
 var is_slipping: bool = false
+## This prevents jumping continuously up steep ground. Must land on flat ground to become true,
+## set to false upon performing a jump.
+var has_landed_on_ground_for_jump: bool = false
 
 ## Force the controller to project desired velocity onto the ground, or if in
 ## the air, remove any vertical component and reproject to lateral movement
@@ -311,7 +314,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     # Jumping, reset power to zero when activated
     var jump: Vector3 = Vector3.ZERO
     if desired_jump_power > 0.0:
-        if is_on_floor:
+        if is_on_floor and has_landed_on_ground_for_jump:
             if forward.is_zero_approx():
                 jump = 0.6 * state.transform.basis.y + 0.4 * ground_normal
             else:
@@ -332,6 +335,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                 jump += extra
 
             desired_jump_power = 0.0
+            has_landed_on_ground_for_jump = false
         elif not force_ground_movement:
             if forward.is_zero_approx():
                 jump = state.transform.basis.y
@@ -421,11 +425,14 @@ func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
             floor_cos_theta = ground_normal.dot(state.transform.basis.y)
             if floor_cos_theta > cos(max_slope_angle):
                 is_slipping = false
+                has_landed_on_ground_for_jump = true
                 use_contact_length = true
                 ground = shape_cast.get_collider(0)
                 hit_position = shape_cast.get_collision_point(0)
 
         shape_cast.remove_exception_rid(to_ignore)
+    else:
+        has_landed_on_ground_for_jump = true
 
     var max_length: float = shape_cast.target_position.length()
     var spring_direction: Vector3 = -(shape_cast.target_position / max_length)
