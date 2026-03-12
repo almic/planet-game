@@ -69,6 +69,18 @@ size = Vector3(2, 1, 0.1)
 material = SubResource("StandardMaterial3D_6enav")
 size = Vector3(2, 1, 0.1)
 
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_dunqf"]
+friction = 0.6
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7wtpe"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_76stg"]
+albedo_texture = ExtResource("3_6i6gv")
+uv1_scale = Vector3(4, 4, 4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_tk7e2"]
+material = SubResource("StandardMaterial3D_76stg")
+
 [node name="World" type="Node3D" unique_id=458844105]
 metadata/_edit_lock_ = true
 
@@ -82,7 +94,7 @@ shadow_enabled = true
 directional_shadow_mode = 0
 
 [node name="Player" parent="." unique_id=1957397594 instance=ExtResource("1_fbyci")]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 4.129593, 0.15, -3.7555044)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -2.470407, 2.04, 12.9444956)
 metadata/_edit_group_ = true
 
 [node name="Camera3D" type="Camera3D" parent="Player" unique_id=1880891728]
@@ -221,6 +233,28 @@ collision_mask = 0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
 size = Vector3(0.3, 2, 1.5)
 
+[node name="SlopeWall" type="CSGCombiner3D" parent="." unique_id=1451121978]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -1.5, 0.05, 23.6)
+use_collision = true
+collision_layer = 16
+collision_mask = 0
+metadata/_edit_group_ = true
+
+[node name="CSGBox3D" type="CSGBox3D" parent="SlopeWall" unique_id=107860917]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12.5, -12.5)
+size = Vector3(5, 25, 25)
+material = ExtResource("3_qyrsn")
+metadata/_edit_lock_ = true
+
+[node name="slopecut" type="CSGCylinder3D" parent="SlopeWall" unique_id=1018046418]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0, 25.05, 0.05)
+operation = 2
+radius = 25.0
+height = 6.0
+sides = 64
+material = ExtResource("3_qyrsn")
+metadata/_edit_lock_ = true
+
 [node name="RotatingFloor" type="RigidBody3D" parent="." unique_id=1380169061]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.4, 0.15, -2.6)
 collision_layer = 16
@@ -339,3 +373,19 @@ shape = SubResource("BoxShape3D_w5krq")
 
 [node name="floor" type="MeshInstance3D" parent="Pusher" unique_id=553475822]
 mesh = SubResource("BoxMesh_w5krq")
+
+[node name="Cube" type="RigidBody3D" parent="." unique_id=402500325]
+transform = Transform3D(0.86602540378444, 0.5, 0, -0.5, 0.86602540378444, 0, 0, 0, 1, -80.4454483, 1.5767949, -16.9)
+collision_layer = 16
+collision_mask = 17
+mass = 200.0
+physics_material_override = SubResource("PhysicsMaterial_dunqf")
+metadata/_edit_group_ = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Cube" unique_id=1101279102]
+shape = SubResource("BoxShape3D_7wtpe")
+metadata/_edit_lock_ = true
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Cube" unique_id=1483689801]
+mesh = SubResource("BoxMesh_tk7e2")
+metadata/_edit_lock_ = true
