@@ -1,0 +1,1 @@
+- [ ] Create a collision layer named "stairs," and check if the floor layer matches. When it does, treat any normals as "uphill" normals, so that slope effects always slow the player. This prevents stairs behaving like ramps and more like stairs.
