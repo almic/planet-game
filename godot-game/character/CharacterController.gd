@@ -208,7 +208,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
         if has_desired_forward:
             # Stable ground movement, only when not already calculated from steep ground
             if force_ground_movement:
-                forward = global_basis.y.cross(desired_direction).cross(ground_normal).normalized()
+                forward = state.transform.basis.y.cross(desired_direction).cross(ground_normal).normalized()
                 speed_in_dir = ground_velocity.dot(forward)
                 if is_slipping:
                     var wall_normal: Vector3 = Vector3(wall_slide_normal.x, 0.0, wall_slide_normal.z).normalized()
@@ -263,7 +263,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                     move_friction = _calculate_move_friction(forward)
                 if debug_enabled and debug_friction:
                     _friction_movement_debug_vec = DebugDraw.vector(
-                            global_position + (Vector3.UP * 0.45),
+                            state.transform.origin + (Vector3.UP * 0.45),
                             move_friction,
                             Color.DARK_GREEN,
                             _friction_movement_debug_vec,
@@ -365,13 +365,13 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     if debug_enabled:
         if debug_velocity:
             _velocity_debug_vec = DebugDraw.vector(
-                    global_position + (Vector3.UP * 0.55),
+                    state.transform.origin + (Vector3.UP * 0.55),
                     state.linear_velocity,
                     Color.FOREST_GREEN,
                     _velocity_debug_vec,
             )
             _velocity_debug_text = DebugDraw.text(
-                    global_position + (Vector3.UP * 0.55),
+                    state.transform.origin + (Vector3.UP * 0.55),
                     '%.3f m/s' % linear_speed,
                     Color.FOREST_GREEN,
                     _velocity_debug_text
@@ -382,7 +382,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             if not norm.is_zero_approx():
                 norm = norm.normalized()
             _forward_debug_vec = DebugDraw.vector(
-                    global_position + (Vector3.UP * 0.5),
+                    state.transform.origin + (Vector3.UP * 0.5),
                     norm,
                     Color.GREEN_YELLOW,
                     _forward_debug_vec,
@@ -391,7 +391,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
         if debug_friction:
             _friction_debug_vec = DebugDraw.vector(
-                global_position + (Vector3.UP * 0.45),
+                state.transform.origin + (Vector3.UP * 0.45),
                 friction,
                 Color.FIREBRICK,
                 _friction_debug_vec,
