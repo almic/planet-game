@@ -133,7 +133,7 @@ func _handle_input() -> void:
             desired_direction = tp_camera_yaw.global_basis * desired_direction
         else:
             desired_direction = camera_yaw.global_basis * desired_direction
-        if walk_mode:
+        if walk_mode or crouch_mode:
             desired_speed = walk_speed
         else:
             desired_speed = max_speed
