@@ -30,6 +30,10 @@ DebugDraw="*uid://u02lrj3l02mx"
 
 enabled=PackedStringArray("res://addons/csg_extra/plugin.cfg", "res://addons/debug_draw/plugin.cfg", "res://addons/guide/plugin.cfg")
 
+[filesystem]
+
+import/blender/enabled=false
+
 [importer_defaults]
 
 texture={
