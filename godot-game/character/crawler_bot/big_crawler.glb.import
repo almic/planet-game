@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bj6jpa4vhoqrd"
-path="res://.godot/imported/big_crawler.glb-afd948bbb2dab5c26cc1983b221957b8.scn"
+path="res://.godot/imported/big_crawler.glb-0acbadf436ff4c0ddf0ad7d2e9076593.scn"
 
 [deps]
 
-source_file="res://character/spider_bot/big_crawler.glb"
-dest_files=["res://.godot/imported/big_crawler.glb-afd948bbb2dab5c26cc1983b221957b8.scn"]
+source_file="res://character/crawler_bot/big_crawler.glb"
+dest_files=["res://.godot/imported/big_crawler.glb-0acbadf436ff4c0ddf0ad7d2e9076593.scn"]
 
 [params]
 

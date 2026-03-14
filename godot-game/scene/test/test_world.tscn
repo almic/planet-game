@@ -8,6 +8,7 @@
 [ext_resource type="Script" uid="uid://y0ge5wpqcwqt" path="res://addons/csg_extra/csg_steps.gd" id="4_dunqf"]
 [ext_resource type="Script" uid="uid://c4jqtv6g5d6tu" path="res://scene/test/launcher.gd" id="4_w5krq"]
 [ext_resource type="Texture2D" uid="uid://bs0wm5rj1jdy2" path="res://texture/dev/grid_red.png" id="5_qsqev"]
+[ext_resource type="PackedScene" uid="uid://chfhme16t710h" path="res://character/crawler_bot/big_crawler_bot.tscn" id="9_dunqf"]
 
 [sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_fbyci"]
 
@@ -81,6 +82,25 @@ uv1_scale = Vector3(4, 4, 4)
 [sub_resource type="BoxMesh" id="BoxMesh_tk7e2"]
 material = SubResource("StandardMaterial3D_76stg")
 
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_7wtpe"]
+bounce = 0.65
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7wtpe"]
+albedo_texture = ExtResource("5_qsqev")
+uv1_scale = Vector3(2, 2, 2)
+uv1_triplanar = true
+
+[sub_resource type="SphereMesh" id="SphereMesh_76stg"]
+material = SubResource("StandardMaterial3D_7wtpe")
+radius = 0.25
+height = 0.5
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_tk7e2"]
+radius = 0.25
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_76stg"]
+bounce = 0.65
+
 [node name="World" type="Node3D" unique_id=458844105]
 metadata/_edit_lock_ = true
 
@@ -94,7 +114,7 @@ shadow_enabled = true
 directional_shadow_mode = 0
 
 [node name="Player" parent="." unique_id=1957397594 instance=ExtResource("1_fbyci")]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -2.470407, 2.04, 12.9444956)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 2.929593, 0.04, -0.0555044)
 metadata/_edit_group_ = true
 
 [node name="Camera3D" type="Camera3D" parent="Player" unique_id=1880891728]
@@ -389,3 +409,34 @@ metadata/_edit_lock_ = true
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Cube" unique_id=1483689801]
 mesh = SubResource("BoxMesh_tk7e2")
 metadata/_edit_lock_ = true
+
+[node name="Ball" type="RigidBody3D" parent="." unique_id=428939051]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 3.2, -0.1)
+collision_layer = 16
+collision_mask = 17
+physics_material_override = SubResource("PhysicsMaterial_7wtpe")
+linear_damp = 0.2
+angular_damp = 0.2
+
+[node name="sphere" type="MeshInstance3D" parent="Ball" unique_id=509134732]
+mesh = SubResource("SphereMesh_76stg")
+
+[node name="collider" type="CollisionShape3D" parent="Ball" unique_id=1071802096]
+shape = SubResource("SphereShape3D_tk7e2")
+
+[node name="Ball2" type="RigidBody3D" parent="." unique_id=1987976922]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 2.6, 0.6)
+collision_layer = 16
+collision_mask = 17
+physics_material_override = SubResource("PhysicsMaterial_76stg")
+linear_damp = 0.2
+angular_damp = 0.2
+
+[node name="sphere" type="MeshInstance3D" parent="Ball2" unique_id=205095435]
+mesh = SubResource("SphereMesh_76stg")
+
+[node name="collider" type="CollisionShape3D" parent="Ball2" unique_id=1917694940]
+shape = SubResource("SphereShape3D_tk7e2")
+
+[node name="CrawlerBot" parent="." unique_id=461561025 instance=ExtResource("9_dunqf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 0)

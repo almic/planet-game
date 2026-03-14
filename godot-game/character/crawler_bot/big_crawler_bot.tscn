@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://chfhme16t710h"]
 
 [ext_resource type="Script" uid="uid://gy5qwm8j5pbh" path="res://character/CharacterController.gd" id="1_3dq5s"]
-[ext_resource type="PackedScene" uid="uid://bj6jpa4vhoqrd" path="res://character/spider_bot/big_crawler.glb" id="2_2g2re"]
+[ext_resource type="PackedScene" uid="uid://bj6jpa4vhoqrd" path="res://character/crawler_bot/big_crawler.glb" id="2_2g2re"]
 [ext_resource type="Texture2D" uid="uid://bs0wm5rj1jdy2" path="res://texture/dev/grid_red.png" id="2_welis"]
 
 [sub_resource type="JointLimitationCone3D" id="JointLimitationCone3D_otx80"]
@@ -45,7 +45,6 @@ metadata/_custom_type_script = "uid://gy5qwm8j5pbh"
 [node name="big_crawler" parent="." unique_id=1739686264 instance=ExtResource("2_2g2re")]
 
 [node name="CCDIK3D" type="CCDIK3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1180722169) index="0" unique_id=89345736]
-active = false
 max_iterations = 2
 setting_count = 6
 settings/0/target_node = NodePath("../LegTargets/FrontLeft")

@@ -127,8 +127,9 @@ var spring_force: Vector3
 
 
 func _ready() -> void:
+
     # At least 1 result is needed for ground slope detection
-    if shape_cast.max_results == 0:
+    if shape_cast and shape_cast.max_results == 0:
         shape_cast.max_results = 1
 
 ## Implement per controller, called when input should be read for movement.
@@ -163,11 +164,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
         ) * state.inverse_mass # NOTE: Proportional to mass!!!
 
     # Ground detection and force
-    if shape_cast.is_colliding():
-        if not is_on_floor:
-            is_on_floor = true
+    _calculate_ground_force(state)
 
-        if debug_enabled and debug_normal:
+    if is_on_floor and debug_enabled:
+        if debug_normal:
             _normal_debug_vec = DebugDraw.vector(
                     shape_cast.get_collision_point(0),
                     ground_normal * 0.5,
@@ -175,26 +175,13 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                     _normal_debug_vec,
                     2.0
             )
-
-        _calculate_ground_force(state)
-
-        if debug_enabled and debug_spring:
+        if debug_spring:
             _spring_debug_vec = DebugDraw.vector(
                 shape_cast.global_position,
                 state.total_gravity + (spring_force * state.inverse_mass),
                 Color.DARK_SLATE_BLUE,
                 _spring_debug_vec
             )
-
-    elif is_on_floor:
-        is_on_floor = false
-        is_slipping = false
-        ground_normal = Vector3.ZERO
-        ground_friction = Vector3.ZERO
-        ground_direction = Vector3.ZERO
-        ground_velocity = Vector3.ZERO
-        ground_rel_con_velocity = Vector3.ZERO
-        spring_force = Vector3.ZERO
 
     var forward: Vector3 = Vector3.ZERO
     var speed_in_dir: float = linear_speed
@@ -400,6 +387,21 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
 ## Calculate a ground force using a spring-mass-damper simulation and friction
 func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
+
+    if shape_cast and shape_cast.is_colliding():
+        if not is_on_floor:
+            is_on_floor = true
+    else:
+        if is_on_floor:
+            is_on_floor = false
+            is_slipping = false
+            ground_normal = Vector3.ZERO
+            ground_friction = Vector3.ZERO
+            ground_direction = Vector3.ZERO
+            ground_velocity = Vector3.ZERO
+            ground_rel_con_velocity = Vector3.ZERO
+            spring_force = Vector3.ZERO
+        return
 
     var ground: Object = shape_cast.get_collider(0)
     var hit_position: Vector3 = shape_cast.get_collision_point(0)
