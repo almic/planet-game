@@ -1,4 +1,4 @@
-Moves using four legs, can walk along walls and ceilings. Small size and generally easy to destroy.
+Moves using four/ six legs, can walk along walls and ceilings. Small size and generally easy to destroy.
 
 # Previous Work
 - https://youtu.be/G_seJ2Yg1GA
@@ -17,10 +17,10 @@ Moves using four legs, can walk along walls and ceilings. Small size and general
   Reference for ant (hexapod) leg motion. Seems to generalize to this statement: "For the leg that decides to move, also move the legs diagonal to the adjacent legs." Three legs should be firmly planted, and the other three move, as if a tripod shape is made.
 
 # Big One
-The larger spider will have 6 legs and a long body. It is probably armored. Should appear in two scales: a bit over one meter in standing height, and about 50-60 cm.
+The larger crawler will have 6 legs and a long body. It is probably armored. Should appear in two scales: a bit over one meter in standing height, and about 50-60 cm.
 
 # Little One
-The smaller spider will have 4 legs with a round body. Not armored, very fragile. Between 25-30 cm in height.
+The smaller crawler will have 4 legs with a round body. Not armored, very fragile. Between 25-30 cm in height.
 
 # Need
 - General leg support/ walking system. Handles missing legs and walking with an arbitrary number of leg pairs. No global orientations, can handle going up walls and be upside-down.
@@ -29,5 +29,5 @@ The smaller spider will have 4 legs with a round body. Not armored, very fragile
 - Some way to disable/ counteract gravity, possibly depending on grounded legs. An overcomplicated solution is to draw a plane using the grounded legs, and intersect a ray from the "center of mass" towards the nearest position of the polygon, and applying a gravitational resistance at that intersection point, allowing the body to rotate (fall over), and the legs to move to stay upright.
 
 # Plan
-- [ ] Reorganize CharacterController to support custom spring function implementation. Should be such that spider can just override that method and everything else works as expected.
+- [ ] Reorganize CharacterController to support custom spring function implementation. Should be such that crawler can just override that method and everything else works as expected.
 - [ ] ???
