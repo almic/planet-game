@@ -1,2 +1,3 @@
 - [ ] Create a collision layer named "stairs," and check if the floor layer matches. When it does, treat any normals as "uphill" normals, so that slope effects always slow the player. This prevents stairs behaving like ramps and more like stairs.
 - [ ] Rewrite stopping friction, it has some problems and seems to break down in a lot of edge cases. Must handle arbitrary orientations, velocities, and slopes. Most likely use local up velocities scaled in relation to ground up, stopping along ground lateral velocity and local vertical velocity, or something like that I hope you know what I mean.
+- [ ] Fix Auto Exposure buffers clearing when resizing viewport, should maintain old exposure value.
