@@ -43,12 +43,12 @@ size = Vector3(0.1, 0.8, 0.06)
 material = SubResource("StandardMaterial3D_2g2re")
 size = Vector3(0.2, 1.7, 0.12)
 
-[node name="CrawlerBot" type="RigidBody3D" unique_id=461561025 node_paths=PackedStringArray("leg_pairs")]
+[node name="CrawlerBot" type="RigidBody3D" unique_id=461561025 node_paths=PackedStringArray("legs")]
 collision_mask = 17
 mass = 64.0
 custom_integrator = true
 script = ExtResource("1_3kbc3")
-leg_pairs = [NodePath("big_crawler/Skeleton3D/LegTargets/FrontLegPair"), NodePath("big_crawler/Skeleton3D/LegTargets/MiddleLegPair"), NodePath("big_crawler/Skeleton3D/LegTargets/BackLegPair")]
+legs = [NodePath("big_crawler/Skeleton3D/LegTargets/FrontLegPair/FL_Root"), NodePath("big_crawler/Skeleton3D/LegTargets/FrontLegPair/FR_Root"), NodePath("big_crawler/Skeleton3D/LegTargets/MiddleLegPair/ML_Root"), NodePath("big_crawler/Skeleton3D/LegTargets/MiddleLegPair/MR_Root"), NodePath("big_crawler/Skeleton3D/LegTargets/BackLegPair/BL_Root"), NodePath("big_crawler/Skeleton3D/LegTargets/BackLegPair/BR_Root")]
 metadata/_custom_type_script = "uid://gy5qwm8j5pbh"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=396952384]
@@ -213,104 +213,118 @@ settings/5/joints/4/limitation = null
 
 [node name="LegTargets" type="Node3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="1" unique_id=43553780]
 
-[node name="FrontLegPair" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=86136481 node_paths=PackedStringArray("root_left", "root_right", "cast_left", "cast_right", "target_left", "target_right")]
+[node name="FrontLegPair" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=83434502]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, -0.71)
-script = ExtResource("3_cfulw")
-root_left = NodePath("FL_Root")
-root_right = NodePath("FR_Root")
-cast_left = NodePath("FL_Root/FL_Cast")
-cast_right = NodePath("FR_Root/FR_Cast")
-target_left = NodePath("FL_Root/FL_Target")
-target_right = NodePath("FR_Root/FR_Target")
-metadata/_custom_type_script = "uid://bco1liolqoebw"
 
-[node name="FL_Root" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair" unique_id=443970705]
+[node name="FL_Root" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair" unique_id=116817796 node_paths=PackedStringArray("shape_cast", "target")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.21, 0, 0)
+script = ExtResource("3_cfulw")
+shape_cast = NodePath("FL_Cast")
+target = NodePath("FL_Target")
+metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="FL_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair/FL_Root" unique_id=1032610666]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.095, 0.42, -1.5)
 shape = SubResource("SphereShape3D_welis")
 target_position = Vector3(0, -2, 0)
+collision_mask = 17
 
 [node name="FL_Target" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair/FL_Root" unique_id=910499760]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.095, -0.9, -1.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.305, 0, -2.21)
+top_level = true
 
-[node name="FR_Root" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair" unique_id=1742288892]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair/FL_Root/FL_Target" unique_id=236702041]
+
+[node name="FR_Root" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair" unique_id=734277902 node_paths=PackedStringArray("shape_cast", "target")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.21, 0, 0)
+script = ExtResource("3_cfulw")
+shape_cast = NodePath("FR_Cast")
+target = NodePath("FR_Target")
+metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="FR_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair/FR_Root" unique_id=774657337]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.095, 0.42, -1.5)
 shape = SubResource("SphereShape3D_welis")
 target_position = Vector3(0, -2, 0)
+collision_mask = 17
 
 [node name="FR_Target" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair/FR_Root" unique_id=1490999037]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.095, -0.9, -1.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.305, 0, -2.21)
+top_level = true
 
-[node name="MiddleLegPair" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=1579039769 node_paths=PackedStringArray("root_left", "root_right", "cast_left", "cast_right", "target_left", "target_right")]
+[node name="MiddleLegPair" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=1904906852]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-script = ExtResource("3_cfulw")
-root_left = NodePath("ML_Root")
-root_right = NodePath("MR_Root")
-cast_left = NodePath("ML_Root/ML_Cast")
-cast_right = NodePath("MR_Root/MR_Cast")
-target_left = NodePath("ML_Root/ML_Target")
-target_right = NodePath("MR_Root/MR_Target")
-metadata/_custom_type_script = "uid://bco1liolqoebw"
 
-[node name="ML_Root" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets/MiddleLegPair" unique_id=228317832]
+[node name="ML_Root" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets/MiddleLegPair" unique_id=1724073026 node_paths=PackedStringArray("shape_cast", "target")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, 0, 0)
+script = ExtResource("3_cfulw")
+shape_cast = NodePath("ML_Cast")
+target = NodePath("ML_Target")
+metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="ML_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/MiddleLegPair/ML_Root" unique_id=1197310677]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.86, 0.42, 0)
 shape = SubResource("SphereShape3D_welis")
 target_position = Vector3(0, -2, 0)
+collision_mask = 17
 
 [node name="ML_Target" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/MiddleLegPair/ML_Root" unique_id=2090500044]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.86, -0.9, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.06, 0, 0)
+top_level = true
 
-[node name="MR_Root" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets/MiddleLegPair" unique_id=847949811]
+[node name="MR_Root" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets/MiddleLegPair" unique_id=535388397 node_paths=PackedStringArray("shape_cast", "target")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, 0)
+script = ExtResource("3_cfulw")
+shape_cast = NodePath("MR_Cast")
+target = NodePath("MR_Target")
+metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="MR_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/MiddleLegPair/MR_Root" unique_id=747800772]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.86, 0.42, 0)
 shape = SubResource("SphereShape3D_welis")
 target_position = Vector3(0, -2, 0)
+collision_mask = 17
 
 [node name="MR_Target" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/MiddleLegPair/MR_Root" unique_id=781596054]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.86, -0.9, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.06, 0, 0)
+top_level = true
 
-[node name="BackLegPair" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=1702235565 node_paths=PackedStringArray("root_left", "root_right", "cast_left", "cast_right", "target_left", "target_right")]
+[node name="BackLegPair" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=681309732]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0.71)
-script = ExtResource("3_cfulw")
-root_left = NodePath("BL_Root")
-root_right = NodePath("BR_Root")
-cast_left = NodePath("BL_Root/BL_Cast")
-cast_right = NodePath("BR_Root/BR_Cast")
-target_left = NodePath("BL_Root/BL_Target")
-target_right = NodePath("BR_Root/BR_Target")
-metadata/_custom_type_script = "uid://bco1liolqoebw"
 
-[node name="BL_Root" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair" unique_id=1232363711]
+[node name="BL_Root" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair" unique_id=1539461357 node_paths=PackedStringArray("shape_cast", "target")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.21, 0, 0)
+script = ExtResource("3_cfulw")
+shape_cast = NodePath("BL_Cast")
+target = NodePath("BL_Target")
+metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="BL_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair/BL_Root" unique_id=1668808495]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.095, 0.42, 1.5)
 shape = SubResource("SphereShape3D_welis")
 target_position = Vector3(0, -2, 0)
+collision_mask = 17
 
 [node name="BL_Target" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair/BL_Root" unique_id=68948370]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.095, -0.9, 1.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.305, 0, 2.21)
+top_level = true
 
-[node name="BR_Root" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair" unique_id=659378200]
+[node name="BR_Root" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair" unique_id=1208467192 node_paths=PackedStringArray("shape_cast", "target")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.21, 0, 0)
+script = ExtResource("3_cfulw")
+shape_cast = NodePath("BR_Cast")
+target = NodePath("BR_Target")
+metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="BR_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair/BR_Root" unique_id=381680649]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.095, 0.42, 1.5)
 shape = SubResource("SphereShape3D_welis")
 target_position = Vector3(0, -2, 0)
+collision_mask = 17
 
 [node name="BR_Target" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair/BR_Root" unique_id=568795891]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.095, -0.9, 1.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.305, 0, 2.21)
+top_level = true
 
 [node name="LowerSection" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="2" unique_id=920247470]
 transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.9, 0.5)

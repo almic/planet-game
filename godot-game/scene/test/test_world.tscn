@@ -114,7 +114,7 @@ shadow_enabled = true
 directional_shadow_mode = 0
 
 [node name="Player" parent="." unique_id=1957397594 instance=ExtResource("1_fbyci")]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 2.929593, 0.04, -0.0555044)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 2.929593, 0.35, -0.0555044)
 metadata/_edit_group_ = true
 
 [node name="Camera3D" type="Camera3D" parent="Player" unique_id=1880891728]
@@ -145,7 +145,7 @@ steps = 28
 metadata/_custom_type_script = "uid://y0ge5wpqcwqt"
 
 [node name="18_cm_step2" type="CSGBox3D" parent="Step" unique_id=171394997]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 2.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 2.5, 0)
 size = Vector3(8, 5, 2)
 material = ExtResource("3_qyrsn")
 script = ExtResource("4_dunqf")
@@ -161,12 +161,22 @@ steps = 45
 metadata/_custom_type_script = "uid://y0ge5wpqcwqt"
 
 [node name="18_cm_step_45_2" type="CSGBox3D" parent="Step" unique_id=64960563]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 4, 2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 4, 2)
 size = Vector3(8, 8, 2)
 material = ExtResource("3_qyrsn")
 script = ExtResource("4_dunqf")
 steps = 45
 metadata/_custom_type_script = "uid://y0ge5wpqcwqt"
+
+[node name="bridge" type="CSGBox3D" parent="Step" unique_id=1715889425]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 2.5, 0)
+size = Vector3(2, 5, 2)
+material = ExtResource("3_qyrsn")
+
+[node name="bridge2" type="CSGBox3D" parent="Step" unique_id=1156440416]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 4, 2)
+size = Vector3(2, 8, 2)
+material = ExtResource("3_qyrsn")
 
 [node name="Ramp" type="CSGCombiner3D" parent="." unique_id=439951142]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.05, 4)
@@ -311,7 +321,7 @@ custom_integrator = true
 continuous_cd = true
 linear_damp = 0.5
 script = ExtResource("4_w5krq")
-extension_acceleration = 20.0
+extension_acceleration = 1.0
 metadata/_edit_group_ = true
 
 [node name="collider" type="CollisionShape3D" parent="Elevator" unique_id=688705529]
