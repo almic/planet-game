@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://cetgr3wj5qd6v"]
 
 [ext_resource type="Script" uid="uid://6l6ugv6t1q5e" path="res://character/player/player.gd" id="1_y0s34"]
+[ext_resource type="Script" uid="uid://bakqx774uoeem" path="res://character/SpringCast.gd" id="2_8eijk"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_y0s34"]
 friction = 0.3
@@ -32,7 +33,7 @@ albedo_color = Color(0, 0.78431374, 1, 1)
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_8eijk"]
 
-[node name="Player" type="RigidBody3D" unique_id=1957397594 node_paths=PackedStringArray("shape_cast")]
+[node name="Player" type="RigidBody3D" unique_id=1957397594 node_paths=PackedStringArray("spring")]
 physics_interpolation_mode = 1
 collision_mask = 17
 axis_lock_angular_x = true
@@ -43,8 +44,7 @@ physics_material_override = SubResource("PhysicsMaterial_y0s34")
 custom_integrator = true
 continuous_cd = true
 script = ExtResource("1_y0s34")
-shape_cast = NodePath("spring_cast")
-height_offset = 0.03
+spring = NodePath("spring_cast")
 metadata/_custom_type_script = "uid://gy5qwm8j5pbh"
 
 [node name="collider_stand" type="CollisionShape3D" parent="." unique_id=296855449]
@@ -60,13 +60,15 @@ shape = SubResource("CapsuleShape3D_8eijk")
 disabled = true
 debug_color = Color(0, 0.6392157, 0.39215687, 0.9254902)
 
-[node name="spring_cast" type="ShapeCast3D" parent="." unique_id=1331581551]
+[node name="spring_cast" type="ShapeCast3D" parent="." unique_id=1863752111]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.04, 0)
 shape = SubResource("SphereShape3D_y0s34")
 target_position = Vector3(0, -0.74, 0)
 max_results = 1
 collision_mask = 16
 debug_shape_custom_color = Color(1, 0, 0, 1)
+script = ExtResource("2_8eijk")
+metadata/_custom_type_script = "uid://bakqx774uoeem"
 
 [node name="mesh_yaw" type="Node3D" parent="." unique_id=1705262676]
 unique_name_in_owner = true

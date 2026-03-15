@@ -1,3 +1,4 @@
+@tool
 extends CharacterController
 
 
@@ -72,10 +73,12 @@ var crouch_mode: bool = false
 
 
 func _ready() -> void:
+    super._ready()
+
     GUIDE.enable_mapping_context(input_context_look)
     GUIDE.enable_mapping_context(input_context_move)
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
     camera_pitch.rotation.x = clampf(
             camera_pitch.rotation.x - input_action_look.value_axis_2d.y * input_look_speed,
             LOOK_DOWN_MAX, LOOK_UP_MAX
@@ -119,7 +122,7 @@ func _process(delta: float) -> void:
             collider_stand.disabled = true
     elif collider_stand.disabled:
         # Test if we can switch to the stand collider using the shape_cast result
-        if shape_cast.get_closest_collision_safe_fraction() >= crouch_safe_fraction:
+        if spring.get_closest_collision_safe_fraction() >= crouch_safe_fraction:
             collider_stand.disabled = false
             collider_crouch.disabled = true
 

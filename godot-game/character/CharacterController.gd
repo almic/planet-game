@@ -1,3 +1,4 @@
+@tool
 class_name CharacterController extends RigidBody3D
 
 
@@ -40,16 +41,7 @@ var air_control: float = 0.5
 
 ## Shape cast to use for colliding with the ground, like a spring. Set up the
 ## shape cast such that its extent is equal to the step-down height.
-@export var shape_cast: ShapeCast3D
-
-## Offset from the shape cast's maximum extent, use this to subtract the step-down
-## height added.
-@export_range(-10.0, 10.0, 0.01, 'or_less', 'or_greater')
-var height_offset: float = 0.0
-
-@export var spring_stiffness: float = 1.5
-
-@export var spring_damping: float = 2.2
+@export var spring: SpringCast
 
 
 @export_group('Debug', 'debug')
@@ -91,6 +83,8 @@ var desired_incline_effect: float = 1.0
 var desired_jump_power: float = 0.0
 ## Additional offset for the spring height
 var desired_height_offset: float = 0.0
+## Additional acceleration applied to body prior to desired motion
+var desired_acceleration: Vector3 = Vector3.ZERO
 
 ## The body's total speed
 var linear_speed: float
@@ -122,15 +116,19 @@ var ground_rel_con_velocity: Vector3
 ## Calculated wall slide normal, only use when is_slipping is true
 var wall_slide_normal: Vector3
 
-## Calculated spring force
-var spring_force: Vector3
-
 
 func _ready() -> void:
 
-    # At least 1 result is needed for ground slope detection
-    if shape_cast and shape_cast.max_results == 0:
-        shape_cast.max_results = 1
+    # Make this body use custom integrator
+    custom_integrator = true
+
+    # Setup spring
+    if spring:
+        spring.mass = mass
+
+        # At least 1 result is needed for ground slope detection
+        if spring.max_results == 0:
+            spring.max_results = 1
 
 ## Implement per controller, called when input should be read for movement.
 ## If your controller has a camera connect to mouse movement, you should handle
@@ -166,10 +164,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     # Ground detection and force
     _calculate_ground_force(state)
 
-    if is_on_floor and debug_enabled:
+    if is_on_floor and spring and debug_enabled:
         if debug_normal:
             _normal_debug_vec = DebugDraw.vector(
-                    shape_cast.get_collision_point(0),
+                    spring.get_collision_point(0),
                     ground_normal * 0.5,
                     Color.CORNFLOWER_BLUE,
                     _normal_debug_vec,
@@ -177,8 +175,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             )
         if debug_spring:
             _spring_debug_vec = DebugDraw.vector(
-                shape_cast.global_position,
-                state.total_gravity + (spring_force * state.inverse_mass),
+                spring.global_position,
+                state.total_gravity + spring.total_force,
                 Color.DARK_SLATE_BLUE,
                 _spring_debug_vec
             )
@@ -279,8 +277,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             if not stop_friction.is_zero_approx():
 
                 # remove spring + gravity
-                if not spring_force.is_zero_approx():
-                    var spring_vel: Vector3 = state.total_gravity + (spring_force * state.inverse_mass)
+                if spring and (not spring.total_force.is_zero_approx()):
+                    var spring_vel: Vector3 = state.total_gravity + (spring.total_force * state.inverse_mass)
                     var spring_len: float = spring_vel.length()
                     var spring_dir: Vector3 = spring_vel / spring_len
 
@@ -333,9 +331,21 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     # Add final friction values
     var friction: Vector3 = ground_friction + air_friction
 
-    state.linear_velocity += state.step * (state.total_gravity + (spring_force * state.inverse_mass) + friction) + jump
+    state.linear_velocity += state.step * (friction + desired_acceleration) + jump
 
-    if state.linear_velocity.length_squared() < 1.6e-5:
+    # Add a slip force by projecting gravity along the downhill vector
+    if not state.total_gravity.is_zero_approx():
+        if is_slipping:
+            var downhill: Vector3 = ground_normal.cross(state.total_gravity).cross(ground_normal).normalized()
+            state.linear_velocity += state.step * downhill * downhill.dot(state.total_gravity)
+        else:
+            state.linear_velocity += state.step * state.total_gravity
+
+    if spring:
+        state.linear_velocity += spring.total_force * state.inverse_mass * state.step
+        #print('%.3f | s: %s' % [float(Time.get_ticks_msec()) / 1000.0, spring.total_force * state.inverse_mass])
+
+    if state.linear_velocity.length_squared() < 1e-4:
         state.linear_velocity = Vector3.ZERO
 
     if is_on_floor:
@@ -387,7 +397,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 ## Calculate a ground force using a spring-mass-damper simulation and friction
 func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
 
-    if shape_cast and shape_cast.is_colliding():
+    if spring and spring.is_colliding():
         if not is_on_floor:
             is_on_floor = true
     else:
@@ -399,53 +409,41 @@ func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
             ground_direction = Vector3.ZERO
             ground_velocity = Vector3.ZERO
             ground_rel_con_velocity = Vector3.ZERO
-            spring_force = Vector3.ZERO
+            spring.save_state()
+            spring.total_force = Vector3.ZERO
         return
 
-    var ground: Object = shape_cast.get_collider(0)
-    var hit_position: Vector3 = shape_cast.get_collision_point(0)
-    ground_normal = shape_cast.get_collision_normal(0)
+    spring.save_state()
+
+    var ground: Object = spring.get_collider(0)
+    var hit_position: Vector3 = spring.get_collision_point(0)
+    ground_normal = spring.get_collision_normal(0)
 
     # Slope angle check
     var floor_cos_theta: float = ground_normal.dot(state.transform.basis.y)
 
     is_slipping = false
-    var use_contact_length: bool = true
     if floor_cos_theta <= cos(max_slope_angle):
-        use_contact_length = false
         is_slipping = true
         wall_slide_normal = ground_normal
 
         # Ignore this contact and recast for a better surface
-        var to_ignore: RID = shape_cast.get_collider_rid(0)
-        shape_cast.add_exception_rid(to_ignore)
-        shape_cast.force_shapecast_update()
-        if shape_cast.is_colliding():
-            ground_normal = shape_cast.get_collision_normal(0)
+        var to_ignore: RID = spring.get_collider_rid(0)
+        spring.add_exception_rid(to_ignore)
+        spring.force_shapecast_update()
+        if spring.is_colliding():
+            ground_normal = spring.get_collision_normal(0)
 
             floor_cos_theta = ground_normal.dot(state.transform.basis.y)
             if floor_cos_theta > cos(max_slope_angle):
+                spring.save_state()
                 is_slipping = false
                 has_landed_on_ground_for_jump = true
-                use_contact_length = true
-                ground = shape_cast.get_collider(0)
-                hit_position = shape_cast.get_collision_point(0)
+                ground = spring.get_collider(0)
 
-        shape_cast.remove_exception_rid(to_ignore)
+        spring.remove_exception_rid(to_ignore)
     else:
         has_landed_on_ground_for_jump = true
-
-    var max_length: float = shape_cast.target_position.length()
-    var spring_direction: Vector3 = -(shape_cast.target_position / max_length)
-    var length: float
-
-    if use_contact_length:
-        length = shape_cast.get_closest_collision_safe_fraction() * max_length
-    else:
-        length = max_length
-
-    var offset: float = (max_length + height_offset + desired_height_offset) - length
-    var spring: float = mass * 100.0 * spring_stiffness * offset * clampf(ground_normal.dot(spring_direction), 0.0, 1.0)
 
     var ground_state: PhysicsDirectBodyState3D = null
     var ground_contact_velocity: Vector3 = Vector3.ZERO
@@ -481,35 +479,16 @@ func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
         # Ground friction in m/s^2
         ground_friction = friction_coef * relative_contact_velocity.slide(ground_normal)
 
+    spring.calculate_force(state.step, ground_rel_con_velocity.dot(spring.direction), desired_height_offset, is_slipping)
+
     if not ground_velocity.is_zero_approx():
         ground_direction = ground_velocity.normalized()
     else:
         ground_direction = Vector3.ZERO
 
-    # NOTE: Math trick, these two lines are equivalent
-    #       1) A.dot(N) * B.dot(N)  OR  N.dot(A) * N.dot(B)
-    #       2) A.dot(N * N.dot(B))
-    var spring_velocity: float = (
-              ground_normal.dot(spring_direction)
-            * ground_normal.dot(state.linear_velocity - ground_contact_velocity)
-    )
-    var damp: float = minf(mass * 10.0 * spring_damping * spring_velocity, spring)
-
-    spring_force = clampf(spring - damp, 0.0, 1e8) * spring_direction
-
     if ground_state:
         # Apply opposing spring force to body, invert ground velocity to push back
-        ground_state.apply_force(-1.0 * (spring_force + ground_velocity * mass), local_position)
-
-    # Add a slip force by projecting gravity along the downhill vector
-    if is_slipping and not state.total_gravity.is_zero_approx():
-        var downhill: Vector3 = ground_normal.cross(state.total_gravity).cross(ground_normal).normalized()
-        # NOTE: When slipping, the spring disables itself. Redirect gravity in the slip direction
-        #       to prevent the spring from falling into surfaces while slipping.
-        # TODO: See if a better method exists, and possibly push the player away from the wall
-        #       using the spring?
-        spring_force += (downhill * downhill.dot(state.total_gravity) - state.total_gravity) * mass
-
+        ground_state.apply_force(-1.0 * (spring.total_force + ground_velocity * mass), local_position)
 
 ## Calculate additional ground friction for turning/ changing direction
 func _calculate_move_friction(forward: Vector3) -> Vector3:
