@@ -293,7 +293,6 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
         # Air control
         if air_control > 0.0 and has_desired_forward:
             forward = state.transform.basis.y.cross(desired_direction).cross(state.transform.basis.y).normalized()
-            limit_in_dir *= air_control
             accel_multiplier *= air_control
     else:
         forward = desired_direction
