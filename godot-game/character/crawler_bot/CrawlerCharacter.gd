@@ -2,15 +2,22 @@
 class_name CrawlerCharacter extends CharacterController
 
 @export var legs: Array[CrawlerLeg]
-
+@export var leg_ik: IterateIK3D
 
 
 func _ready() -> void:
+    super._ready()
 
     for leg in legs:
         # Copy collision mask to casters
         leg.shape_cast.collision_mask = collision_mask
 
+        # Fix markers in editor
+        if Engine.is_editor_hint() and leg.target.top_level:
+            leg.target.translate(global_position)
+            leg.target.top_level = false
+
+    leg_ik.active = not Engine.is_editor_hint()
 
 func _handle_input() -> void:
     desired_direction = Vector3.BACK

@@ -18,8 +18,8 @@ func _ready() -> void:
             if target:
                 break
 
-    # Ensure target is top-level
-    target.top_level = true
+    # Ensure target is top-level in-game
+    target.top_level = not Engine.is_editor_hint()
 
 func update() -> void:
     # Move targets to collision point
