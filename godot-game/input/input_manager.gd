@@ -6,6 +6,11 @@ var input_global_context: GUIDEMappingContext = preload("uid://d03wntb6hv3sf")
 var input_action_pause: GUIDEAction = preload("uid://djvqcq1sg55wm")
 var input_action_speed: GUIDEAction = preload("uid://c8lqf68owbwtc")
 
+var input_debug_context: GUIDEMappingContext = preload("uid://b65tjpa028uia")
+
+
+var debug_mode: bool = true
+
 
 ## If the mouse is currently within the game window
 var mouse_in_window: bool = false
@@ -40,7 +45,13 @@ func _process(_delta: float) -> void:
         else:
             pause()
 
-    if input_action_speed.is_triggered():
+    if debug_mode != GUIDE.is_mapping_context_enabled(input_debug_context):
+        if debug_mode:
+            GUIDE.enable_mapping_context(input_debug_context)
+        else:
+            GUIDE.disable_mapping_context(input_debug_context)
+
+    if debug_mode and input_action_speed.is_triggered():
         print('Time scale: %.4f' % input_action_speed.value_axis_1d)
         Engine.time_scale = clampf(input_action_speed.value_axis_1d, 0.25, 1.0)
 

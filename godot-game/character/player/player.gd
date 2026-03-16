@@ -47,6 +47,10 @@ var crouch_safe_fraction: float = 0.6
 @export var input_action_jump: GUIDEAction = preload("uid://oru4dn30hyrs")
 @export var input_action_crouch: GUIDEAction = preload("uid://cyig6itfyeel1")
 
+@export_subgroup('Debug')
+@export var input_debug_target_player: GUIDEAction = preload("uid://bfqs54sgopsvb")
+@export var input_debug_target_position: GUIDEAction = preload("uid://u1oxg3mtiil8")
+
 
 @onready var mesh_yaw: Node3D = %mesh_yaw
 
@@ -72,11 +76,15 @@ var walk_mode: bool = false
 var crouch_mode: bool = false
 
 
+var debug_targeting_player: bool = false
+
+
 func _ready() -> void:
     super._ready()
 
-    GUIDE.enable_mapping_context(input_context_look)
-    GUIDE.enable_mapping_context(input_context_move)
+    if not Engine.is_editor_hint():
+        GUIDE.enable_mapping_context(input_context_look)
+        GUIDE.enable_mapping_context(input_context_move)
 
 func _process(_delta: float) -> void:
     camera_pitch.rotation.x = clampf(
@@ -116,6 +124,19 @@ func _process(_delta: float) -> void:
     if input_action_crouch.is_triggered():
         crouch_mode = not crouch_mode
 
+    if input_debug_target_player.is_triggered():
+        var crawlers: Array[CrawlerCharacter]
+        crawlers.assign(get_parent_node_3d().find_children('', 'CrawlerCharacter', false))
+        for crawl in crawlers:
+            crawl.target_position = position
+        debug_targeting_player = true
+    elif debug_targeting_player:
+        var crawlers: Array[CrawlerCharacter]
+        crawlers.assign(get_parent_node_3d().find_children('', 'CrawlerCharacter', false))
+        for crawl in crawlers:
+            crawl.target_position = Vector3.INF
+        debug_targeting_player = false
+
     if crouch_mode:
         if collider_crouch.disabled:
             collider_crouch.disabled = false
@@ -150,3 +171,18 @@ func _handle_input() -> void:
         desired_height_offset = -crouch_offset
     else:
         desired_height_offset = 0.0
+
+    if input_debug_target_position.is_triggered():
+        var active_camera: Camera3D = get_viewport().get_camera_3d()
+        if active_camera:
+            var query := PhysicsRayQueryParameters3D.new()
+            query.from = active_camera.global_position
+            query.to = query.from - active_camera.global_basis.z * 100.0
+            query.collision_mask = collision_mask
+
+            var hit: Dictionary = PhysicsServer3D.body_get_direct_state(get_rid()).get_space_state().intersect_ray(query)
+            if hit:
+                var crawlers: Array[CrawlerCharacter]
+                crawlers.assign(get_parent_node_3d().find_children('', 'CrawlerCharacter', false))
+                for crawl in crawlers:
+                    crawl.target_position = hit.position

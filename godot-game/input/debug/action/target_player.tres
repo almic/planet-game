@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="GUIDEAction" format=3 uid="uid://bfqs54sgopsvb"]
+
+[ext_resource type="Script" uid="uid://cluhc11vixkf1" path="res://addons/guide/guide_action.gd" id="1_rgd6y"]
+
+[resource]
+script = ExtResource("1_rgd6y")
+name = &"target_player"
+display_name = "Target Player"
+metadata/_custom_type_script = "uid://cluhc11vixkf1"

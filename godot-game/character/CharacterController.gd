@@ -73,6 +73,9 @@ var is_slipping: bool = false
 ## set to false upon performing a jump.
 var has_landed_on_ground_for_jump: bool = false
 
+## If the character body is currently applying forward movement
+var has_desired_forward: bool = false
+
 ## Force the controller to project desired velocity onto the ground, or if in
 ## the air, remove any vertical component and reproject to lateral movement
 var force_ground_movement: bool = true
@@ -186,7 +189,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     var limit_in_dir: float = desired_speed
     var accel_multiplier: float = 1.0
 
-    var has_desired_forward: bool = desired_speed > 0.0 and not desired_direction.is_zero_approx()
+    has_desired_forward = desired_speed > 0.0 and not desired_direction.is_zero_approx()
 
     if is_on_floor:
 

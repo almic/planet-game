@@ -29,5 +29,4 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - Some way to disable/ counteract gravity, possibly depending on grounded legs. An overcomplicated solution is to draw a plane using the grounded legs, and intersect a ray from the "center of mass" towards the nearest position of the polygon, and applying a gravitational resistance at that intersection point, allowing the body to rotate (fall over), and the legs to move to stay upright.
 
 # Plan
-- [ ] Reorganize CharacterController to support custom spring function implementation. Should be such that crawler can just override that method and everything else works as expected.
-- [ ] ???
+- [ ] Determine if a leg is actually grounded, use a shape intersection most likely

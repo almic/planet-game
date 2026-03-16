@@ -44,7 +44,7 @@ input_mappings = Array[ExtResource("3_dnmtw")]([SubResource("Resource_0oo10"), S
 [sub_resource type="Resource" id="Resource_ilcyl"]
 script = ExtResource("4_5gd5r")
 key = 96
-shift = true
+control = true
 
 [sub_resource type="Resource" id="Resource_mqr6k"]
 script = ExtResource("7_gka2y")
@@ -62,7 +62,7 @@ input_mappings = Array[ExtResource("3_dnmtw")]([SubResource("Resource_gka2y")])
 [sub_resource type="Resource" id="Resource_eck40"]
 script = ExtResource("4_5gd5r")
 key = 49
-shift = true
+control = true
 
 [sub_resource type="Resource" id="Resource_8hrd3"]
 script = ExtResource("7_gka2y")
@@ -76,7 +76,7 @@ triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_8hrd3")])
 [sub_resource type="Resource" id="Resource_es75i"]
 script = ExtResource("4_5gd5r")
 key = 50
-shift = true
+control = true
 
 [sub_resource type="Resource" id="Resource_ntnj7"]
 script = ExtResource("10_mqr6k")
@@ -95,7 +95,7 @@ triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_fdyk4")])
 [sub_resource type="Resource" id="Resource_5diik"]
 script = ExtResource("4_5gd5r")
 key = 51
-shift = true
+control = true
 
 [sub_resource type="Resource" id="Resource_kkewy"]
 script = ExtResource("10_mqr6k")
