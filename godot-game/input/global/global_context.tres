@@ -9,7 +9,9 @@
 [ext_resource type="Script" uid="uid://x74mnwgr08a7" path="res://addons/guide/triggers/guide_trigger.gd" id="6_mqr6k"]
 [ext_resource type="Script" uid="uid://b52rqq28tuqpg" path="res://addons/guide/triggers/guide_trigger_pressed.gd" id="7_gka2y"]
 [ext_resource type="Resource" uid="uid://b20e7e3b8jehd" path="res://input/global/action/camera_toggle.tres" id="8_dnmtw"]
+[ext_resource type="Resource" uid="uid://ejk3l3ante4e" path="res://input/debug/action/debug_action.tres" id="9_gka2y"]
 [ext_resource type="Resource" uid="uid://c8lqf68owbwtc" path="res://input/global/action/set_game_speed.tres" id="9_ntnj7"]
+[ext_resource type="Script" uid="uid://brsxcrai2te83" path="res://addons/guide/triggers/guide_trigger_chorded_action.gd" id="10_f4djr"]
 [ext_resource type="Script" uid="uid://bjm4myqxg4phm" path="res://addons/guide/modifiers/guide_modifier_scale.gd" id="10_mqr6k"]
 
 [sub_resource type="Resource" id="Resource_f4djr"]
@@ -44,7 +46,10 @@ input_mappings = Array[ExtResource("3_dnmtw")]([SubResource("Resource_0oo10"), S
 [sub_resource type="Resource" id="Resource_ilcyl"]
 script = ExtResource("4_5gd5r")
 key = 96
-control = true
+
+[sub_resource type="Resource" id="Resource_eck40"]
+script = ExtResource("10_f4djr")
+action = ExtResource("9_gka2y")
 
 [sub_resource type="Resource" id="Resource_mqr6k"]
 script = ExtResource("7_gka2y")
@@ -52,17 +57,20 @@ script = ExtResource("7_gka2y")
 [sub_resource type="Resource" id="Resource_gka2y"]
 script = ExtResource("3_dnmtw")
 input = SubResource("Resource_ilcyl")
-triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_mqr6k")])
+triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_eck40"), SubResource("Resource_mqr6k")])
 
 [sub_resource type="Resource" id="Resource_df6c6"]
 script = ExtResource("1_awoth")
 action = ExtResource("8_dnmtw")
 input_mappings = Array[ExtResource("3_dnmtw")]([SubResource("Resource_gka2y")])
 
-[sub_resource type="Resource" id="Resource_eck40"]
+[sub_resource type="Resource" id="Resource_es75i"]
 script = ExtResource("4_5gd5r")
 key = 49
-control = true
+
+[sub_resource type="Resource" id="Resource_487ga"]
+script = ExtResource("10_f4djr")
+action = ExtResource("9_gka2y")
 
 [sub_resource type="Resource" id="Resource_8hrd3"]
 script = ExtResource("7_gka2y")
@@ -70,17 +78,20 @@ actuation_threshold = 0.1
 
 [sub_resource type="Resource" id="Resource_8yke5"]
 script = ExtResource("3_dnmtw")
-input = SubResource("Resource_eck40")
-triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_8hrd3")])
+input = SubResource("Resource_es75i")
+triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_487ga"), SubResource("Resource_8hrd3")])
 
-[sub_resource type="Resource" id="Resource_es75i"]
+[sub_resource type="Resource" id="Resource_5diik"]
 script = ExtResource("4_5gd5r")
 key = 50
-control = true
 
 [sub_resource type="Resource" id="Resource_ntnj7"]
 script = ExtResource("10_mqr6k")
 scale = Vector3(0.5, 1, 1)
+
+[sub_resource type="Resource" id="Resource_oy24d"]
+script = ExtResource("10_f4djr")
+action = ExtResource("9_gka2y")
 
 [sub_resource type="Resource" id="Resource_fdyk4"]
 script = ExtResource("7_gka2y")
@@ -88,18 +99,21 @@ actuation_threshold = 0.1
 
 [sub_resource type="Resource" id="Resource_7dneh"]
 script = ExtResource("3_dnmtw")
-input = SubResource("Resource_es75i")
+input = SubResource("Resource_5diik")
 modifiers = Array[ExtResource("5_ntnj7")]([SubResource("Resource_ntnj7")])
-triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_fdyk4")])
+triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_oy24d"), SubResource("Resource_fdyk4")])
 
-[sub_resource type="Resource" id="Resource_5diik"]
+[sub_resource type="Resource" id="Resource_80ccj"]
 script = ExtResource("4_5gd5r")
 key = 51
-control = true
 
 [sub_resource type="Resource" id="Resource_kkewy"]
 script = ExtResource("10_mqr6k")
 scale = Vector3(0.25, 1, 1)
+
+[sub_resource type="Resource" id="Resource_1aa1t"]
+script = ExtResource("10_f4djr")
+action = ExtResource("9_gka2y")
 
 [sub_resource type="Resource" id="Resource_xs7j6"]
 script = ExtResource("7_gka2y")
@@ -107,9 +121,10 @@ actuation_threshold = 0.1
 
 [sub_resource type="Resource" id="Resource_hmv04"]
 script = ExtResource("3_dnmtw")
-input = SubResource("Resource_5diik")
+input = SubResource("Resource_80ccj")
 modifiers = Array[ExtResource("5_ntnj7")]([SubResource("Resource_kkewy")])
-triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_xs7j6")])
+triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_1aa1t"), SubResource("Resource_xs7j6")])
+metadata/_guide_triggers_collapsed = false
 
 [sub_resource type="Resource" id="Resource_30ruh"]
 script = ExtResource("1_awoth")

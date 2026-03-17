@@ -27,7 +27,7 @@ var move_spin: float = deg_to_rad(15.0)
 
 ## How quickly to interpolate in/out of leg move offsets.
 @export_range(1.0, 10.0, 0.01, 'or_greater')
-var move_interp_rate: float = 8.0
+var move_interp_rate: float = 10.0
 
 
 var body: CrawlerCharacter = null
@@ -71,10 +71,10 @@ func update(state: PhysicsDirectBodyState3D) -> void:
     var is_left: bool = index % 2 == 0
 
     var target_transform: Transform3D = rest_transform
-    var travel_speed: float
+    var leg_speed: float
     var travel_forward: Vector3
     if not body.ground_direction.is_zero_approx():
-        travel_speed = minf(maxf(body.ground_direction.dot(body.ground_velocity), body.desired_speed), body.max_speed)
+        leg_speed = minf(maxf(body.ground_direction.dot(body.ground_velocity), body.desired_speed), body.max_speed)
         if body.desired_direction.is_zero_approx():
             travel_forward = body.ground_direction
         else:
@@ -82,6 +82,8 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         travel_forward = travel_forward.slide(state.transform.basis.y)
         if not travel_forward.is_zero_approx():
             travel_forward = travel_forward.normalized()
+    else:
+        leg_speed = body.max_speed / 3.0
 
     if not travel_forward.is_zero_approx():
         target_transform.origin += state.transform.basis.inverse() * travel_forward * move_offset
@@ -121,20 +123,22 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         step_current = step_current.move_toward(
                 step_target,
                 state.step * step_delta
-                * travel_speed
+                * leg_speed
                 * 2.24
         )
 
         var progress: float = sin(PI * ((step_delta - (step_target - step_current).length()) / step_delta))
 
         target.position = step_current + (state.transform.basis.y * progress * leg_lift_height)
-        var swing: Vector3 = state.transform.basis.x * progress * leg_swing_offset
+        var swing: Vector3 = state.transform.basis.x * progress * leg_swing_offset * minf(step_delta / step_distance, 1.0)
         if is_left:
             swing *= -1.0
         target.position += swing
 
         if step_current.distance_squared_to(step_target) < 1e-4:
             is_moving = false
+            is_grounded = true
+            target.position = step_target
 
 func setup_shape() -> void:
     shape_rid = PhysicsServer3D.sphere_shape_create()
@@ -151,7 +155,11 @@ func can_step() -> bool:
         if leg.is_moving:
             return false
 
-    return next_step_target.distance_squared_to(target.position) >= step_distance * step_distance
+    if body.has_desired_forward:
+        return next_step_target.distance_squared_to(target.position) >= step_distance * step_distance
+    elif transform.is_equal_approx(rest_transform):
+        return next_step_target.distance_squared_to(target.position) >= 1e-4
+    return false
 
 ## Returns the legs ahead, behind, and across from this leg.
 func get_adjacent() -> Array[CrawlerLeg]:

@@ -11,6 +11,7 @@ var legs: Array[CrawlerLeg]
 
 
 var target_position: Vector3 = Vector3.INF
+var target_direction: Vector3 = Vector3.INF
 
 
 func _ready() -> void:
@@ -48,6 +49,9 @@ func _handle_input() -> void:
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     _update_legs(state)
 
+    if target_direction.is_finite():
+        pass
+
     super._integrate_forces(state)
 
 func _update_legs(state: PhysicsDirectBodyState3D) -> void:
@@ -63,8 +67,11 @@ func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
     ground_normal = Vector3.UP
     ground_rel_con_velocity = state.linear_velocity
     ground_velocity = ground_rel_con_velocity.slide(ground_normal)
+    ground_friction = Vector3.ZERO
 
     if not ground_velocity.is_zero_approx():
         ground_direction = ground_velocity.normalized()
     else:
         ground_direction = Vector3.ZERO
+
+    is_on_floor = true

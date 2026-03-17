@@ -5,5 +5,6 @@
 [resource]
 script = ExtResource("1_d5wxu")
 name = &"walk"
+block_lower_priority_actions = false
 display_name = "Walk"
 metadata/_custom_type_script = "uid://cluhc11vixkf1"

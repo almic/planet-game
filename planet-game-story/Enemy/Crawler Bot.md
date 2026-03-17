@@ -29,4 +29,8 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - Some way to disable/ counteract gravity, possibly depending on grounded legs. An overcomplicated solution is to draw a plane using the grounded legs, and intersect a ray from the "center of mass" towards the nearest position of the polygon, and applying a gravitational resistance at that intersection point, allowing the body to rotate (fall over), and the legs to move to stay upright.
 
 # Plan
+- [ ] Make them face target direction using angular forces
+- [ ] Fix leg rotations over time, just apply some small correction to each bone's rest position every few frames
 - [ ] Determine if a leg is actually grounded, use a shape intersection most likely
+- [ ] Apply anti-gravity force based on legs in contact with the ground
+- [ ] ???

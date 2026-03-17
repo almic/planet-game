@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_a21m5")
 name = &"camera_toggle"
+block_lower_priority_actions = false
 is_remappable = true
 display_name = "Toggle Camera"
 metadata/_custom_type_script = "uid://cluhc11vixkf1"

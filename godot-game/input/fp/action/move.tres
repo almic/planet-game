@@ -6,6 +6,7 @@
 script = ExtResource("1_w2ypw")
 name = &"move"
 action_value_type = 3
+block_lower_priority_actions = false
 is_remappable = true
 display_name = "Move"
 metadata/_custom_type_script = "uid://cluhc11vixkf1"
