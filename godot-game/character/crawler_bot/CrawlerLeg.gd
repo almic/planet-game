@@ -26,8 +26,8 @@ var move_offset: float = 0.6
 var move_spin: float = deg_to_rad(15.0)
 
 ## How quickly to interpolate in/out of leg move offsets.
-@export_range(1.0, 10.0, 0.01, 'or_greater')
-var move_interp_rate: float = 10.0
+@export_range(1.0, 5.0, 0.01, 'or_greater')
+var move_interp_rate: float = 5.0
 
 
 var body: CrawlerCharacter = null
@@ -82,8 +82,6 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         travel_forward = travel_forward.slide(state.transform.basis.y)
         if not travel_forward.is_zero_approx():
             travel_forward = travel_forward.normalized()
-    else:
-        leg_speed = body.max_speed / 3.0
 
     if not travel_forward.is_zero_approx():
         target_transform.origin += state.transform.basis.inverse() * travel_forward * move_offset
@@ -104,9 +102,17 @@ func update(state: PhysicsDirectBodyState3D) -> void:
             cos_theta *= -1.0
 
         target_transform = target_transform.rotated_local(transform.basis.y, move_spin * cos_theta)
+    elif transform == target_transform:
+        leg_speed = body.max_speed / 3.0
+    elif is_moving:
+        # Use very small leg speed while interpolating to rest
+        leg_speed = body.max_speed / 20.0
 
     if transform != target_transform:
-        transform = transform.interpolate_with(target_transform, state.step * move_interp_rate)
+        # Force at least 0.5cm of travel each interpolation
+        var min_weight: float = minf(2.5e-5 / transform.origin.distance_squared_to(target_transform.origin), 1.0)
+        transform = transform.interpolate_with(target_transform, maxf(state.step * move_interp_rate, min_weight))
+
         if transform.is_equal_approx(target_transform):
             transform = target_transform
 
@@ -158,7 +164,7 @@ func can_step() -> bool:
     if body.has_desired_forward:
         return next_step_target.distance_squared_to(target.position) >= step_distance * step_distance
     elif transform.is_equal_approx(rest_transform):
-        return next_step_target.distance_squared_to(target.position) >= 1e-4
+        return next_step_target.distance_squared_to(target.position) >= 2.5e-3
     return false
 
 ## Returns the legs ahead, behind, and across from this leg.
