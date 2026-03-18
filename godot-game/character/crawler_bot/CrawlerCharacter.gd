@@ -5,6 +5,12 @@ class_name CrawlerCharacter extends CharacterController
 @export_range(0.01, 8.0, 0.01, 'or_greater')
 var max_speed: float = 3.0
 
+@export_range(0.0, 30.0, 0.1, 'or_greater', 'radians_as_degrees')
+var max_pitch: float = deg_to_rad(12.0)
+
+@export_range(0.0, 180.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s')
+var rotation_acceleration: float = deg_to_rad(120.0)
+
 @export var leg_ik: IterateIK3D
 
 var legs: Array[CrawlerLeg]
@@ -31,12 +37,14 @@ func _ready() -> void:
         leg.shape_cast.collision_mask = collision_mask
 
     leg_ik.active = not Engine.is_editor_hint()
+    # leg_ik.active = false
 
 func _handle_input() -> void:
 
     if target_position.is_finite() and (target_position - position).length_squared() > 4.0:
-        desired_direction = (target_position - position).normalized()
-        desired_speed = max_speed
+        target_direction = (target_position - position).normalized()
+        #desired_direction = (target_position - position).normalized()
+        #desired_speed = max_speed
     elif not desired_direction.is_zero_approx():
         desired_direction = Vector3.ZERO
         desired_speed = 0.0
@@ -46,8 +54,7 @@ func _handle_input() -> void:
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     _update_legs(state)
 
-    if target_direction.is_finite():
-        pass
+    _solve_rotation(state)
 
     super._integrate_forces(state)
 
@@ -84,3 +91,67 @@ func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
                 break
 
     is_on_floor = true
+
+func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
+
+    var goal_forward: Vector3
+    if target_direction.is_finite():
+        goal_forward = target_direction
+        # breakpoint
+    else:
+        goal_forward = -state.transform.basis.z
+
+    # No yaw when this is true:
+    # r <= pow(0.03125 - 0.03125 * cos_theta, 0.25)
+    # NOTE: xz_dot == r
+    var xz_dot: float = 1.0 - absf(state.transform.basis.tdoty(goal_forward))
+    var cos_theta: float = state.transform.basis.tdotz(-goal_forward)
+    var rot: float = goal_forward.signed_angle_to(-state.transform.basis.z, Vector3.DOWN)
+    var yaw: float
+    if xz_dot <= pow(0.03125 - 0.03125 * cos_theta, 0.25):
+        goal_forward = goal_forward.rotated(Vector3.UP, rot)
+        yaw = 0.0
+    else:
+        yaw = rot
+
+    var pitch: float
+    var pitch_axis: Vector3 = goal_forward.cross(state.transform.basis.y)
+    if pitch_axis.is_zero_approx():
+        pitch = (PI * 0.5) * signf(goal_forward.dot(ground_normal))
+    else:
+        pitch = (PI * 0.5) - goal_forward.signed_angle_to(state.transform.basis.y, pitch_axis)
+    if absf(pitch) > 0.01:
+        print(pitch)
+
+    # Limit pitch
+    pitch = clampf(pitch, -max_pitch, max_pitch)
+
+    # Slide smoothly into pitch as we align the yaw
+    pitch *= PI - yaw
+
+    # Fix ground roll
+    var roll: float = state.transform.basis.x.signed_angle_to(ground_normal, state.transform.basis.z)
+    roll -= PI * 0.5
+
+    var angular: Vector3 = state.transform.basis * Vector3(pitch, yaw, roll)
+
+    # NOTE: technically correct, but let the body rotate without accounting for
+    #       mass distribution...
+    # angular = state.inverse_inertia_tensor * angular
+
+    # Prevent over-acceleration (flipping the signs?)
+    # var diff: Vector3 = state.angular_velocity - angular
+
+    state.angular_velocity = state.angular_velocity.move_toward(
+        angular,
+        state.step * rotation_acceleration
+    )
+
+    # NOTE: roughly 0.5 degrees per second
+    if angular.is_zero_approx() and state.angular_velocity.length_squared() < 8e-5:
+        state.angular_velocity = Vector3.ZERO
+
+    # Given current angular velocity, and the difference between forward and
+    # goal, apply an acceleration to the angular velocity. If the difference is
+    # very small, and angular velocity is too high, then it should apply a
+    # deceleration to all angular velocity.
