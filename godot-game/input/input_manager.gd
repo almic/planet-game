@@ -5,6 +5,7 @@ extends Node
 var input_global_context: GUIDEMappingContext = preload("uid://d03wntb6hv3sf")
 var input_action_pause: GUIDEAction = preload("uid://djvqcq1sg55wm")
 var input_action_speed: GUIDEAction = preload("uid://c8lqf68owbwtc")
+var input_action_tick: GUIDEAction = preload("uid://cg84r7q1k81f6")
 
 var input_debug_context: GUIDEMappingContext = preload("uid://b65tjpa028uia")
 
@@ -23,6 +24,9 @@ var capture_mouse_on_enter: bool = false
 
 ## If the game scene should pause when the mouse exits the window
 var allow_pause_on_exit: bool = true
+
+## If the game should pause on the next process tick
+var pause_next_tick: bool = false
 
 
 func _ready() -> void:
@@ -51,10 +55,21 @@ func _process(_delta: float) -> void:
         else:
             GUIDE.disable_mapping_context(input_debug_context)
 
-    if debug_mode and input_action_speed.is_triggered():
-        print('Time scale: %.4f' % input_action_speed.value_axis_1d)
-        Engine.time_scale = clampf(input_action_speed.value_axis_1d, 0.25, 1.0)
+    if debug_mode:
+        if input_action_speed.is_triggered():
+            print('Time scale: %.4f' % input_action_speed.value_axis_1d)
+            Engine.time_scale = clampf(input_action_speed.value_axis_1d, 0.25, 1.0)
+        if input_action_tick.is_triggered():
+            print('Stepping one tick!')
+            pause_next_tick = true
 
+func _physics_process(_delta: float) -> void:
+    if pause_next_tick:
+        if is_paused():
+            unpause()
+        else:
+            pause_next_tick = false
+            pause()
 
 func on_mouse_entered() -> void:
     mouse_in_window = true

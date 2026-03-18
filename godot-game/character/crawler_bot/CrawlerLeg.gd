@@ -4,30 +4,64 @@ class_name CrawlerLeg extends Node3D
 @export var shape_cast: ShapeCast3D
 @export var target: Marker3D
 
-## How far between current and next step position to start moving the leg
+## How far between current and rest position to start moving the leg torwards the move target.
+## Actual steps will be a little higher than double this value while in motion.
 @export_range(0.01, 1.0, 0.01, 'or_greater')
-var step_distance: float = 0.7
+var step_distance: float = 0.5
+
+## How far between current and rest position the leg should be when at rest.
+## This should be very small so the legs return to a comfortable position.
+@export_range(0.01, 0.5, 0.01, 'or_greater')
+var rest_distance: float = 0.05
+
+## How long this leg must wait before it can step again
+@export_range(0.01, 0.5, 0.01, 'or_greater')
+var step_delay: float = 0.15
+
+## If a paired leg has started moving in this time frame, allow this leg to
+## move a little earlier to stay synchronized.
+@export_range(0.0, 0.5, 0.01, 'or_greater')
+var step_pair_window: float = 0.05
+
+## How long a legs cross-pair (the set of legs that move exclusive to this leg)
+## must be grounded before this leg can move.
+@export_range(0.0, 0.5, 0.01, 'or_greater')
+var step_crosspair_wait: float = 0.05
 
 ## How much to lift the leg while taking a step, applies on the body's up axis
 @export_range(0.0, 1.0, 0.01, 'or_greater')
-var leg_lift_height: float = 0.5
+var leg_lift_height: float = 0.3
 
 ## How much to swing the leg out while taking a step, applies on the body's right axis
 @export_range(0.0, 1.0, 0.01, 'or_greater')
 var leg_swing_offset: float = 0.2
 
-## When in motion, how far in the direction of travel to shift the leg
+## When in motion, how far in the direction of travel to shift the leg move target
 @export_range(0.0, 1.0, 0.01, 'or_greater')
 var move_offset: float = 0.6
 
-## When in motion, how far in the direction of travel to rotate the leg. For
-## front and back legs, the leg only rotates forward or backward, respectively.
+## When in motion, how far in the direction of travel to rotate the leg move target.
+## For front and back legs, the leg only rotates forward or backward, respectively.
 @export_range(0.0, 45.0, 0.1, 'radians_as_degrees')
 var move_spin: float = deg_to_rad(15.0)
 
 ## How quickly to interpolate in/out of leg move offsets.
-@export_range(1.0, 5.0, 0.01, 'or_greater')
-var move_interp_rate: float = 5.0
+@export_range(1.0, 10.0, 0.01, 'or_greater')
+var move_interp_rate: float = 10.0
+
+
+@export_group('Debug', 'debug')
+
+@export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
+var debug_enable: bool = true
+
+## The comfort region for leg
+@export var debug_rest_area: bool = true
+var _debug_rest_circle: int = 0
+
+## The target position for the current step
+@export var debug_step_target: bool = true
+var _debug_target_sphere: int = 0
 
 
 var body: CrawlerCharacter = null
@@ -36,14 +70,23 @@ var index: int = -1
 ## Transform of the leg root when at rest, set when the body enters the scene
 var rest_transform: Transform3D
 
+## Position of the leg at rest, set as the target position on the first update
+var target_rest_position: Vector3 = Vector3.INF
+var target_global_rest: Vector3 = Vector3.INF
+
 var is_grounded: bool = false
+var time_since_grounded: float = 0.0
 var is_moving: bool = false
+var time_since_moved: float = 0.0
+var is_comfortable: bool = false
 
-var next_step_target: Vector3
-var step_target: Vector3
+var next_step_target: Vector3 = Vector3.INF
+var step_target: Vector3 = Vector3.INF
 
-var step_current: Vector3
+var step_current: Vector3 = Vector3.INF
 var step_delta: float
+
+var comfort_distance: float
 
 var shape_rid: RID
 
@@ -61,12 +104,20 @@ func _ready() -> void:
                 break
 
     rest_transform = transform
+    comfort_distance = rest_distance
 
     # Ensure target is top-level in-game
     target.top_level = not Engine.is_editor_hint()
     next_step_target = target.global_position
 
+    # HACK TODO: remove this line when leg collision is implemented!
+    is_grounded = true
+
 func update(state: PhysicsDirectBodyState3D) -> void:
+
+    if not target_rest_position.is_finite():
+        target_rest_position = target.global_position - state.transform.origin
+    target_global_rest = state.transform.origin + (transform.basis * target_rest_position)
 
     var is_left: bool = index % 2 == 0
 
@@ -75,13 +126,16 @@ func update(state: PhysicsDirectBodyState3D) -> void:
     var travel_forward: Vector3
     if not body.ground_direction.is_zero_approx():
         leg_speed = minf(maxf(body.ground_direction.dot(body.ground_velocity), body.desired_speed), body.max_speed)
-        if body.desired_direction.is_zero_approx():
-            travel_forward = body.ground_direction
-        else:
+        if body.has_desired_forward:
             travel_forward = body.desired_direction
+        else:
+            travel_forward = body.ground_direction
         travel_forward = travel_forward.slide(state.transform.basis.y)
         if not travel_forward.is_zero_approx():
             travel_forward = travel_forward.normalized()
+    elif body.has_desired_forward:
+        leg_speed = body.desired_speed
+        travel_forward = body.desired_direction
 
     if not travel_forward.is_zero_approx():
         target_transform.origin += state.transform.basis.inverse() * travel_forward * move_offset
@@ -103,10 +157,10 @@ func update(state: PhysicsDirectBodyState3D) -> void:
 
         target_transform = target_transform.rotated_local(transform.basis.y, move_spin * cos_theta)
     elif transform == target_transform:
-        leg_speed = body.max_speed / 3.0
+        leg_speed = maxf(body.max_speed / 3.0, 0.5)
     elif is_moving:
         # Use very small leg speed while interpolating to rest
-        leg_speed = body.max_speed / 20.0
+        leg_speed = maxf(body.max_speed / 20.0, 0.05)
 
     if transform != target_transform:
         # Force at least 0.5cm of travel each interpolation
@@ -116,14 +170,53 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         if transform.is_equal_approx(target_transform):
             transform = target_transform
 
+    if body.has_desired_forward:
+        comfort_distance = move_toward(comfort_distance, step_distance, state.step * 2.0)
+    elif transform.is_equal_approx(rest_transform):
+        # TODO: maybe always move comfort distance? Legs should handle moving targets now.
+        comfort_distance = move_toward(comfort_distance, rest_distance, state.step * 2.0)
+
+    if debug_enable and debug_rest_area:
+        _debug_rest_circle = DebugDraw.circle(
+                target_global_rest,
+                comfort_distance,
+                state.transform.basis.y,
+                16,
+                Color.GREEN,
+                _debug_rest_circle,
+                1.0
+        )
+
     if shape_cast.is_colliding():
         next_step_target = shape_cast.get_collision_point(0)
 
-        if can_step():
+        # Limit to rest area
+        if next_step_target.distance_squared_to(target_global_rest) > comfort_distance * comfort_distance:
+            next_step_target = next_step_target - target_global_rest
+            next_step_target = next_step_target.limit_length(comfort_distance)
+            next_step_target += target_global_rest
+
+        if is_moving:
+            var step_change: Vector3 = next_step_target - step_target
+            step_delta += step_change.dot(step_change.normalized())
+            step_target = next_step_target
+        elif can_step():
             is_moving = true
+            time_since_moved = 0.0
+            is_grounded = false
+            time_since_grounded = 0.0
             step_target = next_step_target
             step_current = target.position
             step_delta = (step_target - step_current).length()
+
+    if debug_enable and debug_step_target:
+        _debug_target_sphere = DebugDraw.sphere(
+                step_target,
+                0.1,
+                Color.FIREBRICK,
+                _debug_target_sphere,
+                1.0
+        )
 
     if is_moving:
         step_current = step_current.move_toward(
@@ -146,6 +239,12 @@ func update(state: PhysicsDirectBodyState3D) -> void:
             is_grounded = true
             target.position = step_target
 
+    if is_moving:
+        time_since_moved += state.step
+
+    if is_grounded:
+        time_since_grounded += state.step
+
 func setup_shape() -> void:
     shape_rid = PhysicsServer3D.sphere_shape_create()
     PhysicsServer3D.shape_set_data(shape_rid, (shape_cast.shape as SphereShape3D).radius)
@@ -156,18 +255,37 @@ func can_step() -> bool:
     if is_moving:
         return false
 
-    # Adjacent legs must be not moving
-    for leg in get_adjacent():
-        if leg.is_moving:
+    var dist_sqr: float = target.position.distance_squared_to(target_global_rest)
+    is_comfortable = dist_sqr <= comfort_distance * comfort_distance
+
+    # Wait for this leg to remain in place while comfortable
+    if is_comfortable:
+        if time_since_moved < step_delay:
             return false
 
-    if body.has_desired_forward:
-        return next_step_target.distance_squared_to(target.position) >= step_distance * step_distance
-    elif transform.is_equal_approx(rest_transform):
-        return next_step_target.distance_squared_to(target.position) >= 2.5e-3
+    for leg in get_adjacent():
+        # Adjacent legs must be grounded
+        if not leg.is_grounded:
+            return false
+        # And have remained for some time
+        elif leg.time_since_grounded < step_crosspair_wait:
+            return false
+
+    # We can move and want to move!
+    if not is_comfortable:
+        return true
+
+    # If further than 2x rest distance, allow an early step if a paired leg
+    # recently started moving
+    if dist_sqr > (rest_distance * rest_distance) * 4.0:
+        for leg in get_diagonal():
+            if leg.time_since_moved < step_pair_window:
+                return true
+
     return false
 
-## Returns the legs ahead, behind, and across from this leg.
+## Returns the legs ahead, behind, and across from this leg. These are the
+## anti-paired legs.
 func get_adjacent() -> Array[CrawlerLeg]:
     var result: Array[CrawlerLeg]
     var max_id: int = body.legs.size()
@@ -188,6 +306,29 @@ func get_adjacent() -> Array[CrawlerLeg]:
     else:
         idx = index - 1
 
+    if idx >= 0 and idx < max_id:
+        result.append(body.legs[idx])
+
+    return result
+
+## Returns the legs diagonal to this leg. These are the paired legs.
+func get_diagonal() -> Array[CrawlerLeg]:
+    var result: Array[CrawlerLeg]
+    var max_id: int = body.legs.size()
+
+    var is_left: bool = index % 2 == 0
+
+    # Ahead
+    var idx: int = index - 1
+    if not is_left:
+        idx -= 2
+    if idx >= 0 and idx < max_id:
+        result.append(body.legs[idx])
+
+    # Behind
+    idx = index + 1
+    if is_left:
+        idx += 2
     if idx >= 0 and idx < max_id:
         result.append(body.legs[idx])
 

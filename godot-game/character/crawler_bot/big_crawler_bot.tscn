@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://bj6jpa4vhoqrd" path="res://character/crawler_bot/big_crawler.glb" id="2_2g2re"]
 [ext_resource type="Texture2D" uid="uid://bs0wm5rj1jdy2" path="res://texture/dev/grid_red.png" id="2_welis"]
 [ext_resource type="Script" uid="uid://bco1liolqoebw" path="res://character/crawler_bot/CrawlerLeg.gd" id="3_cfulw"]
+[ext_resource type="Texture2D" uid="uid://c4kyalj0xhphu" path="res://texture/dev/grid_blue.png" id="5_eqa8u"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_3kbc3"]
 radius = 0.3
@@ -31,6 +32,14 @@ uv1_triplanar = true
 material = SubResource("StandardMaterial3D_2g2re")
 size = Vector3(0.5, 1.5, 0.2)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xefeq"]
+albedo_texture = ExtResource("5_eqa8u")
+uv1_triplanar = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_ro1ip"]
+material = SubResource("StandardMaterial3D_xefeq")
+size = Vector3(0.4, 0.2, 0.3)
+
 [sub_resource type="BoxMesh" id="BoxMesh_welis"]
 material = SubResource("StandardMaterial3D_2g2re")
 size = Vector3(0.06, 0.25, 0.06)
@@ -49,6 +58,8 @@ mass = 64.0
 custom_integrator = true
 script = ExtResource("1_3kbc3")
 leg_ik = NodePath("big_crawler/Skeleton3D/CCDIK3D")
+acceleration = 6.0
+deceleration = 10.0
 metadata/_custom_type_script = "uid://gy5qwm8j5pbh"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=396952384]
@@ -222,6 +233,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.21, 0, 0)
 script = ExtResource("3_cfulw")
 shape_cast = NodePath("FL_Cast")
 target = NodePath("FL_Target")
+step_distance = 0.8
+rest_distance = 0.1
+move_offset = 0.5
+move_spin = 0.34906585039887
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="FL_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair/FL_Leg" unique_id=1032610666]
@@ -238,6 +253,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.21, 0, 0)
 script = ExtResource("3_cfulw")
 shape_cast = NodePath("FR_Cast")
 target = NodePath("FR_Target")
+step_distance = 0.8
+rest_distance = 0.1
+move_offset = 0.4
+move_spin = 0.34906585039887
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="FR_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair/FR_Leg" unique_id=774657337]
@@ -257,6 +276,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, 0, 0)
 script = ExtResource("3_cfulw")
 shape_cast = NodePath("ML_Cast")
 target = NodePath("ML_Target")
+step_distance = 0.8
+rest_distance = 0.1
+move_offset = 0.3
+move_spin = 0.43633232
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="ML_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/MiddleLegPair/ML_Leg" unique_id=1197310677]
@@ -273,6 +296,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, 0)
 script = ExtResource("3_cfulw")
 shape_cast = NodePath("MR_Cast")
 target = NodePath("MR_Target")
+step_distance = 0.8
+rest_distance = 0.1
+move_offset = 0.3
+move_spin = 0.43633232
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="MR_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/MiddleLegPair/MR_Leg" unique_id=747800772]
@@ -292,6 +319,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.21, 0, 0)
 script = ExtResource("3_cfulw")
 shape_cast = NodePath("BL_Cast")
 target = NodePath("BL_Target")
+step_distance = 0.8
+rest_distance = 0.1
+move_offset = 0.5
+move_spin = 0.34906585039887
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="BL_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair/BL_Leg" unique_id=1668808495]
@@ -308,6 +339,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.21, 0, 0)
 script = ExtResource("3_cfulw")
 shape_cast = NodePath("BR_Cast")
 target = NodePath("BR_Target")
+step_distance = 0.8
+rest_distance = 0.1
+move_offset = 0.4
+move_spin = 0.34906585039887
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="BR_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair/BR_Leg" unique_id=381680649]
@@ -329,6 +364,10 @@ metadata/_edit_lock_ = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 mesh = SubResource("BoxMesh_3dq5s")
 metadata/_edit_lock_ = true
+
+[node name="face" type="MeshInstance3D" parent="big_crawler/Skeleton3D/LowerSection" unique_id=1786361362]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
+mesh = SubResource("BoxMesh_ro1ip")
 
 [node name="FrontRightFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="3" unique_id=213773035]
 transform = Transform3D(0.8090179, 0.5387127, 0.2351138, 0, -0.40000045, 0.9165148, 0.58778390027638, -0.74147695, -0.3236075231559, 0.2299999, 0.8199999, -0.7300001)

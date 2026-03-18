@@ -19,6 +19,8 @@ enum PLANE {
 enum TYPE {
     VECTOR = 1,
     TEXT,
+    SPHERE,
+    CIRCLE,
 }
 
 var id_counter: int = 1
@@ -78,6 +80,20 @@ func _draw() -> void:
             var color: Color = d.get(&'color')
 
             _draw_text(coords, string, color)
+        elif d.type == TYPE.SPHERE:
+            var coords: Vector3 = d.get(&'pos')
+            var radius: float = d.get(&'r')
+            var color: Color = d.get(&'color')
+
+            _draw_sphere(coords, radius, color)
+        elif d.type == TYPE.CIRCLE:
+            var coords: Vector3 = d.get(&'pos')
+            var radius: float = d.get(&'r')
+            var axis: Vector3 = d.get(&'axis')
+            var points: int = d.get(&'points')
+            var color: Color = d.get(&'color')
+
+            _draw_circle(coords, radius, axis, points, color)
         else:
             push_error('DebugDraw: Unknown type id %d!' % d.type)
             items.erase(k)
@@ -164,6 +180,66 @@ func _draw_vector(pos: Vector3, vec: Vector3, color: Color) -> void:
         color, -1.0, true
     )
 
+func sphere(coordinates: Vector3, radius: float, color: Color, id: int = 0, time: float = 0.0) -> int:
+    var d: Dictionary = {}
+    id = _get_item(id, TYPE.SPHERE, d)
+
+    d.set(&'pos', coordinates)
+    d.set(&'r', radius)
+    d.set(&'color', color)
+    d.set(&'t', time)
+
+    items.set(id, d)
+    queue_redraw()
+    return id
+
+func _draw_sphere(pos: Vector3, radius: float, color: Color) -> void:
+    _draw_circle(pos, radius, Vector3.UP, 12, color)
+    _draw_circle(pos, radius, Vector3.FORWARD, 12, color)
+    _draw_circle(pos, radius, Vector3.RIGHT, 12, color)
+
+func circle(coordinates: Vector3, radius: float, axis: Vector3, points: int, color: Color, id: int = 0, time: float = 0.0) -> int:
+
+    var d: Dictionary = {}
+    id = _get_item(id, TYPE.CIRCLE, d)
+
+    d.set(&'pos', coordinates)
+    d.set(&'r', radius)
+    d.set(&'axis', axis)
+    d.set(&'points', points)
+    d.set(&'color', color)
+    d.set(&'t', time)
+
+    items.set(id, d)
+    queue_redraw()
+    return id
+
+func _draw_circle(pos: Vector3, radius: float, axis: Vector3, points: int, color: Color) -> void:
+    var basis: Basis = Basis(axis, TAU / points)
+    var vec: Vector3 = axis.cross(Vector3.ONE)
+    if vec.is_zero_approx():
+        vec = axis.cross(Vector3.FORWARD)
+    vec = vec.normalized()
+
+    for i in range(points + 1):
+        var a: Vector3 = pos + vec * radius
+        vec = basis * vec
+        var b: Vector3 = pos + vec * radius
+
+        draw_segment(_clamp_segment(a, b), color)
+
+func _draw_face(pos: Vector3, rescale: Vector3, faces: PackedVector3Array, index: int, color: Color) -> void:
+    var a: Vector3 = pos + faces[index] * rescale
+    var b: Vector3 = pos + faces[index + 1] * rescale
+    var c: Vector3 = pos + faces[index + 2] * rescale
+
+    for s in [_clamp_segment(a,b), _clamp_segment(b,c), _clamp_segment(a,c)]:
+        if s.is_finite():
+            # print('drawing segment ', s)
+            draw_line(
+                Vector2(s.x, s.y), Vector2(s.z, s.w),
+                color, -1.0, true
+            )
 
 ## Clamps a segment in 3D world coordinates to 2D screen space. Returns a vector
 ## with x = INF if the segment does not intersect the frustum.
@@ -205,6 +281,16 @@ func _clamp_segment(start: Vector3, end: Vector3) -> Vector4:
     e = camera.unproject_position(end)
 
     return Vector4(s.x, s.y, e.x, e.y)
+
+func draw_segment(segment: Vector4, color: Color, width: float = -1.0, antialiased: bool = true) -> void:
+    if not segment.is_finite():
+        return
+
+    draw_line(
+            Vector2(segment.x, segment.y),
+            Vector2(segment.z, segment.w),
+            color, width, antialiased
+    )
 
 ## Finds the intersection point on a plane in the list which is not over any of
 ## the other planes.
