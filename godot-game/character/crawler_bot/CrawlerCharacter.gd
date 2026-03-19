@@ -8,8 +8,12 @@ var max_speed: float = 3.0
 @export_range(0.0, 30.0, 0.1, 'or_greater', 'radians_as_degrees')
 var max_pitch: float = deg_to_rad(12.0)
 
-@export_range(0.0, 180.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s')
-var rotation_acceleration: float = deg_to_rad(120.0)
+@export_range(0.0, 360.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s')
+var rotation_acceleration: float = deg_to_rad(270.0)
+
+## Maximum rotation speed when turning
+@export_range(0.1, 180.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s')
+var rotation_rate: float = deg_to_rad(180.0)
 
 @export var leg_ik: IterateIK3D
 
@@ -120,8 +124,6 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
         pitch = (PI * 0.5) * signf(goal_forward.dot(ground_normal))
     else:
         pitch = (PI * 0.5) - goal_forward.signed_angle_to(state.transform.basis.y, pitch_axis)
-    if absf(pitch) > 0.01:
-        print(pitch)
 
     # Limit pitch
     pitch = clampf(pitch, -max_pitch, max_pitch)
@@ -133,17 +135,21 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
     var roll: float = state.transform.basis.x.signed_angle_to(ground_normal, state.transform.basis.z)
     roll -= PI * 0.5
 
-    var angular: Vector3 = state.transform.basis * Vector3(pitch, yaw, roll)
+    var angular: Vector3 = state.transform.basis * Vector3(pitch, 0.0, roll)
+
+    # Must fix yaw to be independent of the current pitch
+    var new_forward: Vector3 = state.transform.basis.x.cross(ground_normal).normalized()
+    if new_forward.is_zero_approx():
+        angular += Vector3(0.0, yaw, 0.0)
+    else:
+        angular += Basis(state.transform.basis.x, ground_normal, new_forward) * Vector3(0.0, yaw, 0.0)
 
     # NOTE: technically correct, but let the body rotate without accounting for
     #       mass distribution...
     # angular = state.inverse_inertia_tensor * angular
 
-    # Prevent over-acceleration (flipping the signs?)
-    # var diff: Vector3 = state.angular_velocity - angular
-
     state.angular_velocity = state.angular_velocity.move_toward(
-        angular,
+        angular * 4.0,
         state.step * rotation_acceleration
     )
 
