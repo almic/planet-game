@@ -116,8 +116,8 @@ func _ready() -> void:
 func update(state: PhysicsDirectBodyState3D) -> void:
 
     if not target_rest_position.is_finite():
-        target_rest_position = target.global_position - state.transform.origin
-    target_global_rest = state.transform.origin + (transform.basis * target_rest_position)
+        target_rest_position = state.transform.inverse() * target.global_position
+    target_global_rest = state.transform.origin + (state.transform.basis * target_rest_position)
 
     var is_left: bool = index % 2 == 0
 
@@ -170,7 +170,7 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         if transform.is_equal_approx(target_transform):
             transform = target_transform
 
-    if body.has_desired_forward:
+    if body.is_stepping:
         comfort_distance = move_toward(comfort_distance, step_distance, state.step * 2.0)
     elif transform.is_equal_approx(rest_transform):
         # TODO: maybe always move comfort distance? Legs should handle moving targets now.
