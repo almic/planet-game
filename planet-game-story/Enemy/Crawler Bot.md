@@ -33,7 +33,7 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [x] Make them face target direction using angular forces
 - [x] Fix weird pitch things where it tries to have a high pitch when the final pitch should be close to zero
 - [x] Fix rest positions not rotating with the body
-- [ ] Fix leg rotations over time, just apply some small correction to each bone's rest position every few frames
+- [x] Fix leg rotations over time, just apply some small correction to each bone's rest position every few frames
 - [ ] Determine if a leg is actually grounded, use a shape intersection most likely
 - [ ] Apply anti-gravity force based on legs in contact with the ground. At least half the legs must be in contact for full anti-gravity.
 - [ ] Test wall climbing!

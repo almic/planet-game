@@ -32,6 +32,7 @@ var is_stepping: bool:
 
 var has_desired_rotation: bool = false
 
+
 func _ready() -> void:
     super._ready()
 
