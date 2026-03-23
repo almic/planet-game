@@ -9,6 +9,10 @@ class_name CrawlerLeg extends Node3D
 @export_range(0.01, 1.0, 0.01, 'or_greater')
 var step_distance: float = 0.5
 
+## If all paired legs are able to step, use this distance as a minimum for early steps.
+@export_range(0.0, 0.5, 0.01, 'or_greater')
+var early_step_distance: float = 0.15
+
 ## How far between current and rest position the leg should be when at rest.
 ## This should be very small so the legs return to a comfortable position.
 @export_range(0.01, 0.5, 0.01, 'or_greater')
@@ -19,7 +23,7 @@ var rest_distance: float = 0.05
 var step_delay: float = 0.15
 
 ## If a paired leg has started moving in this time frame, allow this leg to
-## move a little earlier to stay synchronized.
+## move early to stay synchronized.
 @export_range(0.0, 0.5, 0.01, 'or_greater')
 var step_pair_window: float = 0.05
 
@@ -66,6 +70,7 @@ var _debug_target_sphere: int = 0
 
 var body: CrawlerCharacter = null
 var index: int = -1
+var has_initialized: bool = false
 
 ## Transform of the leg root when at rest, set when the body enters the scene
 var rest_transform: Transform3D
@@ -73,10 +78,13 @@ var rest_transform: Transform3D
 ## Position of the leg at rest, set as the target position on the first update
 var target_rest_position: Vector3 = Vector3.INF
 var target_global_rest: Vector3 = Vector3.INF
+var cast_direction: Vector3 = Vector3.INF
+var global_cast_direction: Vector3 = Vector3.INF
 
 var is_grounded: bool = false
 var time_since_grounded: float = 0.0
 var is_moving: bool = false
+## How long the leg has been in motion for, only valid when is_moving is true
 var time_since_moved: float = 0.0
 var is_comfortable: bool = false
 
@@ -115,9 +123,13 @@ func _ready() -> void:
 
 func update(state: PhysicsDirectBodyState3D) -> void:
 
-    if not target_rest_position.is_finite():
+    if not has_initialized:
+        has_initialized = true
         target_rest_position = state.transform.inverse() * target.global_position
+        cast_direction = shape_cast.target_position.normalized()
+
     target_global_rest = state.transform.origin + (state.transform.basis * target_rest_position)
+    global_cast_direction = state.transform.basis * cast_direction
 
     var is_left: bool = index % 2 == 0
 
@@ -191,10 +203,12 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         next_step_target = shape_cast.get_collision_point(0)
 
         # Limit to rest area
-        if next_step_target.distance_squared_to(target_global_rest) > comfort_distance * comfort_distance:
+        if distance_squared_to_rest(next_step_target) > comfort_distance * comfort_distance:
             next_step_target = next_step_target - target_global_rest
+            var vertical_part: Vector3 = global_cast_direction * global_cast_direction.dot(next_step_target)
+            next_step_target -= vertical_part
             next_step_target = next_step_target.limit_length(comfort_distance)
-            next_step_target += target_global_rest
+            next_step_target += target_global_rest + vertical_part
 
         if is_moving:
             var step_change: Vector3 = next_step_target - step_target
@@ -255,19 +269,18 @@ func can_step() -> bool:
     if is_moving:
         return false
 
-    var dist_sqr: float = target.position.distance_squared_to(target_global_rest)
+    var dist_sqr: float = distance_squared_to_rest(target.position)
     is_comfortable = dist_sqr <= comfort_distance * comfort_distance
 
-    # Wait for this leg to remain in place while comfortable
-    if is_comfortable:
-        if time_since_moved < step_delay:
-            return false
+    # Wait for this leg to remain in place before stepping again
+    if time_since_grounded < step_delay:
+        return false
 
     for leg in get_adjacent():
-        # Adjacent legs must be grounded
-        if not leg.is_grounded:
+        # Adjacent legs must not be moving
+        if leg.is_moving:
             return false
-        # And have remained for some time
+        # And have remained grounded for some time
         elif leg.time_since_grounded < step_crosspair_wait:
             return false
 
@@ -275,12 +288,17 @@ func can_step() -> bool:
     if not is_comfortable:
         return true
 
-    # If further than 2x rest distance, allow an early step if a paired leg
-    # recently started moving
-    if dist_sqr > (rest_distance * rest_distance) * 4.0:
-        for leg in get_diagonal():
-            if leg.time_since_moved < step_pair_window:
-                return true
+    # Allow an early step if a paired leg recently started moving,
+    # or all legs are ready to move and this one has enough distance to start the pair
+    var all_grounded: bool = true
+    for leg in get_diagonal():
+        if leg.is_moving and leg.time_since_moved < step_pair_window:
+            return true
+        if leg.time_since_grounded < leg.step_delay:
+            all_grounded = false
+    # None of our diagonals have started to move, start the cycle!
+    if all_grounded and dist_sqr >= early_step_distance * early_step_distance:
+        return true
 
     return false
 
@@ -333,3 +351,7 @@ func get_diagonal() -> Array[CrawlerLeg]:
         result.append(body.legs[idx])
 
     return result
+
+## Returns the squared lateral distance to the target global rest.
+func distance_squared_to_rest(coordinate: Vector3) -> float:
+    return (coordinate - target_global_rest).slide(global_cast_direction).length_squared()
