@@ -21,7 +21,7 @@ var rotation_overshoot: float = 0.2
 @export var leg_ik: IterateIK3D
 
 var legs: Array[CrawlerLeg]
-
+var skeleton: Skeleton3D
 
 var target_position: Vector3 = Vector3.INF
 var target_direction: Vector3 = Vector3.INF
@@ -36,6 +36,8 @@ var has_desired_rotation: bool = false
 func _ready() -> void:
     super._ready()
 
+    skeleton = leg_ik.get_skeleton()
+
     # Load legs from children
     legs.assign(find_children('', 'CrawlerLeg'))
 
@@ -49,8 +51,17 @@ func _ready() -> void:
         # Copy collision mask to casters
         leg.shape_cast.collision_mask = collision_mask
 
+    # Initialize legs
+    for leg in legs:
+        leg.setup()
+
     leg_ik.active = not Engine.is_editor_hint()
-    # leg_ik.active = false
+
+    skeleton.skeleton_updated.connect(update_leg_transforms)
+
+func update_leg_transforms() -> void:
+    for leg in legs:
+        leg.update_ground_leg_transform()
 
 func _handle_input() -> void:
 
@@ -66,6 +77,8 @@ func _handle_input() -> void:
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     _update_legs(state)
+
+    skeleton.advance(state.step)
 
     _solve_rotation(state)
 

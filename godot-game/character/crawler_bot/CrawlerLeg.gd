@@ -4,6 +4,17 @@ class_name CrawlerLeg extends Node3D
 @export var shape_cast: ShapeCast3D
 @export var target: Marker3D
 
+@export_custom(PROPERTY_HINT_ENUM, '')
+var ground_bone: StringName
+
+## How far back from the ground bone to raycast
+@export_range(0.05, 0.2, 0.01, 'or_greater')
+var ground_hit_start: float = 0.1
+
+## How far beyond the ground bone to raycast
+@export_range(0.05, 0.2, 0.01, 'or_greater')
+var ground_hit_extra: float = 0.08
+
 ## How far between current and rest position to start moving the leg torwards the move target.
 ## Actual steps will be a little higher than double this value while in motion.
 @export_range(0.01, 1.0, 0.01, 'or_greater')
@@ -67,8 +78,19 @@ var _debug_rest_circle: int = 0
 @export var debug_step_target: bool = true
 var _debug_target_sphere: int = 0
 
+## The ground contact normal of the leg
+@export var debug_ground_normal: bool = true
+var _debug_ground_normal_vector: int = 0
 
-var body: CrawlerCharacter = null
+## Render text at the leg giving the reason it takes a step
+@export var debug_step_reason: bool = false
+var _debug_step_reason_text: int = 0
+
+
+var body: CrawlerCharacter = null:
+    set(value):
+        body = value
+        notify_property_list_changed()
 var index: int = -1
 var has_initialized: bool = false
 
@@ -96,7 +118,12 @@ var step_delta: float
 
 var comfort_distance: float
 
-var shape_rid: RID
+var ground_bone_idx: int = -1
+var ground_cast: RayCast3D
+var ground_leg_transform: Transform3D
+
+var cached_adjacent: Array[CrawlerLeg]
+var cached_diagonal: Array[CrawlerLeg]
 
 
 func _ready() -> void:
@@ -118,16 +145,55 @@ func _ready() -> void:
     target.top_level = not Engine.is_editor_hint()
     next_step_target = target.global_position
 
-    # HACK TODO: remove this line when leg collision is implemented!
-    is_grounded = true
+func _validate_property(property: Dictionary) -> void:
+    if property.name == &'ground_bone':
+        property.hint = PROPERTY_HINT_ENUM
+        if body.skeleton:
+            property.hint_string = body.skeleton.get_concatenated_bone_names()
 
-func update(state: PhysicsDirectBodyState3D) -> void:
-
+func setup() -> void:
     if not has_initialized:
         has_initialized = true
-        target_rest_position = state.transform.inverse() * target.global_position
+        target_rest_position = body.global_transform.inverse() * target.global_position
         cast_direction = shape_cast.target_position.normalized()
 
+        ground_bone_idx = body.skeleton.find_bone(ground_bone)
+        # Find a bone attachment with the same bone
+        var parent_bone: int = body.skeleton.get_bone_parent(ground_bone_idx)
+        var attachments: Array[ModifierBoneTarget3D]
+        attachments.assign(body.skeleton.find_children('', 'ModifierBoneTarget3D'))
+        for bone_target in attachments:
+            if bone_target.bone != parent_bone:
+                continue
+            ground_cast = RayCast3D.new()
+            ground_cast.collision_mask = shape_cast.collision_mask
+            bone_target.add_child(ground_cast, false, Node.INTERNAL_MODE_FRONT)
+
+            var target_position: Vector3 = body.skeleton.get_bone_pose_position(ground_bone_idx)
+            var bone_direction: Vector3 = target_position.normalized()
+            var start_position: Vector3 = (bone_direction * ground_hit_start)
+            ground_cast.position = target_position - start_position
+            ground_cast.target_position = start_position + (bone_direction * ground_hit_extra)
+
+            break
+
+        if not ground_cast:
+            push_error(
+                    'Leg %s could not find an existing BoneAttachment3D for the bone "%s"! Please create one.' % [
+                        name, body.skeleton.get_bone_name(parent_bone)
+                    ]
+            )
+
+    cached_adjacent = get_adjacent()
+    cached_diagonal = get_diagonal()
+
+func update_ground_leg_transform() -> void:
+    ground_leg_transform = (
+              body.skeleton.global_transform
+            * body.skeleton.get_bone_global_pose(body.skeleton.get_bone_parent(ground_bone_idx))
+    )
+
+func update(state: PhysicsDirectBodyState3D) -> void:
     target_global_rest = state.transform.origin + (state.transform.basis * target_rest_position)
     global_cast_direction = state.transform.basis * cast_direction
 
@@ -199,6 +265,31 @@ func update(state: PhysicsDirectBodyState3D) -> void:
                 1.0
         )
 
+    var has_ground: bool = false
+    if ground_cast.is_colliding():
+        var hit_position: Vector3 = ground_cast.get_collision_point()
+        var ground_normal: Vector3 = ground_cast.get_collision_normal()
+        var leg_normal: Vector3 = -ground_leg_transform.basis.y
+
+        var ground_cos_theta: float = ground_normal.dot(leg_normal)
+        if ground_cos_theta >= 0.0:
+            has_ground = true
+
+        if debug_enable and debug_ground_normal:
+            _debug_ground_normal_vector = DebugDraw.vector(
+                    hit_position,
+                    ground_normal * 0.5,
+                    Color.CORNFLOWER_BLUE,
+                    _debug_ground_normal_vector
+            )
+
+    if has_ground:
+        if not is_grounded:
+            is_grounded = true
+    elif is_grounded:
+        is_grounded = false
+        time_since_grounded = 0.0
+
     if shape_cast.is_colliding():
         next_step_target = shape_cast.get_collision_point(0)
 
@@ -217,8 +308,6 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         elif can_step():
             is_moving = true
             time_since_moved = 0.0
-            is_grounded = false
-            time_since_grounded = 0.0
             step_target = next_step_target
             step_current = target.position
             step_delta = (step_target - step_current).length()
@@ -250,7 +339,6 @@ func update(state: PhysicsDirectBodyState3D) -> void:
 
         if step_current.distance_squared_to(step_target) < 1e-4:
             is_moving = false
-            is_grounded = true
             target.position = step_target
 
     if is_moving:
@@ -258,11 +346,6 @@ func update(state: PhysicsDirectBodyState3D) -> void:
 
     if is_grounded:
         time_since_grounded += state.step
-
-func setup_shape() -> void:
-    shape_rid = PhysicsServer3D.sphere_shape_create()
-    PhysicsServer3D.shape_set_data(shape_rid, (shape_cast.shape as SphereShape3D).radius)
-    PhysicsServer3D.shape_set_margin(shape_rid, shape_cast.shape.margin)
 
 func can_step() -> bool:
     # Must be not moving
@@ -272,32 +355,59 @@ func can_step() -> bool:
     var dist_sqr: float = distance_squared_to_rest(target.position)
     is_comfortable = dist_sqr <= comfort_distance * comfort_distance
 
-    # Wait for this leg to remain in place before stepping again
-    if time_since_grounded < step_delay:
-        return false
+    # When grounded, try yielding to other legs
+    if is_grounded:
+        # Wait for this leg to remain in place before stepping again
+        if time_since_grounded < step_delay:
+            return false
 
-    for leg in get_adjacent():
-        # Adjacent legs must not be moving
-        if leg.is_moving:
-            return false
-        # And have remained grounded for some time
-        elif leg.time_since_grounded < step_crosspair_wait:
-            return false
+        for leg in get_adjacent():
+            # Adjacent legs must not be moving
+            if leg.is_moving:
+                return false
+            # And have remained grounded for some time
+            elif leg.time_since_grounded < step_crosspair_wait:
+                return false
+
 
     # We can move and want to move!
     if not is_comfortable:
+        if debug_enable and debug_step_reason:
+            _debug_step_reason_text = DebugDraw.text(
+                    step_target,
+                    "Not comfortable%s!" % ('' if is_grounded else ' & floating'),
+                    Color.DARK_ORANGE,
+                    _debug_step_reason_text,
+                    1.0
+            )
         return true
 
     # Allow an early step if a paired leg recently started moving,
     # or all legs are ready to move and this one has enough distance to start the pair
-    var all_grounded: bool = true
+    var all_grounded: bool = time_since_grounded >= step_delay
     for leg in get_diagonal():
         if leg.is_moving and leg.time_since_moved < step_pair_window:
+            if debug_enable and debug_step_reason:
+                _debug_step_reason_text = DebugDraw.text(
+                        step_target,
+                        "Stepping with %s!" % leg.name,
+                        Color.DARK_ORANGE,
+                        _debug_step_reason_text,
+                        1.0
+                )
             return true
-        if leg.time_since_grounded < leg.step_delay:
+        if all_grounded and leg.time_since_grounded < leg.step_delay:
             all_grounded = false
     # None of our diagonals have started to move, start the cycle!
     if all_grounded and dist_sqr >= early_step_distance * early_step_distance:
+        if debug_enable and debug_step_reason:
+            _debug_step_reason_text = DebugDraw.text(
+                    step_target,
+                    "Early step!",
+                    Color.DARK_ORANGE,
+                    _debug_step_reason_text,
+                    1.0
+            )
         return true
 
     return false
@@ -305,6 +415,9 @@ func can_step() -> bool:
 ## Returns the legs ahead, behind, and across from this leg. These are the
 ## anti-paired legs.
 func get_adjacent() -> Array[CrawlerLeg]:
+    if cached_adjacent.size() > 0:
+        return cached_adjacent
+
     var result: Array[CrawlerLeg]
     var max_id: int = body.legs.size()
 
@@ -331,6 +444,9 @@ func get_adjacent() -> Array[CrawlerLeg]:
 
 ## Returns the legs diagonal to this leg. These are the paired legs.
 func get_diagonal() -> Array[CrawlerLeg]:
+    if cached_diagonal.size() > 0:
+        return cached_diagonal
+
     var result: Array[CrawlerLeg]
     var max_id: int = body.legs.size()
 

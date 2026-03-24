@@ -35,10 +35,11 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [x] Fix rest positions not rotating with the body
 - [x] Fix leg rotations over time, just apply some small correction to each bone's rest position every few frames
 - [x] Fix rest transform snapping, should slide along direction of raycast.
-- [ ] Determine if a leg is actually grounded, use a shape intersection most likely
+- [x] Determine if a leg is actually grounded, use a shape intersection most likely
 - [ ] Apply anti-gravity force based on legs in contact with the ground. At least half the legs must be in contact for full anti-gravity.
 - [ ] Test wall climbing!
-- [ ] Cache all leg neighbors when leg layout changes. Saves having to construct up to two lists each tick to check neighbors.
+- [x] Cache all leg neighbors when leg layout changes. Saves having to construct up to two lists each tick to check neighbors.
+- [ ] Test using Joint3D to connect rigid body to PhysicalBone3D?
 - [ ] ???
 
 # Body Orientation
@@ -61,3 +62,7 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 12. Rotate the `limited_angular` vector by the current Basis. This will be the `target_angular`.
 13. Move the angular velocity towards the `target_angular` vector, multiplied by the `overshoot` parameter, using an acceleration multiplied by the grounded leg factor. The grounded leg factor is the number of grounded legs over the total leg count.
 14. As a final step, if the rotated limited vector is approximately zero, and the angular velocity is less than 0.5 degrees per second, set the angular velocity to zero.
+
+# Ground Detection
+- Ground velocity can move leg targets when leg is in contact with ground
+- Use raycast attached to leg bone for ground detection

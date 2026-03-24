@@ -69,9 +69,12 @@ shape = SubResource("CapsuleShape3D_3kbc3")
 
 [node name="big_crawler" parent="." unique_id=1739686264 instance=ExtResource("2_2g2re")]
 
-[node name="CCDIK3D" type="CCDIK3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="0" unique_id=89345736]
+[node name="Skeleton3D" parent="big_crawler" index="0" unique_id=1808933544]
+modifier_callback_mode_process = 2
+
+[node name="CCDIK3D" type="CCDIK3D" parent="big_crawler/Skeleton3D" index="0" unique_id=89345736]
 active = false
-max_iterations = 2
+max_iterations = 3
 setting_count = 6
 settings/0/target_node = NodePath("../LegTargets/FrontLegPair/FL_Leg/FL_Target")
 settings/0/rest_correction_angle = 0.017453292
@@ -230,7 +233,7 @@ settings/5/joints/3/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
 settings/5/joints/4/rotation_axis = 3
 settings/5/joints/4/limitation = null
 
-[node name="LegTargets" type="Node3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="1" unique_id=43553780]
+[node name="LegTargets" type="Node3D" parent="big_crawler/Skeleton3D" index="1" unique_id=43553780]
 
 [node name="FrontLegPair" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=83434502]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, -0.71)
@@ -240,6 +243,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.21, 0, 0)
 script = ExtResource("3_cfulw")
 shape_cast = NodePath("FL_Cast")
 target = NodePath("FL_Target")
+ground_bone = &"FrontLeftTarsus_leaf"
 step_distance = 0.8
 rest_distance = 0.1
 move_offset = 0.5
@@ -260,6 +264,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.21, 0, 0)
 script = ExtResource("3_cfulw")
 shape_cast = NodePath("FR_Cast")
 target = NodePath("FR_Target")
+ground_bone = &"FrontRightTarsus_leaf"
 step_distance = 0.8
 rest_distance = 0.1
 move_offset = 0.4
@@ -283,6 +288,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, 0, 0)
 script = ExtResource("3_cfulw")
 shape_cast = NodePath("ML_Cast")
 target = NodePath("ML_Target")
+ground_bone = &"MiddleLeftTarsus_leaf"
 step_distance = 0.8
 rest_distance = 0.1
 move_offset = 0.3
@@ -303,6 +309,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, 0)
 script = ExtResource("3_cfulw")
 shape_cast = NodePath("MR_Cast")
 target = NodePath("MR_Target")
+ground_bone = &"MiddleRightTarsus_leaf"
 step_distance = 0.8
 rest_distance = 0.1
 move_offset = 0.3
@@ -326,6 +333,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.21, 0, 0)
 script = ExtResource("3_cfulw")
 shape_cast = NodePath("BL_Cast")
 target = NodePath("BL_Target")
+ground_bone = &"BackLeftTarsus_leaf"
 step_distance = 0.8
 rest_distance = 0.1
 move_offset = 0.5
@@ -346,6 +354,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.21, 0, 0)
 script = ExtResource("3_cfulw")
 shape_cast = NodePath("BR_Cast")
 target = NodePath("BR_Target")
+ground_bone = &"BackRightTarsus_leaf"
 step_distance = 0.8
 rest_distance = 0.1
 move_offset = 0.4
@@ -361,7 +370,7 @@ collision_mask = 17
 [node name="BR_Target" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair/BR_Leg" unique_id=568795891]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.095, -0.9, 1.5)
 
-[node name="LowerSection" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="2" unique_id=920247470]
+[node name="LowerSection" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="2" unique_id=920247470]
 transform = Transform3D(1, 0, 0, 0, 2.220446e-16, 1, 0, -1, 2.220446e-16, 0, 0.9, 0.5)
 bone_name = "LowerSection"
 bone = 0
@@ -376,8 +385,8 @@ metadata/_edit_lock_ = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
 mesh = SubResource("BoxMesh_ro1ip")
 
-[node name="FrontRightFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="3" unique_id=213773035]
-transform = Transform3D(0.8090179011921066, 0.5387126804472644, 0.2351137981327421, 1.445157004964312e-08, -0.4000004559944805, 0.9165148203161686, 0.5877839002763788, -0.7414769492270527, -0.32360752315590496, 0.22999994295107581, 0.8199999404458113, -0.7300000677675738)
+[node name="FrontRightFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="3" unique_id=213773035]
+transform = Transform3D(0.8090179011921066, 0.5387126804472645, 0.23511379813274214, 1.445157006007211e-08, -0.4000004559944804, 0.9165148203161686, 0.5877839002763788, -0.7414769492270527, -0.3236075231559049, 0.22999994295107584, 0.8199999404458113, -0.7300000677675738)
 bone_name = "FrontRightFemur"
 bone = 4
 metadata/_edit_lock_ = true
@@ -387,8 +396,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
 mesh = SubResource("BoxMesh_welis")
 metadata/_edit_lock_ = true
 
-[node name="FrontRightTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="4" unique_id=446306188]
-transform = Transform3D(0.8090154949902784, 0.3883761341592019, -0.44120029314648235, -3.355602188907967e-08, 0.750612302074032, 0.6607426886357419, 0.5877872121262746, -0.5345510942043118, 0.6072570178172607, 0.36467792994325665, 0.7200000232589459, -0.9153690418762828)
+[node name="FrontRightTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="4" unique_id=446306188]
+transform = Transform3D(0.8090154949902784, 0.388376134159202, -0.44120029314648235, -3.355602187865058e-08, 0.7506123020740318, 0.660742688635742, 0.5877872121262746, -0.5345510942043119, 0.6072570178172607, 0.3646779299432567, 0.7200000232589459, -0.9153690418762828)
 bone_name = "FrontRightTibia"
 bone = 5
 metadata/_edit_lock_ = true
@@ -398,8 +407,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
 mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
-[node name="FrontRightTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="5" unique_id=145349629]
-transform = Transform3D(0.809019414872364, 0.37018324986313633, 0.45656501349641904, -4.359664990708114e-08, -0.7767594601411534, 0.6297970904380907, 0.5877817154553212, -0.509518200022484, -0.6284134691643039, 0.6753789055433294, 1.3204899186061452, -1.3430099260531234)
+[node name="FrontRightTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="5" unique_id=145349629]
+transform = Transform3D(0.809019414872364, 0.37018324986313633, 0.45656501349641915, -4.359664989665289e-08, -0.7767594601411534, 0.6297970904380906, 0.5877817154553212, -0.509518200022484, -0.628413469164304, 0.6753789055433295, 1.3204899186061452, -1.3430099260531234)
 bone_name = "FrontRightTarsus"
 bone = 6
 metadata/_edit_lock_ = true
@@ -409,8 +418,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 mesh = SubResource("BoxMesh_a3xbf")
 metadata/_edit_lock_ = true
 
-[node name="FrontLeftFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="6" unique_id=141929963]
-transform = Transform3D(0.8090177091376977, -0.5387129604814783, -0.23511359186014627, -2.2386881930699122e-08, -0.3999999326652473, 0.916515092939025, -0.5877840632117566, -0.7414769477018759, -0.3236070850917638, -0.22999987629590113, 0.8200000019341098, -0.7299999447619658)
+[node name="FrontLeftFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="6" unique_id=141929963]
+transform = Transform3D(0.8090177091376977, -0.5387129604814783, -0.23511359186014621, -2.2386881941128036e-08, -0.3999999326652472, 0.916515092939025, -0.5877840632117565, -0.741476947701876, -0.3236070850917638, -0.22999987629590113, 0.8200000019341098, -0.7299999447619658)
 bone_name = "FrontLeftFemur"
 bone = 10
 metadata/_edit_lock_ = true
@@ -420,8 +429,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
 mesh = SubResource("BoxMesh_welis")
 metadata/_edit_lock_ = true
 
-[node name="FrontLeftTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="7" unique_id=1406494824]
-transform = Transform3D(0.8090154296533141, -0.3883762267017619, 0.4412001909521451, 3.4533151304662e-08, 0.7506121728750345, 0.6607428459240262, -0.5877872006492963, -0.5345511875969627, 0.6072568410721758, -0.36467803478138244, 0.720000168763771, -0.9153690003704685)
+[node name="FrontLeftTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="7" unique_id=1406494824]
+transform = Transform3D(0.8090154296533141, -0.38837622670176186, 0.44120019095214513, 3.453315129423333e-08, 0.7506121728750345, 0.6607428459240261, -0.5877872006492962, -0.5345511875969627, 0.6072568410721759, -0.36467803478138244, 0.720000168763771, -0.9153690003704685)
 bone_name = "FrontLeftTibia"
 bone = 11
 metadata/_edit_lock_ = true
@@ -431,8 +440,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
 mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
-[node name="FrontLeftTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="8" unique_id=798975725]
-transform = Transform3D(0.8090193460023091, -0.3701832144492296, -0.4565651504205685, -1.0361043044590407e-07, -0.7767595958153197, 0.6297969521132903, -0.5877818102476579, -0.509517831198538, -0.628413660515431, -0.6753791190367768, 1.3204899464167226, -1.3430100657406634)
+[node name="FrontLeftTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="8" unique_id=798975725]
+transform = Transform3D(0.8090193460023091, -0.37018321444922964, -0.45656515042056844, -1.0361043045633358e-07, -0.7767595958153196, 0.6297969521132903, -0.5877818102476577, -0.5095178311985381, -0.628413660515431, -0.6753791190367768, 1.3204899464167226, -1.3430100657406634)
 bone_name = "FrontLeftTarsus"
 bone = 12
 metadata/_edit_lock_ = true
@@ -442,8 +451,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 mesh = SubResource("BoxMesh_a3xbf")
 metadata/_edit_lock_ = true
 
-[node name="MiddleRightFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="9" unique_id=423662255]
-transform = Transform3D(-1.8351173206365576e-07, 0.9165151816236909, 0.3999997771467345, 4.1030700932503424e-08, -0.39999975330488946, 0.916515236252274, 0.9999999999999823, 1.8460355864914963e-07, 3.579938930848725e-08, 0.23000001039374382, 0.819999970930336, 4.240029039559047e-08)
+[node name="MiddleRightFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="9" unique_id=423662255]
+transform = Transform3D(-1.8351173206365576e-07, 0.9165151816236909, 0.39999977714673446, 4.103070093250343e-08, -0.3999997533048894, 0.916515236252274, 0.9999999999999823, 1.8460355864914963e-07, 3.5799389308487226e-08, 0.23000001039374382, 0.819999970930336, 4.240029039559047e-08)
 bone_name = "MiddleRightFemur"
 bone = 16
 metadata/_edit_lock_ = true
@@ -453,8 +462,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
 mesh = SubResource("BoxMesh_welis")
 metadata/_edit_lock_ = true
 
-[node name="MiddleRightTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="10" unique_id=1254913357]
-transform = Transform3D(-1.604058249012835e-07, 0.6607432839436731, -0.7506118921170135, 5.849913868679901e-08, 0.7506119514165668, 0.6607432779205142, 0.9999999999999855, 6.207691827403266e-08, -1.590554307533124e-07, 0.45912884254684494, 0.7199999677908466, 8.85511896827946e-08)
+[node name="MiddleRightTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="10" unique_id=1254913357]
+transform = Transform3D(-1.604058249012835e-07, 0.660743283943673, -0.7506118921170136, 5.849913868679901e-08, 0.7506119514165668, 0.6607432779205142, 0.9999999999999855, 6.207691827403263e-08, -1.5905543075331242e-07, 0.45912884254684494, 0.7199999677908466, 8.85511896827946e-08)
 bone_name = "MiddleRightTibia"
 bone = 17
 metadata/_edit_lock_ = true
@@ -464,8 +473,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
 mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
-[node name="MiddleRightTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="11" unique_id=170592321]
-transform = Transform3D(-1.715908111077143e-07, 0.6297981415130961, 0.7767586097049082, 6.834497717288597e-08, -0.7767587062607548, 0.6297981259083292, 0.999999999999983, 1.6115512997390457e-07, 9.024110126002877e-08, 0.9877235728867699, 1.32048953338284, 1.382127414808394e-07)
+[node name="MiddleRightTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="11" unique_id=170592321]
+transform = Transform3D(-1.715908111077143e-07, 0.6297981415130962, 0.7767586097049081, 6.834497717288597e-08, -0.7767587062607548, 0.6297981259083292, 0.999999999999983, 1.611551299739046e-07, 9.024110126002874e-08, 0.9877235728867698, 1.32048953338284, 1.3821274148083938e-07)
 bone_name = "MiddleRightTarsus"
 bone = 18
 metadata/_edit_lock_ = true
@@ -475,8 +484,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 mesh = SubResource("BoxMesh_a3xbf")
 metadata/_edit_lock_ = true
 
-[node name="MiddleLeftFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="12" unique_id=1557707387]
-transform = Transform3D(-1.9543265579668625e-07, -0.9165155481222548, -0.39999961092539477, -1.3716402103542344e-08, -0.3999996109253991, 0.9165153296079782, -0.9999999999999808, 1.8460361789924032e-07, 6.560169115005899e-08, -0.23000000502932288, 0.8199999777848704, 4.2400289073178186e-08)
+[node name="MiddleLeftFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="12" unique_id=1557707387]
+transform = Transform3D(-1.9543265579668623e-07, -0.9165155481222549, -0.39999961092539466, -1.371640210354235e-08, -0.399999610925399, 0.9165153296079783, -0.9999999999999808, 1.8460361789924034e-07, 6.560169115005893e-08, -0.23000000502932288, 0.8199999777848704, 4.240028907317818e-08)
 bone_name = "MiddleLeftFemur"
 bone = 22
 metadata/_edit_lock_ = true
@@ -486,8 +495,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
 mesh = SubResource("BoxMesh_welis")
 metadata/_edit_lock_ = true
 
-[node name="MiddleLeftTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="13" unique_id=197094913]
-transform = Transform3D(-1.2685083921780248e-07, -0.660743086510091, 0.7506123107607132, -2.8961619371579427e-08, 0.750612057941731, 0.6607430591730462, -0.9999999999999915, 6.207688542069407e-08, -1.1435201139889592e-07, -0.459129004789511, 0.7199999608203632, 8.855121670181623e-08)
+[node name="MiddleLeftTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="13" unique_id=197094913]
+transform = Transform3D(-1.2685083921780245e-07, -0.6607430865100908, 0.7506123107607133, -2.8961619371579447e-08, 0.7506120579417311, 0.6607430591730461, -0.9999999999999915, 6.2076885420694e-08, -1.1435201139889593e-07, -0.4591290047895111, 0.7199999608203632, 8.855121670181623e-08)
 bone_name = "MiddleLeftTibia"
 bone = 23
 metadata/_edit_lock_ = true
@@ -497,8 +506,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
 mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
-[node name="MiddleLeftTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="14" unique_id=1909786607]
-transform = Transform3D(-1.3686696043945794e-07, -0.6297982179860244, -0.7767587538701962, -9.649915678791614e-08, -0.7767587310170848, 0.6297979357375155, -0.9999999999999859, 1.6115514779596445e-07, 4.553763917821785e-08, -0.9877236452360548, 1.320489869359083, 1.3821273761249365e-07)
+[node name="MiddleLeftTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="14" unique_id=1909786607]
+transform = Transform3D(-1.3686696043945794e-07, -0.6297982179860245, -0.7767587538701963, -9.649915678791614e-08, -0.7767587310170847, 0.6297979357375156, -0.9999999999999859, 1.6115514779596445e-07, 4.553763917821779e-08, -0.9877236452360547, 1.3204898693590832, 1.382127376124936e-07)
 bone_name = "MiddleLeftTarsus"
 bone = 24
 metadata/_edit_lock_ = true
@@ -508,8 +517,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 mesh = SubResource("BoxMesh_a3xbf")
 metadata/_edit_lock_ = true
 
-[node name="BackRightFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="15" unique_id=2003722146]
-transform = Transform3D(-0.8090178829176066, 0.5387129142593594, 0.2351138527007988, -2.4968394953549695e-08, -0.4000004891515272, 0.9165148266561582, 0.5877840293164763, 0.7414770556354277, 0.3236075237731533, 0.22999997905301078, 0.8199999514527142, 0.7300000291133212)
+[node name="BackRightFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="15" unique_id=2003722146]
+transform = Transform3D(-0.8090178829176066, 0.5387129142593594, 0.23511385270079874, -2.49683949466108e-08, -0.40000048915152714, 0.9165148266561582, 0.5877840293164763, 0.7414770556354277, 0.3236075237731533, 0.22999997905301078, 0.8199999514527142, 0.7300000291133212)
 bone_name = "BackRightFemur"
 bone = 34
 metadata/_edit_lock_ = true
@@ -519,8 +528,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
 mesh = SubResource("BoxMesh_welis")
 metadata/_edit_lock_ = true
 
-[node name="BackRightTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="16" unique_id=1352416718]
-transform = Transform3D(-0.8090155064026618, 0.3883760907064636, -0.441200617825633, -1.620110410662867e-08, 0.7506124716761616, 0.66074256421562, 0.5877873003051728, 0.534551004581563, -0.6072573027116972, 0.3646779878360913, 0.7200000515546778, 0.9153690300658033)
+[node name="BackRightTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="16" unique_id=1352416718]
+transform = Transform3D(-0.8090155064026618, 0.3883760907064636, -0.441200617825633, -1.6201104099689777e-08, 0.7506124716761615, 0.6607425642156202, 0.5877873003051728, 0.5345510045815632, -0.6072573027116971, 0.3646779878360913, 0.7200000515546778, 0.9153690300658033)
 bone_name = "BackRightTibia"
 bone = 35
 metadata/_edit_lock_ = true
@@ -530,8 +539,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
 mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
-[node name="BackRightTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="17" unique_id=1959162545]
-transform = Transform3D(-0.8090195220685797, 0.3701833457257516, 0.45656518270814983, -6.952121792243807e-08, -0.776759683183814, 0.6297969620299906, 0.5877817732049206, 0.5095181801945676, 0.628413820452083, 0.6753788750905351, 1.3204901318127527, 1.3430098123480527)
+[node name="BackRightTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="17" unique_id=1959162545]
+transform = Transform3D(-0.8090195220685797, 0.37018334572575157, 0.45656518270814994, -6.952121791549748e-08, -0.7767596831838143, 0.6297969620299904, 0.5877817732049206, 0.5095181801945674, 0.6284138204520834, 0.6753788750905351, 1.3204901318127524, 1.343009812348053)
 bone_name = "BackRightTarsus"
 bone = 36
 metadata/_edit_lock_ = true
@@ -541,8 +550,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 mesh = SubResource("BoxMesh_a3xbf")
 metadata/_edit_lock_ = true
 
-[node name="BackLeftFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="18" unique_id=954582355]
-transform = Transform3D(-0.8090178829176066, -0.5387129142593594, -0.2351138527007988, 2.4968394953549695e-08, -0.4000004891515272, 0.9165148266561582, -0.5877840293164763, 0.7414770556354277, 0.3236075237731533, -0.22999997905301078, 0.8199999514527142, 0.7300000291133212)
+[node name="BackLeftFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="18" unique_id=954582355]
+transform = Transform3D(-0.8090178829176066, -0.5387129142593594, -0.23511385270079874, 2.49683949466108e-08, -0.40000048915152714, 0.9165148266561582, -0.5877840293164763, 0.7414770556354277, 0.3236075237731533, -0.22999997905301078, 0.8199999514527142, 0.7300000291133212)
 bone_name = "BackLeftFemur"
 bone = 28
 metadata/_edit_lock_ = true
@@ -552,8 +561,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
 mesh = SubResource("BoxMesh_welis")
 metadata/_edit_lock_ = true
 
-[node name="BackLeftTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="19" unique_id=483154553]
-transform = Transform3D(-0.8090155064026618, -0.3883760907064636, 0.441200617825633, 1.620110410662867e-08, 0.7506124716761616, 0.66074256421562, -0.5877873003051728, 0.534551004581563, -0.6072573027116972, -0.3646779878360913, 0.7200000515546778, 0.9153690300658033)
+[node name="BackLeftTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="19" unique_id=483154553]
+transform = Transform3D(-0.8090155064026618, -0.3883760907064636, 0.441200617825633, 1.6201104099689777e-08, 0.7506124716761615, 0.6607425642156202, -0.5877873003051728, 0.5345510045815632, -0.6072573027116971, -0.3646779878360913, 0.7200000515546778, 0.9153690300658033)
 bone_name = "BackLeftTibia"
 bone = 29
 metadata/_edit_lock_ = true
@@ -563,8 +572,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
 mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
-[node name="BackLeftTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" parent_id_path=PackedInt32Array(1739686264, 1808933544) index="20" unique_id=709463790]
-transform = Transform3D(-0.8090195220685797, -0.3701833457257516, -0.45656518270814983, 6.952121792243807e-08, -0.776759683183814, 0.6297969620299906, -0.5877817732049206, 0.5095181801945676, 0.628413820452083, -0.6753788750905351, 1.3204901318127527, 1.3430098123480527)
+[node name="BackLeftTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="20" unique_id=709463790]
+transform = Transform3D(-0.8090195220685797, -0.37018334572575157, -0.45656518270814994, 6.952121791549748e-08, -0.7767596831838143, 0.6297969620299904, -0.5877817732049206, 0.5095181801945674, 0.6284138204520834, -0.6753788750905351, 1.3204901318127524, 1.343009812348053)
 bone_name = "BackLeftTarsus"
 bone = 30
 metadata/_edit_lock_ = true
