@@ -20,6 +20,28 @@ var rotation_overshoot: float = 0.2
 
 @export var leg_ik: IterateIK3D
 
+
+@export_group('Height Offset', 'body_height')
+
+## How far off the ground to keep the body's center of mass
+@export_range(0.0, 0.5, 0.01, 'or_greater', 'suffix:m')
+var body_height_offset: float = 0.5
+
+## Stiffness of the spring used to offset the body from the ground
+@export_range(0.01, 2.0, 0.01, 'or_greater')
+var body_height_spring_stiffness: float = 2.5
+
+## Damping of the spring used to offset the body from the ground
+@export_range(0.01, 1.0, 0.01, 'or_greater')
+var body_height_spring_damping: float = 2.2
+
+
+@export_group('Debug', 'debug')
+
+@export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
+var debug_enable: bool = true
+
+
 var legs: Array[CrawlerLeg]
 var skeleton: Skeleton3D
 
@@ -81,9 +103,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
     _update_legs(state)
 
+    super._integrate_forces(state)
+
     _solve_rotation(state)
 
-    super._integrate_forces(state)
+    _solve_leg_offsets(state)
+
 
 func _update_legs(state: PhysicsDirectBodyState3D) -> void:
 
@@ -92,8 +117,6 @@ func _update_legs(state: PhysicsDirectBodyState3D) -> void:
 
 
 func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
-
-    desired_acceleration = -state.total_gravity
 
     ground_normal = Vector3.UP
     ground_rel_con_velocity = state.linear_velocity
@@ -114,10 +137,47 @@ func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
                 var stopping: Vector3 = -ground_direction * deceleration
                 var decel_limit: float = ground_velocity.dot(ground_direction) / state.step
                 stopping = stopping.limit_length(decel_limit)
-                desired_acceleration += stopping
+                #desired_acceleration += stopping
                 break
 
     is_on_floor = true
+
+func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
+    var avg_abs_displacement: float = 0.0
+    var count: int = 0
+
+    for leg in legs:
+        if not leg.is_grounded:
+            continue
+
+        avg_abs_displacement += absf(leg.ground_offset - body_height_offset)
+        count += 1
+
+    if count < 1:
+        return
+
+    avg_abs_displacement /= count
+    #avg_abs_displacement = minf(avg_abs_displacement, 0.2)
+    #print(avg_abs_displacement)
+
+    var shared_mass: float = minf(mass / count, mass / (legs.size() * 0.5))
+    for leg in legs:
+        if not leg.is_grounded:
+            continue
+
+        var offset: float = leg.ground_offset - body_height_offset
+        offset = signf(offset) * minf(absf(offset), avg_abs_displacement)
+
+        var speed: float = leg.ground_normal.dot(leg.ground_velocity)
+
+        var spring_force: float = 100.0 * body_height_spring_stiffness * -offset * shared_mass
+        var damp_force: float = 10.0 * body_height_spring_damping * -speed * shared_mass
+        var total_force: float = clampf(spring_force + damp_force, -1e8, 1e8)
+
+        state.apply_impulse(
+            total_force * leg.ground_normal * state.step,
+            (state.transform * leg.attachment_point) - state.transform.origin
+        )
 
 func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
 
@@ -199,6 +259,8 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
     var pitch: float = current_forward.signed_angle_2(preferred_forward, preferred_right)
 
     var angular: Vector3 = Vector3(pitch, yaw, roll)
+    angular.x = 0.0
+    angular.z = 0.0
 
     var max_angular: Vector3 = angular / state.step
     var limited_angular: Vector3 = angular.sign() * max_angular.abs().minf(rotation_rate * (1.0 / rotation_overshoot))

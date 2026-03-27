@@ -92,7 +92,13 @@ var body: CrawlerCharacter = null:
         body = value
         notify_property_list_changed()
 var index: int = -1
+var is_left: bool:
+    get():
+        return index % 2 == 0
 var has_initialized: bool = false
+
+## Initial location of the leg position relative to the body
+var attachment_point: Vector3 = Vector3.ZERO
 
 ## Transform of the leg root when at rest, set when the body enters the scene
 var rest_transform: Transform3D
@@ -121,6 +127,10 @@ var comfort_distance: float
 var ground_bone_idx: int = -1
 var ground_cast: RayCast3D
 var ground_leg_transform: Transform3D
+var ground_normal: Vector3 = Vector3.INF
+var ground_point: Vector3 = Vector3.INF
+var ground_velocity: Vector3 = Vector3.ZERO
+var ground_offset: float = INF
 
 var cached_adjacent: Array[CrawlerLeg]
 var cached_diagonal: Array[CrawlerLeg]
@@ -156,6 +166,7 @@ func setup() -> void:
         has_initialized = true
         target_rest_position = body.global_transform.inverse() * target.global_position
         cast_direction = shape_cast.target_position.normalized()
+        attachment_point = (body.global_transform.inverse() * global_transform).origin
 
         ground_bone_idx = body.skeleton.find_bone(ground_bone)
         # Find a bone attachment with the same bone
@@ -198,8 +209,6 @@ func update_ground_leg_transform() -> void:
 func update(state: PhysicsDirectBodyState3D) -> void:
     target_global_rest = state.transform.origin + (state.transform.basis * target_rest_position)
     global_cast_direction = state.transform.basis * cast_direction
-
-    var is_left: bool = index % 2 == 0
 
     var target_transform: Transform3D = rest_transform
     var leg_speed: float
@@ -270,27 +279,45 @@ func update(state: PhysicsDirectBodyState3D) -> void:
 
     var has_ground: bool = false
     if ground_cast.is_colliding():
-        var hit_position: Vector3 = ground_cast.get_collision_point()
-        var ground_normal: Vector3 = ground_cast.get_collision_normal()
+        ground_point = ground_cast.get_collision_point()
+        ground_normal = ground_cast.get_collision_normal()
         var leg_normal: Vector3 = -ground_leg_transform.basis.y
 
         var ground_cos_theta: float = ground_normal.dot(leg_normal)
         if ground_cos_theta >= 0.0:
             has_ground = true
 
+    if has_ground:
+        if not is_grounded:
+            is_grounded = true
+
+        var ground_plane: Plane = Plane(ground_normal, ground_point)
+        ground_offset = ground_plane.distance_to(state.transform * attachment_point)
+
+        var ground_body: RID = ground_cast.get_collider_rid()
+        var ground_state := PhysicsServer3D.body_get_direct_state(ground_body)
+        ground_velocity = (
+                state.get_velocity_at_local_position(
+                      (((state.transform * attachment_point) + ground_point) / 2.0)
+                    - state.transform.origin
+                )
+                - ground_state.get_velocity_at_local_position(
+                    ground_point - ground_state.transform.origin
+                )
+        )
+
         if debug_enable and debug_ground_normal:
             _debug_ground_normal_vector = DebugDraw.vector(
-                    hit_position,
+                    ground_point,
                     ground_normal * 0.5,
                     Color.CORNFLOWER_BLUE,
                     _debug_ground_normal_vector
             )
-
-    if has_ground:
-        if not is_grounded:
-            is_grounded = true
     elif is_grounded:
         is_grounded = false
+        ground_normal = Vector3.INF
+        ground_velocity = Vector3.ZERO
+        ground_offset = INF
         time_since_grounded = 0.0
         if debug_enable and debug_ground_normal:
             _debug_ground_normal_vector = DebugDraw.vector(

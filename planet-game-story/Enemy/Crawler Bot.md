@@ -37,10 +37,11 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [x] Fix rest transform snapping, should slide along direction of raycast.
 - [x] Determine if a leg is actually grounded, use a shape intersection most likely
 - [ ] Apply anti-gravity force based on legs in contact with the ground. At least half the legs must be in contact for full anti-gravity.
+- [x] Use a spring-like force to keep the center of mass some distance away from the ground.
 - [ ] Test wall climbing!
 - [x] Cache all leg neighbors when leg layout changes. Saves having to construct up to two lists each tick to check neighbors.
 - [ ] Test using Joint3D to connect rigid body to PhysicalBone3D?
-- [ ] ???
+- [ ] Fix weird rotation effects when at lower delta times
 
 # Body Orientation
 - There is a desired pitch and roll determined by the target positions of each leg. This will be called the desired body plane.
@@ -66,3 +67,9 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 # Ground Detection
 - Ground velocity can move leg targets when leg is in contact with ground
 - Use raycast attached to leg bone for ground detection
+
+# Height Offset (+ Bonus Orientation)
+1. Within the CrawlerLeg class, calculate a height offset which is the distance of the leg's attachment point from the plane defined by the ground normal and contact point with the ground. Set this value to INFINITY when not in contact with the ground.
+2. Within CrawlerCharacter class, calculate the average absolute displacement of each leg from the desired height offset. This will be the maximum absolute displacement for all legs. 
+3. Calculate a spring displacement and speed for each leg, the speed should be the dot product of the local velocity at the attachment point with the ground normal. Displacement should be limited to the previously calculated absolute mean.
+4. Apply the spring force to the attachment point of each leg.
