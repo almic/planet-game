@@ -70,7 +70,7 @@ shape = SubResource("CapsuleShape3D_3kbc3")
 [node name="big_crawler" parent="." unique_id=1739686264 instance=ExtResource("2_2g2re")]
 
 [node name="Skeleton3D" parent="big_crawler" index="0" unique_id=1808933544]
-modifier_callback_mode_process = 2
+modifier_callback_mode_process = 0
 
 [node name="CCDIK3D" type="CCDIK3D" parent="big_crawler/Skeleton3D" index="0" unique_id=89345736]
 active = false

@@ -36,6 +36,7 @@ var has_desired_rotation: bool = false
 func _ready() -> void:
     super._ready()
 
+    manual_input_handling = true
     skeleton = leg_ik.get_skeleton()
 
     # Load legs from children
@@ -76,9 +77,9 @@ func _handle_input() -> void:
 
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
-    _update_legs(state)
+    _handle_input()
 
-    skeleton.advance(state.step)
+    _update_legs(state)
 
     _solve_rotation(state)
 
@@ -177,8 +178,6 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
         ).normalized()
 
     var preferred_up: Vector3 = preferred_right.cross(preferred_forward).normalized()
-    # var preferred_basis: Basis = Basis(preferred_right, preferred_up, preferred_forward)
-    # print(preferred_basis)
 
     var current_forward: Vector3 = -state.transform.basis.z
     var current_right: Vector3 = state.transform.basis.x

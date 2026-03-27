@@ -166,6 +166,7 @@ func setup() -> void:
             if bone_target.bone != parent_bone:
                 continue
             ground_cast = RayCast3D.new()
+            ground_cast.enabled = false
             ground_cast.collision_mask = shape_cast.collision_mask
             bone_target.add_child(ground_cast, false, Node.INTERNAL_MODE_FRONT)
 
@@ -192,6 +193,7 @@ func update_ground_leg_transform() -> void:
               body.skeleton.global_transform
             * body.skeleton.get_bone_global_pose(body.skeleton.get_bone_parent(ground_bone_idx))
     )
+    ground_cast.force_raycast_update()
 
 func update(state: PhysicsDirectBodyState3D) -> void:
     target_global_rest = state.transform.origin + (state.transform.basis * target_rest_position)
@@ -242,6 +244,7 @@ func update(state: PhysicsDirectBodyState3D) -> void:
 
     if transform != target_transform:
         # Force at least 0.5cm of travel each interpolation
+        # TODO: min travel should be delta'd, needs a multiply by state.step!!
         var min_weight: float = minf(2.5e-5 / transform.origin.distance_squared_to(target_transform.origin), 1.0)
         transform = transform.interpolate_with(target_transform, maxf(state.step * move_interp_rate, min_weight))
 
@@ -289,6 +292,14 @@ func update(state: PhysicsDirectBodyState3D) -> void:
     elif is_grounded:
         is_grounded = false
         time_since_grounded = 0.0
+        if debug_enable and debug_ground_normal:
+            _debug_ground_normal_vector = DebugDraw.vector(
+                    Vector3.ZERO,
+                    Vector3.ZERO,
+                    Color.CORNFLOWER_BLUE,
+                    _debug_ground_normal_vector,
+                    0.001
+            )
 
     if shape_cast.is_colliding():
         next_step_target = shape_cast.get_collision_point(0)
@@ -381,6 +392,9 @@ func can_step() -> bool:
                     1.0
             )
         return true
+
+    if not body.has_desired_forward:
+        return false
 
     # Allow an early step if a paired leg recently started moving,
     # or all legs are ready to move and this one has enough distance to start the pair

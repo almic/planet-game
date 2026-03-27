@@ -82,6 +82,9 @@ var has_desired_forward: bool:
 ## the air, remove any vertical component and reproject to lateral movement
 var force_ground_movement: bool = true
 
+## When true, CharacterController will not call '_handle_input()' automatically
+var manual_input_handling: bool = false
+
 var desired_direction: Vector3 = Vector3.ZERO
 var desired_speed: float = 0.0
 var desired_incline_effect: float = 1.0
@@ -144,7 +147,8 @@ func _handle_input() -> void:
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
-    _handle_input()
+    if not manual_input_handling:
+        _handle_input()
 
     linear_speed = state.linear_velocity.length()
     vertical_velocity = state.transform.basis.y * state.transform.basis.tdoty(state.linear_velocity)
