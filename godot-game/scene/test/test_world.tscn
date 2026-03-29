@@ -271,8 +271,8 @@ collision_mask = 0
 metadata/_edit_group_ = true
 
 [node name="CSGBox3D" type="CSGBox3D" parent="SlopeWall" unique_id=107860917]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12.5, -12.5)
-size = Vector3(5, 25, 25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 25.05000000000291, -12.5)
+size = Vector3(5, 50.1, 25)
 material = ExtResource("3_qyrsn")
 metadata/_edit_lock_ = true
 
@@ -284,6 +284,11 @@ height = 6.0
 sides = 64
 material = ExtResource("3_qyrsn")
 metadata/_edit_lock_ = true
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="SlopeWall" unique_id=337353017]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 50.10000000000582, 12.50000000000291)
+size = Vector3(5, 0.1, 25)
+material = ExtResource("3_qyrsn")
 
 [node name="RotatingFloor" type="RigidBody3D" parent="." unique_id=1380169061]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.4, 0.15, -2.6)

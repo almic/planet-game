@@ -316,15 +316,9 @@ func update(state: PhysicsDirectBodyState3D) -> void:
 
         var ground_body: RID = ground_cast.get_collider_rid()
         var ground_state := PhysicsServer3D.body_get_direct_state(ground_body)
-        ground_velocity = (
-                state.get_velocity_at_local_position(
-                      (((state.transform * attachment_point) + ground_point) / 2.0)
-                    - state.transform.origin
-                )
-                - ground_state.get_velocity_at_local_position(
+        ground_velocity = ground_state.get_velocity_at_local_position(
                     ground_point - ground_state.transform.origin
                 )
-        )
 
         if debug_enable and debug_ground_normal:
             _debug_ground_normal_vector = DebugDraw.vector(

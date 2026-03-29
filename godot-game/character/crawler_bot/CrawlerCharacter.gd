@@ -29,11 +29,11 @@ var body_height_offset: float = 0.5
 
 ## Stiffness of the spring used to offset the body from the ground
 @export_range(0.01, 2.0, 0.01, 'or_greater')
-var body_height_spring_stiffness: float = 2.5
+var body_height_spring_stiffness: float = 1.6
 
 ## Damping of the spring used to offset the body from the ground
 @export_range(0.01, 1.0, 0.01, 'or_greater')
-var body_height_spring_damping: float = 2.2
+var body_height_spring_damping: float = 0.8
 
 
 @export_group('Debug', 'debug')
@@ -189,7 +189,12 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
         var offset: float = leg.ground_offset - body_height_offset
         offset = signf(offset) * minf(absf(offset), grounded_leg_avg_displacement)
 
-        var speed: float = leg.ground_normal.dot(leg.ground_velocity)
+        var rel_ground_velocity: Vector3 = state.get_velocity_at_local_position(
+                      (((state.transform * leg.attachment_point) + leg.ground_point) / 2.0)
+                    - state.transform.origin
+                ) - leg.ground_velocity
+
+        var speed: float = leg.ground_normal.dot(rel_ground_velocity)
 
         var spring_force: float = 100.0 * body_height_spring_stiffness * -offset * shared_mass
         var damp_force: float = 10.0 * body_height_spring_damping * -speed * shared_mass

@@ -57,6 +57,7 @@ size = Vector3(0.2, 1.7, 0.12)
 collision_mask = 17
 mass = 64.0
 custom_integrator = true
+continuous_cd = true
 script = ExtResource("1_3kbc3")
 leg_ik = NodePath("big_crawler/Skeleton3D/CCDIK3D")
 body_height_offset = 0.9
