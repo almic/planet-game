@@ -311,8 +311,8 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         if not is_grounded:
             is_grounded = true
 
-        var ground_plane: Plane = Plane(ground_normal, ground_point)
-        ground_offset = ground_plane.distance_to(state.transform * attachment_point)
+        var body_plane: Plane = Plane(-state.transform.basis.y, state.transform * attachment_point)
+        ground_offset = body_plane.distance_to(ground_point)
 
         var ground_body: RID = ground_cast.get_collider_rid()
         var ground_state := PhysicsServer3D.body_get_direct_state(ground_body)
