@@ -91,8 +91,8 @@ var desired_incline_effect: float = 1.0
 var desired_jump_power: float = 0.0
 ## Additional offset for the spring height
 var desired_height_offset: float = 0.0
-## Additional acceleration applied to body prior to desired motion
-var desired_acceleration: Vector3 = Vector3.ZERO
+## Multiplier to gravity acceleration
+var desired_gravity: float = 1.0
 
 ## The body's total speed
 var linear_speed: float
@@ -155,6 +155,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     vertical_speed = vertical_velocity.length()
     lateral_speed = linear_speed - vertical_speed
 
+    var gravity: Vector3 = state.total_gravity * desired_gravity
+
     # "Air drag"
     # (1/2) * Density * v^2 * Area * Coefficient
     var air_friction: Vector3 = Vector3.ZERO
@@ -185,7 +187,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
         if debug_spring:
             _spring_debug_vec = DebugDraw.vector(
                 spring.global_position,
-                state.total_gravity + spring.total_force,
+                gravity + spring.total_force,
                 Color.DARK_SLATE_BLUE,
                 _spring_debug_vec
             )
@@ -285,7 +287,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
                 # remove spring + gravity
                 if spring and (not spring.total_force.is_zero_approx()):
-                    var spring_vel: Vector3 = state.total_gravity + (spring.total_force * state.inverse_mass)
+                    var spring_vel: Vector3 = gravity + (spring.total_force * state.inverse_mass)
                     var spring_len: float = spring_vel.length()
                     var spring_dir: Vector3 = spring_vel / spring_len
 
@@ -338,15 +340,15 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     # Add final friction values
     var friction: Vector3 = ground_friction + air_friction
 
-    state.linear_velocity += state.step * (friction + desired_acceleration) + jump
+    state.linear_velocity += (state.step * friction) + jump
 
     # Add a slip force by projecting gravity along the downhill vector
-    if not state.total_gravity.is_zero_approx():
+    if not gravity.is_zero_approx():
         if is_slipping:
-            var downhill: Vector3 = ground_normal.cross(state.total_gravity).cross(ground_normal).normalized()
-            state.linear_velocity += state.step * downhill * downhill.dot(state.total_gravity)
+            var downhill: Vector3 = ground_normal.cross(gravity).cross(ground_normal).normalized()
+            state.linear_velocity += state.step * downhill * downhill.dot(gravity)
         else:
-            state.linear_velocity += state.step * state.total_gravity
+            state.linear_velocity += state.step * gravity
 
     if spring:
         state.linear_velocity += spring.total_force * state.inverse_mass * state.step

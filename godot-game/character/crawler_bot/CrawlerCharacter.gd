@@ -53,6 +53,8 @@ var is_stepping: bool:
         return has_desired_forward or has_desired_rotation
 
 var has_desired_rotation: bool = false
+var grounded_leg_count: int = 0
+var grounded_leg_avg_displacement: float = 0.0
 
 
 func _ready() -> void:
@@ -103,6 +105,11 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
     _update_legs(state)
 
+    # Anti-gravity with half the legs grounded
+    desired_gravity = 1.0
+    if grounded_leg_count > 0:
+        desired_gravity = maxf(0.0, 1.0 - minf(1.0, float(grounded_leg_count * 2) / legs.size()))
+
     super._integrate_forces(state)
 
     _solve_rotation(state)
@@ -112,13 +119,43 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
 func _update_legs(state: PhysicsDirectBodyState3D) -> void:
 
+    grounded_leg_count = 0
+    grounded_leg_avg_displacement = 0.0
+    ground_normal = Vector3.ZERO
+
     for leg in legs:
         leg.update(state)
 
+        if leg.is_grounded:
+            grounded_leg_avg_displacement += absf(leg.ground_offset - body_height_offset)
+            grounded_leg_count += 1
+            ground_normal += leg.ground_normal
+
+    if grounded_leg_count > 0:
+        grounded_leg_avg_displacement /= grounded_leg_count
+        ground_normal /= grounded_leg_count
+
+        if ground_normal.is_zero_approx():
+            ground_normal = state.transform.basis.y
+        else:
+            ground_normal = ground_normal.normalized()
 
 func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
 
-    ground_normal = Vector3.UP
+    if grounded_leg_count > 0:
+        if not is_on_floor:
+            is_on_floor = true
+    else:
+        if is_on_floor:
+            is_on_floor = false
+            is_slipping = false
+            ground_normal = Vector3.ZERO
+            ground_friction = Vector3.ZERO
+            ground_direction = Vector3.ZERO
+            ground_velocity = Vector3.ZERO
+            ground_rel_con_velocity = Vector3.ZERO
+        return
+
     ground_rel_con_velocity = state.linear_velocity
     ground_velocity = ground_rel_con_velocity.slide(ground_normal)
     ground_friction = Vector3.ZERO
@@ -140,33 +177,17 @@ func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
                 #desired_acceleration += stopping
                 break
 
-    is_on_floor = true
-
 func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
-    var avg_abs_displacement: float = 0.0
-    var count: int = 0
-
-    for leg in legs:
-        if not leg.is_grounded:
-            continue
-
-        avg_abs_displacement += absf(leg.ground_offset - body_height_offset)
-        count += 1
-
-    if count < 1:
+    if grounded_leg_count < 1:
         return
 
-    avg_abs_displacement /= count
-    #avg_abs_displacement = minf(avg_abs_displacement, 0.2)
-    #print(avg_abs_displacement)
-
-    var shared_mass: float = minf(mass / count, mass / (legs.size() * 0.5))
+    var shared_mass: float = minf(mass / grounded_leg_count, mass / (legs.size() * 0.5))
     for leg in legs:
         if not leg.is_grounded:
             continue
 
         var offset: float = leg.ground_offset - body_height_offset
-        offset = signf(offset) * minf(absf(offset), avg_abs_displacement)
+        offset = signf(offset) * minf(absf(offset), grounded_leg_avg_displacement)
 
         var speed: float = leg.ground_normal.dot(leg.ground_velocity)
 

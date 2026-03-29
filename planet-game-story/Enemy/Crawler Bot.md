@@ -36,10 +36,12 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [x] Fix leg rotations over time, just apply some small correction to each bone's rest position every few frames
 - [x] Fix rest transform snapping, should slide along direction of raycast.
 - [x] Determine if a leg is actually grounded, use a shape intersection most likely
-- [ ] Apply anti-gravity force based on legs in contact with the ground. At least half the legs must be in contact for full anti-gravity.
+- [x] Apply anti-gravity force based on legs in contact with the ground. At least half the legs must be in contact for full anti-gravity.
 - [x] Use a spring-like force to keep the center of mass some distance away from the ground.
-- [ ] Test wall climbing!
+- [x] Test wall climbing!
 - [x] Cache all leg neighbors when leg layout changes. Saves having to construct up to two lists each tick to check neighbors.
+- [ ] Fix leg stalling when stopping
+- [ ] Investigate weird behavior with legs elevated above the body? Legs go through the ground and don't lift at all when they should be lifting a lot.
 - [ ] Test using Joint3D to connect rigid body to PhysicalBone3D?
 - [ ] Fix weird rotation effects when at lower delta times
 

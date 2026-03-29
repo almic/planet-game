@@ -82,6 +82,10 @@ var _debug_target_sphere: int = 0
 @export var debug_ground_normal: bool = true
 var _debug_ground_normal_vector: int = 0
 
+## The raycast used for ground detection
+@export var debug_ground_raycast: bool = true
+var _debug_ground_raycast_vector: int = 0
+
 ## Render text at the leg giving the reason it takes a step
 @export var debug_step_reason: bool = false
 var _debug_step_reason_text: int = 0
@@ -205,6 +209,22 @@ func update_ground_leg_transform() -> void:
             * body.skeleton.get_bone_global_pose(body.skeleton.get_bone_parent(ground_bone_idx))
     )
     ground_cast.force_raycast_update()
+
+    if debug_enable and debug_ground_raycast:
+        if ground_cast.is_colliding():
+            _debug_ground_raycast_vector = DebugDraw.vector(
+                    ground_cast.global_position,
+                    ground_cast.get_collision_point() - ground_cast.global_position,
+                    Color.DARK_SLATE_BLUE,
+                    _debug_ground_raycast_vector
+            )
+        else:
+            _debug_ground_raycast_vector = DebugDraw.vector(
+                    Vector3.ZERO,
+                    Vector3.ZERO,
+                    Color.DARK_SLATE_BLUE,
+                    _debug_ground_raycast_vector
+            )
 
 func update(state: PhysicsDirectBodyState3D) -> void:
     target_global_rest = state.transform.origin + (state.transform.basis * target_rest_position)
@@ -379,8 +399,7 @@ func update(state: PhysicsDirectBodyState3D) -> void:
             is_moving = false
             target.position = step_target
 
-    if is_moving:
-        time_since_moved += state.step
+    time_since_moved += state.step
 
     if is_grounded:
         time_since_grounded += state.step
@@ -396,7 +415,7 @@ func can_step() -> bool:
     # When grounded, try yielding to other legs
     if is_grounded:
         # Wait for this leg to remain in place before stepping again
-        if time_since_grounded < step_delay:
+        if time_since_grounded < step_delay or time_since_moved < step_delay:
             return false
 
         for leg in get_adjacent():
@@ -406,7 +425,6 @@ func can_step() -> bool:
             # And have remained grounded for some time
             elif leg.time_since_grounded < step_crosspair_wait:
                 return false
-
 
     # We can move and want to move!
     if not is_comfortable:
@@ -490,8 +508,6 @@ func get_diagonal() -> Array[CrawlerLeg]:
 
     var result: Array[CrawlerLeg]
     var max_id: int = body.legs.size()
-
-    var is_left: bool = index % 2 == 0
 
     # Ahead
     var idx: int = index - 1
