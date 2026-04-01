@@ -145,6 +145,7 @@ func _process(_delta: float) -> void:
             spring.enabled = true
             force_ground_movement = true
             desired_gravity = 1.0
+            linear_damp = 0.0
             GUIDE.disable_mapping_context(input_debug_freecam_context)
 
             if walk_mode:
@@ -222,8 +223,6 @@ func _handle_input() -> void:
             desired_direction = camera.global_basis * desired_direction
         else:
             desired_direction = camera_yaw.global_basis * desired_direction
-
-        linear_damp = 0.0
 
         if freecam_mode:
             linear_damp = 1.0

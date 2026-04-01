@@ -171,7 +171,6 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
         return
 
     var total_gravity: Vector3 = state.total_gravity * desired_gravity
-    var gravity_direction: Vector3 = total_gravity.normalized()
 
     var shared_mass: float = mass / grounded_leg_count
     if not is_equal_approx(body_leg_mass_ratio, 1.0):
@@ -181,34 +180,35 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
     # NOTE: 2 is probably enough, but I chose 3 so that it definitely would be accurate
     var max_iterations: int = 3
     var sub_step: float = state.step / max_iterations
-    var virtual_transform: Transform3D = state.transform
+    var old_transform: Transform3D = state.transform
+
     while iteration < max_iterations:
         iteration += 1
 
         grounded_leg_avg_displacement = 0.0
 
+        # Update the body virtually
+        state.transform.origin += state.linear_velocity * sub_step
+        var angular_len: float = state.angular_velocity.length()
+        if not is_zero_approx(angular_len):
+            state.transform.basis = state.transform.basis.rotated(state.angular_velocity / angular_len, angular_len * sub_step)
+        var spring_direction: Vector3 = state.transform.basis.y
+
         for leg in legs:
             if not leg.is_grounded:
                 continue
 
-            virtual_transform.origin += state.linear_velocity * sub_step
-            var angular_len: float = state.angular_velocity.length()
-            if not is_zero_approx(angular_len):
-                virtual_transform.basis = virtual_transform.basis.rotated(state.angular_velocity / angular_len, angular_len * sub_step)
+            var global_attachment: Vector3 = state.transform * leg.attachment_point
 
             # These lines copied from CrawlerLeg
-            var body_plane: Plane = Plane(-virtual_transform.basis.y, virtual_transform * leg.attachment_point)
+            var body_plane: Plane = Plane(-state.transform.basis.y, global_attachment)
             leg.ground_offset = body_plane.distance_to(leg.ground_point) - body_height_offset
 
             grounded_leg_avg_displacement += absf(leg.ground_offset)
 
-            if iteration == 1:
-                leg_update_data[leg.index * 2] = (0.5 * (leg.ground_point + (virtual_transform * leg.attachment_point))) - virtual_transform.origin
-
-            var old_transform: Transform3D = state.transform
-            state.transform = virtual_transform
-            leg_update_data[leg.index * 2 + 1] = state.get_velocity_at_local_position(leg_update_data[leg.index * 2])
-            state.transform = old_transform
+            var spring_midpoint: Vector3 = (0.5 * (leg.ground_point + global_attachment)) - state.transform.origin
+            leg_update_data[leg.index * 2] = spring_midpoint
+            leg_update_data[leg.index * 2 + 1] = state.get_velocity_at_local_position(spring_midpoint)
 
         grounded_leg_avg_displacement /= grounded_leg_count
 
@@ -223,18 +223,13 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
             var local_velocity: Vector3 = leg_update_data[leg.index * 2 + 1]
             var rel_ground_velocity: Vector3 = local_velocity - leg.ground_velocity
 
-            var speed: float = leg.ground_normal.dot(rel_ground_velocity)
+            var speed: float = spring_direction.dot(rel_ground_velocity)
 
             var spring_force: float = 100.0 * body_height_spring_stiffness * -offset * shared_mass
             var damp_force: float = 10.0 * body_height_spring_damping * -speed * shared_mass
             var total_force: float = clampf(spring_force + damp_force, -1e8, 1e8)
 
-            var force_vec: Vector3 = (total_force * leg.ground_normal)
-
-            # NOTE: I don't know why, and PI isn't a special number, it is just a big number to
-            #       make the thing stay on the wall... but keep "gravity" look on flat ground
-            var anti_gravity: float = clampf(PI * sin(acos(gravity_direction.dot(leg.ground_normal))), 0.0, 1.0)
-            force_vec -= total_gravity * anti_gravity * shared_mass
+            var force_vec: Vector3 = (total_force * spring_direction) - (total_gravity * shared_mass)
 
             state.apply_impulse(
                 force_vec * sub_step,
@@ -242,6 +237,9 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
             )
 
             pass
+
+    # Reset changes to the transform
+    state.transform = old_transform
 
 func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
 
