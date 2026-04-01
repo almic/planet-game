@@ -150,6 +150,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     if not manual_input_handling:
         _handle_input()
 
+    # Apply damping forces immediately
+    if not is_zero_approx(state.total_linear_damp):
+        state.linear_velocity -= state.linear_velocity * state.total_linear_damp * state.step
+    if not is_zero_approx(state.total_angular_damp):
+        state.angular_velocity -= state.angular_velocity * state.total_angular_damp * state.step
+
     linear_speed = state.linear_velocity.length()
     vertical_velocity = state.transform.basis.y * state.transform.basis.tdoty(state.linear_velocity)
     vertical_speed = vertical_velocity.length()
@@ -175,16 +181,21 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     # Ground detection and force
     _calculate_ground_force(state)
 
-    if is_on_floor and spring and debug_enabled:
+    if is_on_floor and debug_enabled:
+        var normal_center: Vector3
+        if spring:
+            normal_center = spring.get_collision_point(0)
+        else:
+            normal_center = state.transform.origin
         if debug_normal:
             _normal_debug_vec = DebugDraw.vector(
-                    spring.get_collision_point(0),
+                    normal_center,
                     ground_normal * 0.5,
                     Color.CORNFLOWER_BLUE,
                     _normal_debug_vec,
                     2.0
             )
-        if debug_spring:
+        if spring and debug_spring:
             _spring_debug_vec = DebugDraw.vector(
                 spring.global_position,
                 gravity + spring.total_force,
@@ -221,7 +232,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                 speed_in_dir = ground_velocity.dot(forward)
 
             # Limit forward acceleration
-            if desired_incline_effect > 0.0:
+            if (not force_ground_movement) and desired_incline_effect > 0.0:
                 var slope_cos_theta: float = state.transform.basis.tdoty(forward)
                 if slope_cos_theta > 0.0:
                     if incline_speed_reduction > 0.0:
@@ -353,6 +364,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     if spring:
         state.linear_velocity += spring.total_force * state.inverse_mass * state.step
         #print('%.3f | s: %s' % [float(Time.get_ticks_msec()) / 1000.0, spring.total_force * state.inverse_mass])
+
+    _custom_pre_movement_forces(state)
 
     if state.linear_velocity.length_squared() < 1e-4:
         state.linear_velocity = Vector3.ZERO
@@ -524,3 +537,8 @@ func _calculate_move_friction(forward: Vector3) -> Vector3:
         keep *= keep
 
     return -ground_direction * loss + forward * loss * keep
+
+## For custom forces that should be applied just before movement
+@warning_ignore("unused_parameter")
+func _custom_pre_movement_forces(state: PhysicsDirectBodyState3D) -> void:
+    pass

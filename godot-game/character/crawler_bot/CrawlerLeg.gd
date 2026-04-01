@@ -232,27 +232,15 @@ func update(state: PhysicsDirectBodyState3D) -> void:
 
     var target_transform: Transform3D = rest_transform
     var leg_speed: float
-    var travel_forward: Vector3
-    if not body.ground_direction.is_zero_approx():
-        leg_speed = minf(maxf(body.ground_direction.dot(body.ground_velocity), body.desired_speed), body.max_speed)
-        if body.has_desired_forward:
-            travel_forward = body.desired_direction
-        else:
-            travel_forward = body.ground_direction
-        travel_forward = travel_forward.slide(state.transform.basis.y)
-        if not travel_forward.is_zero_approx():
-            travel_forward = travel_forward.normalized()
-    elif body.has_desired_forward:
-        leg_speed = body.desired_speed
-        travel_forward = body.desired_direction
 
-    if not travel_forward.is_zero_approx():
-        target_transform.origin += state.transform.basis.inverse() * travel_forward * move_offset
+    if body.has_desired_forward:
+        leg_speed = body.desired_speed
+        target_transform.origin += state.transform.basis.inverse() * body.desired_direction * move_offset
 
         var is_front: bool = index < 2
         var is_back: bool = index + 2 >= body.legs.size()
 
-        var cos_theta: float = travel_forward.dot(-state.transform.basis.z)
+        var cos_theta: float = body.desired_direction.dot(-state.transform.basis.z)
 
         if is_front or is_back:
             cos_theta = absf(cos_theta) * 2.0 - 1.0
@@ -266,7 +254,15 @@ func update(state: PhysicsDirectBodyState3D) -> void:
 
         target_transform = target_transform.rotated_local(transform.basis.y, move_spin * cos_theta)
     elif transform == target_transform:
-        leg_speed = maxf(body.max_speed / 3.0, 0.5)
+        leg_speed = (
+                maxf(
+                    minf(
+                        body.ground_direction.dot(body.ground_velocity),
+                        body.max_speed
+                    ),
+                    body.max_speed / 3.0
+                )
+        )
     elif is_moving:
         # Use very small leg speed while interpolating to rest
         leg_speed = maxf(body.max_speed / 20.0, 0.05)
@@ -311,9 +307,6 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         if not is_grounded:
             is_grounded = true
 
-        var body_plane: Plane = Plane(-state.transform.basis.y, state.transform * attachment_point)
-        ground_offset = body_plane.distance_to(ground_point)
-
         var ground_body: RID = ground_cast.get_collider_rid()
         var ground_state := PhysicsServer3D.body_get_direct_state(ground_body)
         ground_velocity = ground_state.get_velocity_at_local_position(
@@ -331,7 +324,6 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         is_grounded = false
         ground_normal = Vector3.INF
         ground_velocity = Vector3.ZERO
-        ground_offset = INF
         time_since_grounded = 0.0
         if debug_enable and debug_ground_normal:
             _debug_ground_normal_vector = DebugDraw.vector(

@@ -40,7 +40,8 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [x] Use a spring-like force to keep the center of mass some distance away from the ground.
 - [x] Test wall climbing!
 - [x] Cache all leg neighbors when leg layout changes. Saves having to construct up to two lists each tick to check neighbors.
-- [ ] Fix leg stalling when stopping
+- [x] Fix leg stalling when stopping
+- [ ] Change anti-gravity to be at full power for grounded legs, and grounded legs will share extra from floating legs, up to mass ratio parameter. Add a bobbing parameter, that when a leg lifts, will shift that leg's body height offset by the bobbing amount in the direction of gravity, interpolated based on the body's UP alignment with gravity.
 - [ ] Investigate weird behavior with legs elevated above the body? Legs go through the ground and don't lift at all when they should be lifting a lot.
 - [ ] Test using Joint3D to connect rigid body to PhysicalBone3D?
 - [ ] Fix weird rotation effects when at lower delta times
@@ -75,3 +76,6 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 2. Within CrawlerCharacter class, calculate the average absolute displacement of each leg from the desired height offset. This will be the maximum absolute displacement for all legs. 
 3. Calculate a spring displacement and speed for each leg, the speed should be the dot product of the local velocity at the attachment point with the ground normal. Displacement should be limited to the previously calculated absolute mean.
 4. Apply the spring force to the attachment point of each leg.
+
+# Weird Legs
+- I noticed the legs freeze if any leg is on a different plane.

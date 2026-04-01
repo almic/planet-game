@@ -21,7 +21,7 @@ var rotation_overshoot: float = 0.2
 @export var leg_ik: IterateIK3D
 
 
-@export_group('Height Offset', 'body_height')
+@export_group('Leg Parameters', 'body')
 
 ## How far off the ground to keep the body's center of mass
 @export_range(0.0, 0.5, 0.01, 'or_greater', 'suffix:m')
@@ -35,11 +35,15 @@ var body_height_spring_stiffness: float = 1.6
 @export_range(0.01, 1.0, 0.01, 'or_greater')
 var body_height_spring_damping: float = 0.8
 
+## Percentage of total legs necessary to lift the body. Should not be higher
+## than 0.5!
+@export_range(0.0, 1.0, 0.01)
+var body_leg_mass_ratio: float = 0.5
 
 @export_group('Debug', 'debug')
 
 @export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
-var debug_enable: bool = true
+var debug_enable: bool = false
 
 
 var legs: Array[CrawlerLeg]
@@ -55,6 +59,7 @@ var is_stepping: bool:
 var has_desired_rotation: bool = false
 var grounded_leg_count: int = 0
 var grounded_leg_avg_displacement: float = 0.0
+var leg_update_data: PackedVector3Array
 
 
 func _ready() -> void:
@@ -75,6 +80,8 @@ func _ready() -> void:
 
         # Copy collision mask to casters
         leg.shape_cast.collision_mask = collision_mask
+
+    leg_update_data.resize(index * 2)
 
     # Initialize legs
     for leg in legs:
@@ -105,29 +112,17 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
     _update_legs(state)
 
-    # Anti-gravity with half the legs grounded
-    desired_gravity = 1.0
-    if grounded_leg_count > 0:
-        desired_gravity = maxf(0.0, 1.0 - minf(1.0, float(grounded_leg_count * 2) / legs.size()))
-
     super._integrate_forces(state)
-
-    _solve_rotation(state)
-
-    _solve_leg_offsets(state)
-
 
 func _update_legs(state: PhysicsDirectBodyState3D) -> void:
 
     grounded_leg_count = 0
-    grounded_leg_avg_displacement = 0.0
     ground_normal = Vector3.ZERO
 
     for leg in legs:
         leg.update(state)
 
         if leg.is_grounded:
-            grounded_leg_avg_displacement += absf(leg.ground_offset - body_height_offset)
             grounded_leg_count += 1
             ground_normal += leg.ground_normal
 
@@ -165,50 +160,93 @@ func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
     else:
         ground_direction = Vector3.ZERO
 
-    # TODO: I don't like how this uses desired_acceleration... either make this
-    #       write to ground_friction, or make desired_acceleration BETTER (???)
-    if has_desired_forward and (not ground_direction.is_zero_approx()):
-        # If any legs are not moving and uncomfortable, slow down
-        for leg in legs:
-            if (not leg.is_moving) and (not leg.is_comfortable):
-                var stopping: Vector3 = -ground_direction * deceleration
-                var decel_limit: float = ground_velocity.dot(ground_direction) / state.step
-                stopping = stopping.limit_length(decel_limit)
-                #desired_acceleration += stopping
-                break
+
+func _custom_pre_movement_forces(state: PhysicsDirectBodyState3D) -> void:
+    _solve_rotation(state)
+
+    _solve_leg_offsets(state)
 
 func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
     if grounded_leg_count < 1:
         return
 
-    var shared_mass: float = minf(mass / grounded_leg_count, mass / (legs.size() * 0.5))
-    for leg in legs:
-        if not leg.is_grounded:
-            continue
+    var total_gravity: Vector3 = state.total_gravity * desired_gravity
+    var gravity_direction: Vector3 = total_gravity.normalized()
 
-        var offset: float = leg.ground_offset - body_height_offset
-        offset = signf(offset) * minf(absf(offset), grounded_leg_avg_displacement)
+    var shared_mass: float = mass / grounded_leg_count
+    if not is_equal_approx(body_leg_mass_ratio, 1.0):
+        shared_mass = minf(shared_mass, mass / (legs.size() * (1.0 - body_leg_mass_ratio)))
 
-        var rel_ground_velocity: Vector3 = state.get_velocity_at_local_position(
-                      (((state.transform * leg.attachment_point) + leg.ground_point) / 2.0)
-                    - state.transform.origin
-                ) - leg.ground_velocity
+    var iteration: int = 0
+    # NOTE: 2 is probably enough, but I chose 3 so that it definitely would be accurate
+    var max_iterations: int = 3
+    var sub_step: float = state.step / max_iterations
+    var virtual_transform: Transform3D = state.transform
+    while iteration < max_iterations:
+        iteration += 1
 
-        var speed: float = leg.ground_normal.dot(rel_ground_velocity)
+        grounded_leg_avg_displacement = 0.0
 
-        var spring_force: float = 100.0 * body_height_spring_stiffness * -offset * shared_mass
-        var damp_force: float = 10.0 * body_height_spring_damping * -speed * shared_mass
-        var total_force: float = clampf(spring_force + damp_force, -1e8, 1e8)
+        for leg in legs:
+            if not leg.is_grounded:
+                continue
 
-        state.apply_impulse(
-            total_force * leg.ground_normal * state.step,
-            (state.transform * leg.attachment_point) - state.transform.origin
-        )
+            virtual_transform.origin += state.linear_velocity * sub_step
+            var angular_len: float = state.angular_velocity.length()
+            if not is_zero_approx(angular_len):
+                virtual_transform.basis = virtual_transform.basis.rotated(state.angular_velocity / angular_len, angular_len * sub_step)
+
+            # These lines copied from CrawlerLeg
+            var body_plane: Plane = Plane(-virtual_transform.basis.y, virtual_transform * leg.attachment_point)
+            leg.ground_offset = body_plane.distance_to(leg.ground_point) - body_height_offset
+
+            grounded_leg_avg_displacement += absf(leg.ground_offset)
+
+            if iteration == 1:
+                leg_update_data[leg.index * 2] = (0.5 * (leg.ground_point + (virtual_transform * leg.attachment_point))) - virtual_transform.origin
+
+            var old_transform: Transform3D = state.transform
+            state.transform = virtual_transform
+            leg_update_data[leg.index * 2 + 1] = state.get_velocity_at_local_position(leg_update_data[leg.index * 2])
+            state.transform = old_transform
+
+        grounded_leg_avg_displacement /= grounded_leg_count
+
+        for leg in legs:
+            if not leg.is_grounded:
+                continue
+
+            var offset: float = leg.ground_offset
+            offset = signf(offset) * minf(absf(offset), grounded_leg_avg_displacement)
+
+            var spring_midpoint: Vector3 = leg_update_data[leg.index * 2]
+            var local_velocity: Vector3 = leg_update_data[leg.index * 2 + 1]
+            var rel_ground_velocity: Vector3 = local_velocity - leg.ground_velocity
+
+            var speed: float = leg.ground_normal.dot(rel_ground_velocity)
+
+            var spring_force: float = 100.0 * body_height_spring_stiffness * -offset * shared_mass
+            var damp_force: float = 10.0 * body_height_spring_damping * -speed * shared_mass
+            var total_force: float = clampf(spring_force + damp_force, -1e8, 1e8)
+
+            var force_vec: Vector3 = (total_force * leg.ground_normal)
+
+            # NOTE: I don't know why, and PI isn't a special number, it is just a big number to
+            #       make the thing stay on the wall... but keep "gravity" look on flat ground
+            var anti_gravity: float = clampf(PI * sin(acos(gravity_direction.dot(leg.ground_normal))), 0.0, 1.0)
+            force_vec -= total_gravity * anti_gravity * shared_mass
+
+            state.apply_impulse(
+                force_vec * sub_step,
+                spring_midpoint
+            )
+
+            pass
 
 func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
 
     var grounded_legs: int = 0
-    var can_do_yaw: bool = true
+    var can_do_yaw: bool = target_direction.is_finite()
     for leg in legs:
         if leg.is_grounded:
             grounded_legs += 1
@@ -300,3 +338,6 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
     # NOTE: roughly 0.5 degrees per second
     if target_angular.is_zero_approx() and state.angular_velocity.length_squared() < 8e-5:
         state.angular_velocity = Vector3.ZERO
+        if not has_desired_rotation:
+            # Low angular velocity, facing the target, clear target
+            target_direction = Vector3.INF
