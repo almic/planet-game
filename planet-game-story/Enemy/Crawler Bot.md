@@ -47,6 +47,7 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [ ] Teleport leg IK targets to leg bone when too far away
 - [ ] If a step cast fails, try again with a "comfort zone" sized cast
 - [ ] Angle the step cast and increase the length. Legs go through the ground and don't lift at all when they should be lifting a lot.
+- [ ] Force a leg lift when it is negatively affecting the movement of the whole, figure out how to define that in code (good luck)
 - [ ] Test using Joint3D to connect rigid body to PhysicalBone3D?
 - [ ] Fix weird rotation effects when at lower delta times
 - [ ] Ground velocity can move leg targets when leg is in contact with ground
