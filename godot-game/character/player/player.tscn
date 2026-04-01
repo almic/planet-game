@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://6l6ugv6t1q5e" path="res://character/player/player.gd" id="1_y0s34"]
 [ext_resource type="Script" uid="uid://bakqx774uoeem" path="res://character/SpringCast.gd" id="2_8eijk"]
+[ext_resource type="PackedScene" uid="uid://dkr80d2pi0d41" path="res://addons/guide/debugger/guide_debugger.tscn" id="3_gtsfv"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_y0s34"]
 friction = 0.3
@@ -120,3 +121,10 @@ collision_mask = 16
 unique_name_in_owner = true
 doppler_tracking = 2
 far = 2000.0
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1547338579]
+process_mode = 3
+
+[node name="GuideDebugger" parent="CanvasLayer" unique_id=1627471453 instance=ExtResource("3_gtsfv")]
+unique_name_in_owner = true
+process_mode = 3

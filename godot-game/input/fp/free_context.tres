@@ -1,0 +1,49 @@
+[gd_resource type="Resource" script_class="GUIDEMappingContext" format=3 uid="uid://ckqnxijdumsoo"]
+
+[ext_resource type="Script" uid="uid://cpplm41b5bt6m" path="res://addons/guide/guide_action_mapping.gd" id="1_awt37"]
+[ext_resource type="Script" uid="uid://mtx1unc2aqn7" path="res://addons/guide/guide_input_mapping.gd" id="3_0kxim"]
+[ext_resource type="Script" uid="uid://cw71o87tvdx3q" path="res://addons/guide/inputs/guide_input_key.gd" id="4_rcrbd"]
+[ext_resource type="Script" uid="uid://bl8rjl4oaldje" path="res://addons/guide/modifiers/guide_modifier.gd" id="5_bc1jy"]
+[ext_resource type="Script" uid="uid://x74mnwgr08a7" path="res://addons/guide/triggers/guide_trigger.gd" id="8_gtbtk"]
+[ext_resource type="Resource" uid="uid://oru4dn30hyrs" path="res://input/fp/action/jump.tres" id="11_ot6fs"]
+[ext_resource type="Resource" uid="uid://cyig6itfyeel1" path="res://input/fp/action/crouch.tres" id="13_e2gbw"]
+[ext_resource type="Script" uid="uid://dsa1dnifd6w32" path="res://addons/guide/guide_mapping_context.gd" id="14_c0xdu"]
+
+[sub_resource type="Resource" id="Resource_0anp1"]
+script = ExtResource("4_rcrbd")
+key = 32
+
+[sub_resource type="Resource" id="Resource_gmicm"]
+script = ExtResource("3_0kxim")
+input = SubResource("Resource_0anp1")
+
+[sub_resource type="Resource" id="Resource_uwjrx"]
+script = ExtResource("4_rcrbd")
+key = 69
+
+[sub_resource type="Resource" id="Resource_k7s8o"]
+script = ExtResource("3_0kxim")
+input = SubResource("Resource_uwjrx")
+
+[sub_resource type="Resource" id="Resource_xfysx"]
+script = ExtResource("1_awt37")
+action = ExtResource("11_ot6fs")
+input_mappings = Array[ExtResource("3_0kxim")]([SubResource("Resource_gmicm"), SubResource("Resource_k7s8o")])
+
+[sub_resource type="Resource" id="Resource_y0mqw"]
+script = ExtResource("4_rcrbd")
+key = 81
+
+[sub_resource type="Resource" id="Resource_0kxim"]
+script = ExtResource("3_0kxim")
+input = SubResource("Resource_y0mqw")
+
+[sub_resource type="Resource" id="Resource_rcrbd"]
+script = ExtResource("1_awt37")
+action = ExtResource("13_e2gbw")
+input_mappings = Array[ExtResource("3_0kxim")]([SubResource("Resource_0kxim")])
+
+[resource]
+script = ExtResource("14_c0xdu")
+mappings = Array[ExtResource("1_awt37")]([SubResource("Resource_xfysx"), SubResource("Resource_rcrbd")])
+metadata/_custom_type_script = "uid://dsa1dnifd6w32"

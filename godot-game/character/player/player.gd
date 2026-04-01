@@ -50,6 +50,17 @@ var crouch_safe_fraction: float = 0.6
 @export_subgroup('Debug')
 @export var input_debug_target_player: GUIDEAction = preload("uid://bfqs54sgopsvb")
 @export var input_debug_target_position: GUIDEAction = preload("uid://u1oxg3mtiil8")
+@export var input_debug_noclip: GUIDEAction = preload("uid://dlkderxbvtu4t")
+@export var input_debug_freecam_context: GUIDEMappingContext = preload("uid://ckqnxijdumsoo")
+
+@export_group('Debug', 'debug')
+
+@export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
+var debug_enable: bool = false
+
+## Show the GUIDE Debugger UI
+@export var debug_guide_debugger: bool = false
+@onready var guide_debugger: MarginContainer = %GuideDebugger
 
 
 @onready var mesh_yaw: Node3D = %mesh_yaw
@@ -74,6 +85,9 @@ var walk_mode: bool = false
 
 ## Toggle crouch mode
 var crouch_mode: bool = false
+
+## Toggle freecam mode
+var freecam_mode: bool = false
 
 
 var debug_targeting_player: bool = false
@@ -114,17 +128,42 @@ func _process(_delta: float) -> void:
         var offset: Vector3 = tp_camera_cast.target_position * tp_camera_cast.get_closest_collision_safe_fraction()
         tp_camera.position = offset
 
+    if input_debug_noclip.is_triggered():
+        freecam_mode = not freecam_mode
+        if freecam_mode:
+            collider_crouch.disabled = true
+            collider_stand.disabled = true
+            spring.enabled = false
+            force_ground_movement = false
+            desired_gravity = 0.0
+            crouch_mode = false
+            desired_incline_effect = 0.0
+            GUIDE.enable_mapping_context(input_debug_freecam_context, false, -1)
+        else:
+            # Crouch collider first
+            collider_crouch.disabled = false
+            spring.enabled = true
+            force_ground_movement = true
+            desired_gravity = 1.0
+            GUIDE.disable_mapping_context(input_debug_freecam_context)
+
+            if walk_mode:
+                desired_incline_effect = walk_slope_effect
+            else:
+                desired_incline_effect = 1.0
+
     if input_action_walk.is_triggered():
         walk_mode = not walk_mode
-        if walk_mode:
-            desired_incline_effect = walk_slope_effect
-        else:
-            desired_incline_effect = 1.0
+        if not freecam_mode:
+            if walk_mode:
+                desired_incline_effect = walk_slope_effect
+            else:
+                desired_incline_effect = 1.0
 
-    if input_action_jump.is_triggered():
+    if (not freecam_mode) and input_action_jump.is_triggered():
         desired_jump_power = jump_power
 
-    if input_action_crouch.is_triggered():
+    if (not freecam_mode) and input_action_crouch.is_triggered():
         crouch_mode = not crouch_mode
 
     if input_debug_target_player.is_triggered():
@@ -144,33 +183,64 @@ func _process(_delta: float) -> void:
         if collider_crouch.disabled:
             collider_crouch.disabled = false
             collider_stand.disabled = true
-    elif collider_stand.disabled:
+    elif (not freecam_mode) and collider_stand.disabled:
         # Test if we can switch to the stand collider using the shape_cast result
         if spring.get_closest_collision_safe_fraction() >= crouch_safe_fraction:
             collider_stand.disabled = false
             collider_crouch.disabled = true
 
+    if guide_debugger.visible or guide_debugger.is_processing():
+        if (not debug_enable) or (not debug_guide_debugger):
+            guide_debugger.process_mode = Node.PROCESS_MODE_DISABLED
+            guide_debugger.visible = false
+    elif debug_enable and debug_guide_debugger:
+        guide_debugger.process_mode = Node.PROCESS_MODE_INHERIT
+        guide_debugger.visible = true
+
 func _handle_input() -> void:
     if not is_node_ready():
         return
 
-    if input_action_move.value_axis_3d.length_squared() > 1e-3:
-        desired_direction = input_action_move.value_axis_3d.normalized()
+    desired_direction = input_action_move.value_axis_3d
+
+    if freecam_mode:
+        # From alternative freecam context
+        if input_action_jump.is_triggered():
+            desired_direction += Vector3.UP
+        if input_action_crouch.is_triggered():
+            desired_direction += Vector3.DOWN
+
+    if desired_direction.length_squared() > 1e-3:
+        desired_direction = desired_direction.normalized()
+
         if camera_third_person:
-            desired_direction = tp_camera_yaw.global_basis * desired_direction
+            if freecam_mode:
+                desired_direction = tp_camera.global_basis * desired_direction
+            else:
+                desired_direction = tp_camera_yaw.global_basis * desired_direction
+        elif freecam_mode:
+            desired_direction = camera.global_basis * desired_direction
         else:
             desired_direction = camera_yaw.global_basis * desired_direction
-        if walk_mode or crouch_mode:
+
+        if freecam_mode:
+            linear_damp = 1.0
+            desired_speed = max_speed
+            if walk_mode:
+                desired_speed *= 0.5
+        elif walk_mode or crouch_mode:
             desired_speed = walk_speed
         else:
             desired_speed = max_speed
     else:
         desired_speed = 0.0
+        if freecam_mode:
+            linear_damp = 10.0
 
     if input_action_jump.is_completed():
         desired_jump_power = 0.0
 
-    if crouch_mode:
+    if (not freecam_mode) and crouch_mode:
         desired_height_offset = -crouch_offset
     else:
         desired_height_offset = 0.0
