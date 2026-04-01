@@ -13,7 +13,7 @@ var ground_hit_start: float = 0.1
 
 ## How far beyond the ground bone to raycast
 @export_range(0.05, 0.2, 0.01, 'or_greater')
-var ground_hit_extra: float = 0.08
+var ground_hit_extra: float = 0.05
 
 ## How far between current and rest position to start moving the leg torwards the move target.
 ## Actual steps will be a little higher than double this value while in motion.
@@ -82,9 +82,10 @@ var _debug_target_sphere: int = 0
 @export var debug_ground_normal: bool = true
 var _debug_ground_normal_vector: int = 0
 
-## The raycast used for ground detection
-@export var debug_ground_raycast: bool = true
-var _debug_ground_raycast_vector: int = 0
+## The cast used for ground detection
+@export var debug_ground_cast: bool = true
+var _debug_ground_cast_vector: int = 0
+var _debug_ground_cast_shape: int = 0
 
 ## Render text at the leg giving the reason it takes a step
 @export var debug_step_reason: bool = false
@@ -129,7 +130,7 @@ var step_delta: float
 var comfort_distance: float
 
 var ground_bone_idx: int = -1
-var ground_cast: RayCast3D
+var ground_cast: ShapeCast3D
 var ground_leg_transform: Transform3D
 var ground_normal: Vector3 = Vector3.INF
 var ground_point: Vector3 = Vector3.INF
@@ -168,7 +169,7 @@ func _validate_property(property: Dictionary) -> void:
 func setup() -> void:
     if not has_initialized:
         has_initialized = true
-        target_rest_position = body.global_transform.inverse() * target.global_position
+        target_rest_position = global_transform.inverse() * target.global_position
         cast_direction = shape_cast.target_position.normalized()
         attachment_point = (body.global_transform.inverse() * global_transform).origin
 
@@ -180,16 +181,19 @@ func setup() -> void:
         for bone_target in attachments:
             if bone_target.bone != parent_bone:
                 continue
-            ground_cast = RayCast3D.new()
+            ground_cast = ShapeCast3D.new()
             ground_cast.enabled = false
             ground_cast.collision_mask = shape_cast.collision_mask
+            # NOTE: Ground cast should share the step cast shape resource (NOT a copy!) so they remain synchronized
+            ground_cast.shape = shape_cast.shape
             bone_target.add_child(ground_cast, false, Node.INTERNAL_MODE_FRONT)
 
             var target_position: Vector3 = body.skeleton.get_bone_pose_position(ground_bone_idx)
             var bone_direction: Vector3 = target_position.normalized()
-            var start_position: Vector3 = (bone_direction * ground_hit_start)
+            var shape_size: float = (ground_cast.shape as SphereShape3D).radius
+            var start_position: Vector3 = (bone_direction * (ground_hit_start + shape_size))
             ground_cast.position = target_position - start_position
-            ground_cast.target_position = start_position + (bone_direction * ground_hit_extra)
+            ground_cast.target_position = start_position + (bone_direction * (ground_hit_extra - shape_size))
 
             break
 
@@ -208,26 +212,32 @@ func update_ground_leg_transform() -> void:
               body.skeleton.global_transform
             * body.skeleton.get_bone_global_pose(body.skeleton.get_bone_parent(ground_bone_idx))
     )
-    ground_cast.force_raycast_update()
+    ground_cast.force_update_transform()
+    ground_cast.force_shapecast_update()
 
-    if debug_enable and debug_ground_raycast:
+    if debug_enable and debug_ground_cast:
+        var shape_origin: Vector3 = ground_cast.target_position
+        var shape_color: Color
         if ground_cast.is_colliding():
-            _debug_ground_raycast_vector = DebugDraw.vector(
-                    ground_cast.global_position,
-                    ground_cast.get_collision_point() - ground_cast.global_position,
-                    Color.DARK_SLATE_BLUE,
-                    _debug_ground_raycast_vector
-            )
+            shape_origin *= ground_cast.get_closest_collision_unsafe_fraction()
+            shape_color = Color.DARK_SLATE_BLUE
         else:
-            _debug_ground_raycast_vector = DebugDraw.vector(
-                    Vector3.ZERO,
-                    Vector3.ZERO,
-                    Color.DARK_SLATE_BLUE,
-                    _debug_ground_raycast_vector
-            )
+            shape_color = Color.DARK_SLATE_GRAY
+
+        _debug_ground_cast_vector = DebugDraw.vector(
+                ground_cast.global_position,
+                ground_cast.global_basis * shape_origin,
+                shape_color,
+                _debug_ground_cast_vector
+        )
+        _debug_ground_cast_shape = DebugDraw.sphere(
+                ground_cast.global_transform * shape_origin,
+                (ground_cast.shape as SphereShape3D).radius,
+                shape_color,
+                _debug_ground_cast_shape
+        )
 
 func update(state: PhysicsDirectBodyState3D) -> void:
-    target_global_rest = state.transform.origin + (state.transform.basis * target_rest_position)
     global_cast_direction = state.transform.basis * cast_direction
 
     var target_transform: Transform3D = rest_transform
@@ -282,6 +292,8 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         # TODO: maybe always move comfort distance? Legs should handle moving targets now.
         comfort_distance = move_toward(comfort_distance, rest_distance, state.step * 2.0)
 
+    target_global_rest = global_transform * target_rest_position
+
     if debug_enable and debug_rest_area:
         _debug_rest_circle = DebugDraw.circle(
                 target_global_rest,
@@ -295,8 +307,8 @@ func update(state: PhysicsDirectBodyState3D) -> void:
 
     var has_ground: bool = false
     if ground_cast.is_colliding():
-        ground_point = ground_cast.get_collision_point()
-        ground_normal = ground_cast.get_collision_normal()
+        ground_point = ground_cast.get_collision_point(0)
+        ground_normal = ground_cast.get_collision_normal(0)
         var leg_normal: Vector3 = -ground_leg_transform.basis.y
 
         var ground_cos_theta: float = ground_normal.dot(leg_normal)
@@ -307,7 +319,7 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         if not is_grounded:
             is_grounded = true
 
-        var ground_body: RID = ground_cast.get_collider_rid()
+        var ground_body: RID = ground_cast.get_collider_rid(0)
         var ground_state := PhysicsServer3D.body_get_direct_state(ground_body)
         ground_velocity = ground_state.get_velocity_at_local_position(
                     ground_point - ground_state.transform.origin
@@ -359,8 +371,8 @@ func update(state: PhysicsDirectBodyState3D) -> void:
     if debug_enable and debug_step_target:
         _debug_target_sphere = DebugDraw.sphere(
                 step_target,
-                0.1,
-                Color.FIREBRICK,
+                (shape_cast.shape as SphereShape3D).radius,
+                Color.FIREBRICK * Color(1.0, 1.0, 1.0, 0.3),
                 _debug_target_sphere,
                 1.0
         )

@@ -162,9 +162,9 @@ func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
 
 
 func _custom_pre_movement_forces(state: PhysicsDirectBodyState3D) -> void:
-    _solve_rotation(state)
-
     _solve_leg_offsets(state)
+
+    _solve_rotation(state)
 
 func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
     if grounded_leg_count < 1:

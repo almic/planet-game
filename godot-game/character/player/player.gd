@@ -223,6 +223,8 @@ func _handle_input() -> void:
         else:
             desired_direction = camera_yaw.global_basis * desired_direction
 
+        linear_damp = 0.0
+
         if freecam_mode:
             linear_damp = 1.0
             desired_speed = max_speed
