@@ -75,15 +75,15 @@ var debug_enable: bool = true
 var _debug_rest_circle: int = 0
 
 ## The target position for the current step
-@export var debug_step_target: bool = true
+@export var debug_step_target: bool = false
 var _debug_target_sphere: int = 0
 
 ## The ground contact normal of the leg
-@export var debug_ground_normal: bool = true
+@export var debug_ground_normal: bool = false
 var _debug_ground_normal_vector: int = 0
 
 ## The cast used for ground detection
-@export var debug_ground_cast: bool = true
+@export var debug_ground_cast: bool = false
 var _debug_ground_cast_vector: int = 0
 var _debug_ground_cast_shape: int = 0
 

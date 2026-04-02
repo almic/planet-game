@@ -42,7 +42,7 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [x] Cache all leg neighbors when leg layout changes. Saves having to construct up to two lists each tick to check neighbors.
 - [x] Fix leg stalling when stopping
 - [x] Make spring force in the body up direction, not the leg normal
-- [ ] Change anti-gravity to be at full power for grounded legs, and grounded legs will share extra from floating legs, up to mass ratio parameter. Add a bobbing parameter, that when a leg lifts, will shift that leg's body height offset by the bobbing amount in the direction of gravity, interpolated based on the body's UP alignment with gravity.
+- [ ] Change anti-gravity to be at full power for grounded legs, and grounded legs will share extra from floating legs, up to mass ratio parameter. Add a parameter that will shift that leg's body height offset by some amount in the direction of gravity, interpolated based on the body's UP alignment with gravity.
 - [ ] Limit spring force to be some small acceleration over gravity
 - [ ] Teleport leg IK targets to leg bone when too far away
 - [ ] If a step cast fails, try again with a "comfort zone" sized cast

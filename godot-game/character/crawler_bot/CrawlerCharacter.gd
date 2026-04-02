@@ -27,6 +27,11 @@ var rotation_overshoot: float = 0.2
 @export_range(0.0, 0.5, 0.01, 'or_greater', 'suffix:m')
 var body_height_offset: float = 0.5
 
+## How for the body "settles" when affected by gravity, reduces as the body
+## becomes parallel to gravity.
+@export_range(0.0, 0.2, 0.01, 'or_greater', 'suffix:m')
+var body_gravity_offset: float = 0.1
+
 ## Stiffness of the spring used to offset the body from the ground
 @export_range(0.01, 2.0, 0.01, 'or_greater')
 var body_height_spring_stiffness: float = 1.6
@@ -171,6 +176,9 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
         return
 
     var total_gravity: Vector3 = state.total_gravity * desired_gravity
+    var gravity_direction: Vector3 = Vector3.ZERO
+    if not state.total_gravity.is_zero_approx():
+        gravity_direction = state.total_gravity.normalized()
 
     var shared_mass: float = mass / grounded_leg_count
     if not is_equal_approx(body_leg_mass_ratio, 1.0):
@@ -194,6 +202,9 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
             state.transform.basis = state.transform.basis.rotated(state.angular_velocity / angular_len, angular_len * sub_step)
         var spring_direction: Vector3 = state.transform.basis.y
 
+        var gravity_alignment: float = state.transform.basis.tdoty(gravity_direction) * desired_gravity
+        var total_height_offset: float = body_height_offset + body_gravity_offset * gravity_alignment
+
         for leg in legs:
             if not leg.is_grounded:
                 continue
@@ -202,7 +213,7 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
 
             # These lines copied from CrawlerLeg
             var body_plane: Plane = Plane(-state.transform.basis.y, global_attachment)
-            leg.ground_offset = body_plane.distance_to(leg.ground_point) - body_height_offset
+            leg.ground_offset = body_plane.distance_to(leg.ground_point) - total_height_offset
 
             grounded_leg_avg_displacement += absf(leg.ground_offset)
 
