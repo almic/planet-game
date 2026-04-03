@@ -299,12 +299,6 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         if transform.is_equal_approx(target_transform):
             transform = target_transform
 
-    if body.is_stepping:
-        comfort_distance = move_toward(comfort_distance, step_distance, state.step * 2.0)
-    elif transform.is_equal_approx(rest_transform):
-        # TODO: maybe always move comfort distance? Legs should handle moving targets now.
-        comfort_distance = move_toward(comfort_distance, rest_distance, state.step * 2.0)
-
     target_global_rest = global_transform * target_rest_position
 
     if debug_enable and debug_rest_area:
@@ -358,6 +352,12 @@ func update(state: PhysicsDirectBodyState3D) -> void:
                     _debug_ground_normal_vector,
                     0.001
             )
+
+    if body.is_stepping:
+        comfort_distance = move_toward(comfort_distance, step_distance, state.step * 2.0)
+    elif transform.is_equal_approx(rest_transform):
+        # TODO: maybe always move comfort distance? Legs should handle moving targets now.
+        comfort_distance = move_toward(comfort_distance, rest_distance, state.step * 2.0)
 
     if shape_cast.is_colliding():
         next_step_target = shape_cast.get_collision_point(0)
