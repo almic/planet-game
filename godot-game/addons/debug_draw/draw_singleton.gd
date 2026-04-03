@@ -21,6 +21,7 @@ enum TYPE {
     TEXT,
     SPHERE,
     CIRCLE,
+    POLYLINE,
 }
 
 var id_counter: int = 1
@@ -94,6 +95,12 @@ func _draw() -> void:
             var color: Color = d.get(&'color')
 
             _draw_circle(coords, radius, axis, points, color)
+        elif d.type == TYPE.POLYLINE:
+            var poly: PackedVector3Array = d.get(&'poly')
+            var mod: bool = d.get(&'mod')
+            var color: Color = d.get(&'color')
+
+            _draw_polyline(poly, mod, color)
         else:
             push_error('DebugDraw: Unknown type id %d!' % d.type)
             items.erase(k)
@@ -202,7 +209,6 @@ func _draw_sphere(pos: Vector3, radius: float, color: Color) -> void:
     _draw_circle(pos, radius, Vector3.RIGHT, 12, color)
 
 func circle(coordinates: Vector3, radius: float, axis: Vector3, points: int, color: Color, id: int = 0, time: float = 0.0) -> int:
-
     var d: Dictionary = {}
     id = _get_item(id, TYPE.CIRCLE, d)
 
@@ -228,6 +234,48 @@ func _draw_circle(pos: Vector3, radius: float, axis: Vector3, points: int, color
         var a: Vector3 = pos + vec * radius
         vec = basis * vec
         var b: Vector3 = pos + vec * radius
+
+        draw_segment(_clamp_segment(a, b), color)
+
+func polyline(polygon: PackedVector3Array, modulate_order: bool, color: Color, id: int = 0, time: float = 0.0) -> int:
+    var d: Dictionary = {}
+    id = _get_item(id, TYPE.POLYLINE, d)
+
+    d.set(&'poly', polygon)
+    d.set(&'mod', modulate_order)
+    d.set(&'color', color)
+    d.set(&'t', time)
+
+    items.set(id, d)
+    queue_redraw()
+    return id
+
+func _draw_polyline(polygon: PackedVector3Array, modulate_order: bool, color: Color) -> void:
+    var size: int = polygon.size()
+    if size < 2:
+        return
+
+    const POINT_COLORS: PackedColorArray = [
+        Color.LIGHT_CORAL,
+        Color.PLUM,
+        Color.MEDIUM_ORCHID,
+        Color.SKY_BLUE,
+        Color.CORNFLOWER_BLUE,
+    ]
+
+    for i in range(0, polygon.size()):
+        var a: Vector3 = polygon[i]
+        var b: Vector3 = polygon[(i + 1) % size]
+
+        if modulate_order:
+            var col: Color
+            if i == 0:
+                col = Color.WHITE
+            else:
+                col = POINT_COLORS[(i - 1) % POINT_COLORS.size()]
+            _draw_sphere(
+                a, 0.02, col * Color(1.0, 1.0, 1.0, 0.5)
+            )
 
         draw_segment(_clamp_segment(a, b), color)
 

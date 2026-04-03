@@ -68,10 +68,10 @@ var move_interp_rate: float = 10.0
 @export_group('Debug', 'debug')
 
 @export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
-var debug_enable: bool = true
+var debug_enable: bool = false
 
 ## The comfort region for leg
-@export var debug_rest_area: bool = true
+@export var debug_rest_area: bool = false
 var _debug_rest_circle: int = 0
 
 ## The target position for the current step
