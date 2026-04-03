@@ -51,10 +51,6 @@ var body_leg_mass_ratio: float = 0.5
 @export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
 var debug_enable: bool = false
 
-@export var debug_leg_polygon: bool = true
-var _debug_leg_polyline: int = 0
-var _debug_leg_mass_vector: int = 0
-
 
 var legs: Array[CrawlerLeg]
 var skeleton: Skeleton3D
@@ -69,9 +65,7 @@ var is_stepping: bool:
 var has_desired_rotation: bool = false
 var grounded_leg_count: int = 0
 var grounded_leg_avg_displacement: float = 0.0
-var grounded_leg_center_point: Vector3
 var leg_update_data: PackedVector3Array
-var leg_polygon: PackedVector2Array
 
 
 func _ready() -> void:
@@ -130,7 +124,6 @@ func _update_legs(state: PhysicsDirectBodyState3D) -> void:
 
     grounded_leg_count = 0
     ground_normal = Vector3.ZERO
-    grounded_leg_center_point = Vector3.ZERO
 
     for leg in legs:
         leg.update(state)
@@ -138,12 +131,10 @@ func _update_legs(state: PhysicsDirectBodyState3D) -> void:
         if leg.is_grounded:
             grounded_leg_count += 1
             ground_normal += leg.ground_normal
-            grounded_leg_center_point += leg.ground_point
 
     if grounded_leg_count > 0:
         grounded_leg_avg_displacement /= grounded_leg_count
         ground_normal /= grounded_leg_count
-        grounded_leg_center_point /= grounded_leg_count
 
         if ground_normal.is_zero_approx():
             ground_normal = state.transform.basis.y
@@ -196,9 +187,6 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
     if not is_equal_approx(body_leg_mass_ratio, 1.0):
         shared_mass = minf(shared_mass, mass / (legs.size() * (1.0 - body_leg_mass_ratio)))
 
-    # NOTE: This var is out here for debug display, only reason
-    var anti_grav_point: Vector3
-
     var iteration: int = 0
     # NOTE: 2 is probably enough, but I chose 3 so that it definitely would be accurate
     var max_iterations: int = 3
@@ -222,9 +210,6 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
         var gravity_alignment: float = state.transform.basis.tdoty(gravity_direction) * desired_gravity
         var total_height_offset: float = body_height_offset + body_gravity_offset * gravity_alignment
 
-        var body_plane: Plane = Plane(state.transform.basis.y, state.transform.origin + state.center_of_mass)
-        var poly_front_index: int = 0
-        leg_polygon.clear()
         for leg in legs:
             if not leg.is_grounded:
                 continue
@@ -241,29 +226,7 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
             leg_update_data[leg.index * 2] = spring_midpoint
             leg_update_data[leg.index * 2 + 1] = state.get_velocity_at_local_position(spring_midpoint)
 
-            var plane_point: Vector3 = body_plane.project(leg.ground_point) - (state.transform.origin + state.center_of_mass)
-            var polygon_point: Vector2 = Vector2(state.transform.basis.tdotx(plane_point), state.transform.basis.tdotz(plane_point))
-            leg_polygon.insert(poly_front_index, polygon_point)
-            if leg.is_left:
-                poly_front_index += 1
-
         grounded_leg_avg_displacement /= grounded_leg_count
-
-        var best_mass_center: Vector2
-        if Geometry2D.is_point_in_polygon(Vector2.ZERO, leg_polygon):
-            best_mass_center = Vector2.ZERO
-        else:
-            var best_sqr: float = INF
-            best_mass_center = leg_polygon[0]
-            for i in range(grounded_leg_count):
-                var a: Vector2 = leg_polygon[i]
-                var b: Vector2 = leg_polygon[(i + 1) % grounded_leg_count]
-
-                var p: Vector2 = Geometry2D.get_closest_point_to_segment(Vector2.ZERO, a, b)
-                var d_sqr: float = p.length_squared()
-                if d_sqr < best_sqr:
-                    best_mass_center = p
-                    best_sqr = d_sqr
 
         for leg in legs:
             if not leg.is_grounded:
@@ -293,19 +256,6 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
 
     # Reset changes to the transform
     state.transform = old_transform
-
-    if debug_enable and debug_leg_polygon:
-        var polygon: PackedVector3Array
-        polygon.resize(grounded_leg_count)
-        for i in range(grounded_leg_count):
-            polygon[i] = state.transform * Vector3(leg_polygon[i].x, grounded_leg_avg_displacement, leg_polygon[i].y)
-        _debug_leg_polyline = DebugDraw.polyline(
-            polygon,
-            true,
-            Color.MEDIUM_PURPLE,
-            _debug_leg_polyline,
-            0.05
-        )
 
 
 func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
