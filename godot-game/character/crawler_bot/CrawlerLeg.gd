@@ -78,6 +78,10 @@ var _debug_rest_circle: int = 0
 @export var debug_step_target: bool = false
 var _debug_target_sphere: int = 0
 
+## The target IK position for the leg
+@export var debug_ik_target: bool = false
+var _debug_ik_sphere: int = 0
+
 ## The ground contact normal of the leg
 @export var debug_ground_normal: bool = false
 var _debug_ground_normal_vector: int = 0
@@ -405,6 +409,14 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         if step_current.distance_squared_to(step_target) < 1e-4:
             is_moving = false
             target.position = step_target
+
+    if debug_enable and debug_ik_target:
+        _debug_ik_sphere = DebugDraw.sphere(
+                target.position,
+                0.02,
+                Color.AQUA,
+                _debug_ik_sphere
+        )
 
     time_since_moved += state.step
 

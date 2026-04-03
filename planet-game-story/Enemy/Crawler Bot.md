@@ -44,7 +44,6 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [x] Make spring force in the body up direction, not the leg normal
 - [x] Change anti-gravity to be at full power for grounded legs, and grounded legs will share extra from floating legs, up to mass ratio parameter. Add a parameter that will shift that leg's body height offset by some amount in the direction of gravity, interpolated based on the body's UP alignment with gravity.
 - [x] Limit spring force to be some small acceleration over gravity
-- [ ] Teleport leg IK targets to leg bone when too far away
 - [ ] If a step cast fails, try again with a "comfort zone" sized cast
 - [ ] Angle the step cast and increase the length. Legs go through the ground and don't lift at all when they should be lifting a lot.
 - [ ] Force a leg lift when it is negatively affecting the movement of the whole, figure out how to define that in code (good luck)
