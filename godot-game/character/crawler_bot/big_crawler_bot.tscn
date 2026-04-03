@@ -62,7 +62,7 @@ script = ExtResource("1_3kbc3")
 leg_ik = NodePath("big_crawler/Skeleton3D/CCDIK3D")
 body_height_offset = 0.9
 acceleration = 6.0
-deceleration = 10.0
+deceleration = 8.0
 metadata/_custom_type_script = "uid://gy5qwm8j5pbh"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=396952384]

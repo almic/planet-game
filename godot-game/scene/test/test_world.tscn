@@ -455,4 +455,3 @@ shape = SubResource("SphereShape3D_tk7e2")
 
 [node name="CrawlerBot" parent="." unique_id=461561025 instance=ExtResource("9_dunqf")]
 transform = Transform3D(6.123233995736766e-17, 0, 1, 0, 1, 0, -1, 0, 6.123233995736766e-17, 4.099999999999998, 0.05000000000291038, 23.499999999999996)
-deceleration = 8.0
