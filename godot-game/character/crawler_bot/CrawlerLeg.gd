@@ -131,6 +131,7 @@ var comfort_distance: float
 
 var ground_bone_idx: int = -1
 var ground_cast: ShapeCast3D
+var ground_body: RID
 var ground_leg_transform: Transform3D
 var ground_normal: Vector3 = Vector3.INF
 var ground_point: Vector3 = Vector3.INF
@@ -203,6 +204,14 @@ func setup() -> void:
                         name, body.skeleton.get_bone_name(parent_bone)
                     ]
             )
+
+        # Add all children as exclusion for shape cast
+        for child_body in body.find_children('', 'CollisionObject3D'):
+            if child_body is CollisionObject3D:
+                if shape_cast:
+                    shape_cast.add_exception_rid(child_body.get_rid())
+                if ground_cast:
+                    ground_cast.add_exception_rid(child_body.get_rid())
 
     cached_adjacent = get_adjacent()
     cached_diagonal = get_diagonal()
@@ -319,7 +328,7 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         if not is_grounded:
             is_grounded = true
 
-        var ground_body: RID = ground_cast.get_collider_rid(0)
+        ground_body = ground_cast.get_collider_rid(0)
         var ground_state := PhysicsServer3D.body_get_direct_state(ground_body)
         ground_velocity = ground_state.get_velocity_at_local_position(
                     ground_point - ground_state.transform.origin

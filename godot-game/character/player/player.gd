@@ -171,7 +171,7 @@ func _process(_delta: float) -> void:
         var crawlers: Array[CrawlerCharacter]
         crawlers.assign(get_parent_node_3d().find_children('', 'CrawlerCharacter', false))
         for crawl in crawlers:
-            crawl.target_position = position
+            crawl.target_position = camera.global_position
         debug_targeting_player = true
     elif debug_targeting_player:
         var crawlers: Array[CrawlerCharacter]

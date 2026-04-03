@@ -184,7 +184,7 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
     var leg_ratio: float = float(grounded_leg_count) / float(legs.size())
     var leg_gravity_mass: float = mass / legs.size()
     var shared_mass: float = mass / grounded_leg_count
-    if not is_equal_approx(body_leg_mass_ratio, 1.0):
+    if not is_zero_approx(body_leg_mass_ratio):
         shared_mass = minf(shared_mass, mass / (legs.size() * (1.0 - body_leg_mass_ratio)))
 
     var iteration: int = 0
@@ -252,6 +252,13 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
                 spring_midpoint
             )
 
+            var ground_state := PhysicsServer3D.body_get_direct_state(leg.ground_body)
+            if ground_state:
+                ground_state.apply_impulse(
+                    -force_vec * sub_step,
+                    (spring_midpoint + state.transform.origin) - ground_state.transform.origin
+                )
+
         state.angular_velocity = state.angular_velocity.move_toward(old_angular, rotation_acceleration * leg_ratio * sub_step)
 
     # Reset changes to the transform
@@ -260,23 +267,20 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
 
 func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
 
-    var grounded_legs: int = 0
     var can_do_yaw: bool = target_direction.is_finite()
     for leg in legs:
-        if leg.is_grounded:
-            grounded_legs += 1
         if can_do_yaw and (not leg.is_comfortable) and (not leg.is_moving):
             can_do_yaw = false
 
     has_desired_rotation = false
 
     # Must have at least 1 leg grounded to perform rotation
-    if grounded_legs == 0:
+    if grounded_leg_count == 0:
         # TODO: damp rotation as if by air friction
         return
 
     var leg_count: int = legs.size()
-    var grounded_leg_factor: float = float(grounded_legs) / float(leg_count)
+    var grounded_leg_factor: float = float(grounded_leg_count) / float(leg_count)
 
     var preferred_forward: Vector3
     var preferred_right: Vector3
