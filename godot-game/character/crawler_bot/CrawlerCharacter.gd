@@ -45,6 +45,10 @@ var body_height_spring_damping: float = 0.8
 @export_range(0.0, 1.0, 0.01)
 var body_leg_mass_ratio: float = 0.5
 
+## How much effective acceleration legs can apply to the body. Should be just
+## enough to be stable while being pushed and entering extreme inclines.
+@export_range(0.01, 30.0, 0.01, 'or_greater')
+var body_max_leg_force: float = 20.0
 
 @export_group('Debug', 'debug')
 
@@ -182,10 +186,12 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
         gravity_direction = state.total_gravity.normalized()
 
     var leg_ratio: float = float(grounded_leg_count) / float(legs.size())
-    var leg_gravity_mass: float = mass / legs.size()
+    var leg_mass: float = mass / legs.size()
     var shared_mass: float = mass / grounded_leg_count
     if not is_zero_approx(body_leg_mass_ratio):
         shared_mass = minf(shared_mass, mass / (legs.size() * (1.0 - body_leg_mass_ratio)))
+
+    var max_force: float = body_max_leg_force * leg_mass
 
     var iteration: int = 0
     # NOTE: 2 is probably enough, but I chose 3 so that it definitely would be accurate
@@ -243,9 +249,9 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
 
             var spring_force: float = 100.0 * body_height_spring_stiffness * -offset * shared_mass
             var damp_force: float = 10.0 * body_height_spring_damping * -speed * shared_mass
-            var total_force: float = clampf(spring_force + damp_force, -1e8, 1e8)
+            var total_force: float = clampf(spring_force + damp_force, -max_force, max_force)
 
-            var force_vec: Vector3 = (total_force * spring_direction) - (total_gravity * leg_gravity_mass)
+            var force_vec: Vector3 = (total_force * spring_direction) - (total_gravity * leg_mass)
 
             state.apply_impulse(
                 force_vec * sub_step,
