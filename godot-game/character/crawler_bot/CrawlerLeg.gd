@@ -24,6 +24,11 @@ var step_distance: float = 0.5
 @export_range(0.0, 0.5, 0.01, 'or_greater')
 var early_step_distance: float = 0.15
 
+## When in motion, the angle for the step shape cast, in the direction of motion.
+## This pivots about the rest position of the leg.
+@export_range(0.0, 45.0, 0.1, 'radians_as_degrees')
+var step_cast_angle: float = deg_to_rad(20.0)
+
 ## How far between current and rest position the leg should be when at rest.
 ## This should be very small so the legs return to a comfortable position.
 @export_range(0.01, 0.5, 0.01, 'or_greater')
@@ -73,6 +78,11 @@ var debug_enable: bool = false
 ## The comfort region for leg
 @export var debug_rest_area: bool = false
 var _debug_rest_circle: int = 0
+
+## The step shape cast
+@export var debug_step_cast: bool = false
+var _debug_step_cast_shape: int = 0
+var _debug_step_cast_vector: int = 0
 
 ## The target position for the current step
 @export var debug_step_target: bool = false
@@ -158,6 +168,7 @@ func _ready() -> void:
             if target:
                 break
 
+    shape_cast.enabled = false
     rest_transform = transform
     comfort_distance = rest_distance
 
@@ -359,6 +370,25 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         # TODO: maybe always move comfort distance? Legs should handle moving targets now.
         comfort_distance = move_toward(comfort_distance, rest_distance, state.step * 2.0)
 
+    # Rotate in direction of motion
+    var old_shape_cast_xform: Transform3D = shape_cast.transform
+    if body.has_desired_forward and not is_zero_approx(step_cast_angle):
+        var rot_axis: Vector3 = body.global_basis.inverse() * body.desired_direction.cross(body.global_basis.y)
+        rot_axis = rot_axis.normalized()
+        var angle: float = step_cast_angle# * (1.0 - absf(body.global_basis.tdoty(body.desired_direction)))
+        var point: Vector3 = target_rest_position - shape_cast.position
+
+        # NOTE: Think of making a "transform sandwich", order the lines as if you are looking at
+        #       the side profile of a "transform sandwich".
+        var xform: Transform3D = Transform3D.IDENTITY
+        xform = xform.translated(-point)
+        xform = xform.rotated(rot_axis, angle)
+        xform = xform.translated(target_rest_position)
+
+        shape_cast.transform = xform
+
+    shape_cast.force_shapecast_update()
+
     if shape_cast.is_colliding():
         next_step_target = shape_cast.get_collision_point(0)
 
@@ -381,14 +411,38 @@ func update(state: PhysicsDirectBodyState3D) -> void:
             step_current = target.position
             step_delta = (step_target - step_current).length()
 
-    if debug_enable and debug_step_target:
-        _debug_target_sphere = DebugDraw.sphere(
-                step_target,
-                (shape_cast.shape as SphereShape3D).radius,
-                Color.FIREBRICK * Color(1.0, 1.0, 1.0, 0.3),
-                _debug_target_sphere,
-                1.0
-        )
+    if debug_enable:
+        if debug_step_cast:
+            var shape_origin: Vector3 = shape_cast.target_position
+            var shape_color: Color
+            if shape_cast.is_colliding():
+                shape_origin *= shape_cast.get_closest_collision_unsafe_fraction()
+                shape_color = Color.OLIVE_DRAB
+            else:
+                shape_color = Color.DARK_SLATE_GRAY
+
+            _debug_step_cast_vector = DebugDraw.vector(
+                    shape_cast.global_position,
+                    shape_cast.global_basis * shape_origin,
+                    shape_color,
+                    _debug_step_cast_vector
+            )
+            _debug_step_cast_shape = DebugDraw.sphere(
+                    shape_cast.global_transform * shape_origin,
+                    (shape_cast.shape as SphereShape3D).radius,
+                    shape_color,
+                    _debug_step_cast_shape
+            )
+        if debug_step_target:
+            _debug_target_sphere = DebugDraw.sphere(
+                    step_target,
+                    (shape_cast.shape as SphereShape3D).radius,
+                    Color.FIREBRICK * Color(1.0, 1.0, 1.0, 0.3),
+                    _debug_target_sphere,
+                    1.0
+            )
+
+    shape_cast.transform = old_shape_cast_xform
 
     if is_moving:
         step_current = step_current.move_toward(

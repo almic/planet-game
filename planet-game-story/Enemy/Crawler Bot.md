@@ -44,12 +44,13 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [x] Make spring force in the body up direction, not the leg normal
 - [x] Change anti-gravity to be at full power for grounded legs, and grounded legs will share extra from floating legs, up to mass ratio parameter. Add a parameter that will shift that leg's body height offset by some amount in the direction of gravity, interpolated based on the body's UP alignment with gravity.
 - [x] Limit spring force to be some small acceleration over gravity
-- [ ] Angle the step cast and increase the length. Legs go through the ground and don't lift at all when they should be lifting a lot.
+- [x] Angle the step cast and increase the length. Legs go through the ground and don't lift at all when they should be lifting a lot.
 - [ ] Force a leg lift when it is negatively affecting the movement of the whole, figure out how to define that in code (good luck)
 - [ ] Test using Joint3D to connect rigid body to PhysicalBone3D?
 - [ ] Fix weird rotation effects when at lower delta times
 - [ ] Ground velocity can move leg targets when leg is in contact with ground
 - [ ] Improve leg step location logic, allow sweeping a larger space and track the best location for the next step or the rest of the leg. Probably some evaluation function that compares the current leg location with the best leg location, and if the current position is bad, move to the best one.
+- [ ] When shape step cast safe length increases, you must perform an origin-to-origin raycast from the old step and the new step. If it fails, increment a counter and delay to the next tick. This counter represents the segments of a raycast path from the current step target to the next target, following path the leg target would take, when a valid path is found then update the step target. If the length decreases, assume it is safe to use as a step target (a leg closer to the body is always better than a leg stuck on the wrong side of a wall).
 
 # Body Orientation
 - There is a desired pitch and roll determined by the target positions of each leg. This will be called the desired body plane.
