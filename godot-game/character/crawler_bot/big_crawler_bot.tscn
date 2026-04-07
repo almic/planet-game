@@ -254,6 +254,7 @@ metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="FL_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair/FL_Leg" unique_id=1032610666]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.095, 0.42, -1.5)
+enabled = false
 shape = SubResource("SphereShape3D_welis")
 target_position = Vector3(0, -2, 0)
 collision_mask = 17
@@ -275,6 +276,7 @@ metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="FR_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair/FR_Leg" unique_id=774657337]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.095, 0.42, -1.5)
+enabled = false
 shape = SubResource("SphereShape3D_welis")
 target_position = Vector3(0, -2, 0)
 collision_mask = 17
@@ -299,6 +301,7 @@ metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="ML_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/MiddleLegPair/ML_Leg" unique_id=1197310677]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.86, 0.42, 0)
+enabled = false
 shape = SubResource("SphereShape3D_welis")
 target_position = Vector3(0, -2, 0)
 collision_mask = 17
@@ -320,6 +323,7 @@ metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="MR_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/MiddleLegPair/MR_Leg" unique_id=747800772]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.86, 0.42, 0)
+enabled = false
 shape = SubResource("SphereShape3D_welis")
 target_position = Vector3(0, -2, 0)
 collision_mask = 17
@@ -344,6 +348,7 @@ metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="BL_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair/BL_Leg" unique_id=1668808495]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.095, 0.42, 1.5)
+enabled = false
 shape = SubResource("SphereShape3D_welis")
 target_position = Vector3(0, -2, 0)
 collision_mask = 17
@@ -365,6 +370,7 @@ metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="BR_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair/BR_Leg" unique_id=381680649]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.095, 0.42, 1.5)
+enabled = false
 shape = SubResource("SphereShape3D_welis")
 target_position = Vector3(0, -2, 0)
 collision_mask = 17

@@ -152,6 +152,9 @@ var ground_point: Vector3 = Vector3.INF
 var ground_velocity: Vector3 = Vector3.ZERO
 var ground_offset: float = INF
 
+var target_bone_idx: int = -1
+var target_bone_position: Vector3
+
 var cached_adjacent: Array[CrawlerLeg]
 var cached_diagonal: Array[CrawlerLeg]
 
@@ -188,6 +191,18 @@ func setup() -> void:
         target_rest_position = global_transform.inverse() * target.global_position
         cast_direction = shape_cast.target_position.normalized()
         attachment_point = (body.global_transform.inverse() * global_transform).origin
+
+        # Get the chain end bone
+        var target_path: NodePath = body.leg_ik.get_path_to(target)
+        for setting in range(body.leg_ik.setting_count):
+            if body.leg_ik.get_target_node(setting) == target_path:
+                target_bone_idx = body.leg_ik.get_end_bone(setting)
+                break
+
+        if target_bone_idx == -1:
+            push_error(
+                'Unable to find end bone targetting node "%s"!' % target.name
+            )
 
         ground_bone_idx = body.skeleton.find_bone(ground_bone)
         # Find a bone attachment with the same bone
@@ -238,6 +253,11 @@ func update_ground_leg_transform() -> void:
     )
     ground_cast.force_update_transform()
     ground_cast.force_shapecast_update()
+
+    target_bone_position = (
+              body.skeleton.global_transform
+            * body.skeleton.get_bone_global_pose(target_bone_idx).origin
+    )
 
     if debug_enable and debug_ground_cast:
         var shape_origin: Vector3 = ground_cast.target_position
@@ -392,17 +412,9 @@ func update(state: PhysicsDirectBodyState3D) -> void:
     if shape_cast.is_colliding():
         next_step_target = shape_cast.get_collision_point(0)
 
-        # Limit to rest area
-        if distance_squared_to_rest(next_step_target) > comfort_distance * comfort_distance:
-            next_step_target = next_step_target - target_global_rest
-            var vertical_part: Vector3 = global_cast_direction * global_cast_direction.dot(next_step_target)
-            next_step_target -= vertical_part
-            next_step_target = next_step_target.limit_length(comfort_distance)
-            next_step_target += target_global_rest + vertical_part
-
         if is_moving:
-            var step_change: Vector3 = next_step_target - step_target
-            step_delta += step_change.dot(step_change.normalized())
+            var step_change: float = (next_step_target - step_target).length()
+            step_delta = minf(step_delta + step_change, step_distance * 2.0)
             step_target = next_step_target
         elif can_step():
             is_moving = true
