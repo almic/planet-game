@@ -1,8 +1,14 @@
 @tool
 class_name CrawlerLeg extends Node3D
 
+## The floor step target raycast
 @export var shape_cast: ShapeCast3D
+
+## The node that IK uses for this leg
 @export var target: Marker3D
+
+
+@export_group('Ground Detection', 'ground')
 
 @export_custom(PROPERTY_HINT_ENUM, '')
 var ground_bone: StringName
@@ -14,6 +20,9 @@ var ground_hit_start: float = 0.1
 ## How far beyond the ground bone to raycast
 @export_range(0.05, 0.2, 0.01, 'or_greater')
 var ground_hit_extra: float = 0.05
+
+
+@export_group('Stepping')
 
 ## How far between current and rest position to start moving the leg torwards the move target.
 ## Actual steps will be a little higher than double this value while in motion.
@@ -128,14 +137,25 @@ var target_global_rest: Vector3 = Vector3.INF
 var cast_direction: Vector3 = Vector3.INF
 var global_cast_direction: Vector3 = Vector3.INF
 
+## The leg is currently touching ground
 var is_grounded: bool = false
+## How long it has been since the leg collided with ground
 var time_since_grounded: float = 0.0
+
+## The leg is currently in motion
 var is_moving: bool = false
-## How long the leg has been in motion for, only valid when is_moving is true
+## How long it has been since the last movement began
 var time_since_moved: float = 0.0
+
+## The leg is currently taking a step
+var is_stepping: bool = false
+## How long it has been since the last step began
+var time_since_stepped: float = 0.0
+
+## The leg is in a comfortable position. This is used to signal that the leg
+## wants to move to a better position.
 var is_comfortable: bool = false
 
-var next_step_target: Vector3 = Vector3.INF
 var step_target: Vector3 = Vector3.INF
 
 var step_current: Vector3 = Vector3.INF
@@ -177,7 +197,6 @@ func _ready() -> void:
 
     # Ensure target is top-level in-game
     target.top_level = not Engine.is_editor_hint()
-    next_step_target = target.global_position
 
 func _validate_property(property: Dictionary) -> void:
     if property.name == &'ground_bone':
@@ -317,9 +336,10 @@ func update(state: PhysicsDirectBodyState3D) -> void:
                     body.max_speed / 3.0
                 )
         )
-    elif is_moving:
+    elif is_stepping:
         # Use very small leg speed while interpolating to rest
         leg_speed = maxf(body.max_speed / 20.0, 0.05)
+    # TODO: is_moving uses a faster speed (like recovery actions)
 
     if transform != target_transform:
         # Force at least 0.5cm of travel each interpolation
@@ -410,15 +430,15 @@ func update(state: PhysicsDirectBodyState3D) -> void:
     shape_cast.force_shapecast_update()
 
     if shape_cast.is_colliding():
-        next_step_target = shape_cast.get_collision_point(0)
+        var next_step_target: Vector3 = shape_cast.get_collision_point(0)
 
-        if is_moving:
+        if is_stepping:
             var step_change: float = (next_step_target - step_target).length()
             step_delta = minf(step_delta + step_change, step_distance * 2.0)
             step_target = next_step_target
         elif can_step():
-            is_moving = true
-            time_since_moved = 0.0
+            is_stepping = true
+            time_since_stepped = 0.0
             step_target = next_step_target
             step_current = target.position
             step_delta = (step_target - step_current).length()
@@ -456,7 +476,7 @@ func update(state: PhysicsDirectBodyState3D) -> void:
 
     shape_cast.transform = old_shape_cast_xform
 
-    if is_moving:
+    if is_stepping:
         step_current = step_current.move_toward(
                 step_target,
                 state.step * step_delta
@@ -473,7 +493,7 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         target.position += swing
 
         if step_current.distance_squared_to(step_target) < 1e-4:
-            is_moving = false
+            is_stepping = false
             target.position = step_target
 
     if debug_enable and debug_ik_target:
@@ -484,7 +504,8 @@ func update(state: PhysicsDirectBodyState3D) -> void:
                 _debug_ik_sphere
         )
 
-    time_since_moved += state.step
+    # time_since_moved += state.step
+    time_since_stepped += state.step
 
     if is_grounded:
         time_since_grounded += state.step
@@ -500,12 +521,12 @@ func can_step() -> bool:
     # When grounded, try yielding to other legs
     if is_grounded:
         # Wait for this leg to remain in place before stepping again
-        if time_since_grounded < step_delay or time_since_moved < step_delay:
+        if time_since_grounded < step_delay or time_since_stepped < step_delay:
             return false
 
         for leg in get_adjacent():
-            # Adjacent legs must not be moving
-            if leg.is_moving:
+            # Adjacent legs must not be moving or stepping
+            if leg.is_moving or leg.is_stepping:
                 return false
             # And have remained grounded for some time
             elif leg.time_since_grounded < step_crosspair_wait:
@@ -530,7 +551,7 @@ func can_step() -> bool:
     # or all legs are ready to move and this one has enough distance to start the pair
     var all_grounded: bool = time_since_grounded >= step_delay
     for leg in get_diagonal():
-        if leg.is_moving and leg.time_since_moved < step_pair_window:
+        if leg.is_stepping and leg.time_since_stepped < step_pair_window:
             if debug_enable and debug_step_reason:
                 _debug_step_reason_text = DebugDraw.text(
                         step_target,
