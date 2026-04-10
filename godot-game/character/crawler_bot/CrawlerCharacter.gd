@@ -132,7 +132,7 @@ func _update_legs(state: PhysicsDirectBodyState3D) -> void:
     for leg in legs:
         leg.pre_update(state)
 
-        if leg.is_grounded:
+        if leg.apply_ground_forces:
             grounded_leg_count += 1
             ground_normal += leg.ground_normal
 
@@ -223,7 +223,7 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
         var total_height_offset: float = body_height_offset + body_gravity_offset * gravity_alignment
 
         for leg in legs:
-            if not leg.is_grounded:
+            if not leg.apply_ground_forces:
                 continue
 
             var global_attachment: Vector3 = state.transform * leg.attachment_point
@@ -241,7 +241,7 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
         grounded_leg_avg_displacement /= grounded_leg_count
 
         for leg in legs:
-            if not leg.is_grounded:
+            if not leg.apply_ground_forces:
                 continue
 
             var offset: float = leg.ground_offset
@@ -308,10 +308,10 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
     var using_ground_points: bool = true
     for i in range(4):
         var leg: CrawlerLeg = main_legs[i]
-        if leg.is_grounded:
-            ground_points[i] = leg.target.position
-        elif leg.is_moving:
-            ground_points[i] = leg.step_target
+        if leg.apply_ground_forces:
+            ground_points[i] = leg.ground_point
+        elif leg.is_stepping:
+            ground_points[i] = leg.global_transform * leg.step_target
         elif using_rest_point:
             # Cannot use more than 1 rest point, use current orientation
             preferred_forward = -state.transform.basis.z

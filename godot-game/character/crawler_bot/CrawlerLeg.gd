@@ -59,7 +59,7 @@ var step_crosspair_wait: float = 0.05
 
 ## How much to lift the leg while taking a step, applies on the body's up axis
 @export_range(0.0, 1.0, 0.01, 'or_greater')
-var leg_lift_height: float = 0.3
+var leg_lift_height: float = 0.4
 
 ## How much to swing the leg out while taking a step, 1.0 is 100% swing
 @export_range(0.0, 1.0, 0.01, 'or_greater')
@@ -123,6 +123,9 @@ var index: int = -1
 var is_left: bool:
     get():
         return index % 2 == 0
+var apply_ground_forces: bool:
+    get():
+        return is_grounded and (not is_lifting)
 var has_initialized: bool = false
 
 ## Initial location of the leg position relative to the body
@@ -154,6 +157,8 @@ var time_since_stepped: float = 0.0
 ## The leg is currently lifting up to avoid contact with the ground, and so it
 ## should likely be excluded from friction and ground normal calculations.
 var is_lifting: bool = false
+## The leg should be forced to remain lifted, excluding it from most motions
+var force_lifting: bool = false
 
 ## The leg is in a comfortable position. This is used to signal that the leg
 ## wants to move to a better position.
@@ -308,6 +313,9 @@ func update_ground_leg_transform() -> void:
         )
 
 func pre_update(state: PhysicsDirectBodyState3D) -> void:
+    if force_lifting:
+        is_lifting = true
+
     # time_since_moved += state.step
     time_since_stepped += state.step
 
@@ -434,7 +442,7 @@ func _update_comfort_distance(step: float) -> void:
         comfort_distance = move_toward(comfort_distance, rest_distance, step * 2.0)
 
 func _update_target_position(step: float) -> void:
-    if is_stepping or is_moving:
+    if is_stepping or is_moving or is_lifting:
         # Try to maintain current position at 1m/s
         target.position = target_bone_position.move_toward(target.position, step)
     elif is_grounded:
@@ -491,7 +499,7 @@ func _update_shape_cast(body_basis: Basis) -> void:
 
 func check_early_step() -> void:
     allow_step_sync = false
-    if not shape_cast.is_colliding():
+    if force_lifting or (not shape_cast.is_colliding()):
         return
 
     # NOTE: The method call 'can_start_step' may enable 'allow_step_sync'
@@ -500,16 +508,22 @@ func check_early_step() -> void:
 
 func update(state: PhysicsDirectBodyState3D) -> void:
 
-    _update_step(state.step)
+    # Prevent stepping when force lifting is enabled
+    if force_lifting:
+        is_stepping = false
+    else:
+        _update_step(state.step)
 
     # Yield lifting to the active step
     if not is_stepping:
         var baseline: float
         if is_grounded:
             baseline = (ground_point * global_transform).y
+        elif shape_cast.is_colliding():
+            baseline = next_step_target.y
         else:
             baseline = target_rest_position.y
-        target.position.y = update_leg_lift(target.position.y, baseline, state.step)
+        target.position.y = update_leg_lift(target.position.y, baseline, body.max_speed * state.step)
 
     #if index == 0:
         #print((target.global_position - target_last_global).length() / state.step)
@@ -525,7 +539,12 @@ func update(state: PhysicsDirectBodyState3D) -> void:
     target_last_global = target.global_position
 
 func _update_step(delta: float) -> void:
-    if (not is_moving) and (not is_stepping) and shape_cast.is_colliding() and should_sync_step():
+    if (
+            (not is_moving)
+        and (not is_stepping)
+        and shape_cast.is_colliding()
+        and should_sync_step()
+    ):
         start_step()
 
     if not is_stepping:
@@ -641,6 +660,8 @@ func can_start_step() -> bool:
             return false
 
         for leg in get_adjacent():
+            if leg.force_lifting:
+                continue
             # Adjacent legs must not be moving or stepping
             if leg.is_moving or leg.is_stepping:
                 return false
@@ -675,6 +696,8 @@ func can_start_step() -> bool:
         return false
 
     for leg in get_diagonal():
+        if leg.force_lifting:
+            continue
         if leg.time_since_grounded < leg.step_delay:
             return false
 
