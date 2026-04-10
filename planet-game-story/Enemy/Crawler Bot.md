@@ -49,8 +49,12 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [ ] Test using Joint3D to connect rigid body to PhysicalBone3D?
 - [ ] Fix weird rotation effects when at lower delta times
 - [ ] Ground velocity can move leg targets when leg is in contact with ground
+- [ ] DESTRUCTION TIME
+
+# Walking Improvement Ideas
 - [ ] Improve leg step location logic, allow sweeping a larger space and track the best location for the next step or the rest of the leg. Probably some evaluation function that compares the current leg location with the best leg location, and if the current position is bad, move to the best one.
 - [ ] When shape step cast safe length increases, you must perform an origin-to-origin raycast from the old step and the new step. If it fails, increment a counter and delay to the next tick. This counter represents the segments of a raycast path from the current step target to the next target, following path the leg target would take, when a valid path is found then update the step target. If the length decreases, assume it is safe to use as a step target (a leg closer to the body is always better than a leg stuck on the wrong side of a wall).
+- [ ] For "simple" solution, if the path takes >45 angle change, run an "animation" which just replays a set acceleration sequence that hopefully gets it flat on the wall it was approaching.
 
 # Body Orientation
 - There is a desired pitch and roll determined by the target positions of each leg. This will be called the desired body plane.
@@ -72,3 +76,14 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 12. Rotate the `limited_angular` vector by the current Basis. This will be the `target_angular`.
 13. Move the angular velocity towards the `target_angular` vector, multiplied by the `overshoot` parameter, using an acceleration multiplied by the grounded leg factor. The grounded leg factor is the number of grounded legs over the total leg count.
 14. As a final step, if the rotated limited vector is approximately zero, and the angular velocity is less than 0.5 degrees per second, set the angular velocity to zero.
+
+# IK Limiting
+- When the bone transforms are computed, compare the end bone position to the `global_ik_target` position. If the distance is greater than some small constant distance, teleport the `target` node to its end bone and "lock" the `target` node such that it maintains the current local offset from the crawler body.
+
+# Relative Steps
+Steps will use vectors and rotations + length interpolation. The process is like so:
+1. Take the current position of the leg as a flat vector pointing from the attachment of the leg to the leg end bone. This is the leg angle+distance vector.
+2. Take the vector pointing from the attachment to the step target, this is the target angle+distance vector.
+3. Rotate the leg vector towards the target vector, then move its length towards the target vector's length. This should produce a perfect swing and distance interpolation, as if it was actual robotics at work.
+4. Have a `swing_amount` parameter, that while I cannot prove it, I believe it will give nice enough results. When less than `0.0`, skip rotations and everything and just move the point to the target in a straight line. When less than `1.0`, create the plane using one of the endpoints and the normal created by crossing the vector pointing from the current to the target with the up vector. Interpolate the length of the rotated vector to its point on that plane using `1.0 - swing_amount`
+5. Compute how much rotation should happen by taking the current leg speed in meters-per-second over the length of a 90-degree arc with a radius of the rest position of the leg, then multiply by PI/2.0 to get the radians-per-second.
