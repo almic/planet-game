@@ -79,8 +79,9 @@ func _draw() -> void:
             var coords: Vector3 = d.get(&'pos')
             var string: String = d.get(&'str')
             var color: Color = d.get(&'color')
+            var size: float = d.get(&'size')
 
-            _draw_text(coords, string, color)
+            _draw_text(coords, string, color, size)
         elif d.type == TYPE.SPHERE:
             var coords: Vector3 = d.get(&'pos')
             var radius: float = d.get(&'r')
@@ -106,12 +107,13 @@ func _draw() -> void:
             items.erase(k)
 
 
-func text(coordinates: Vector3, string: String, color: Color, id: int = 0, time: float = 0.0) -> int:
+func text(coordinates: Vector3, string: String, color: Color, size: float = 16.0, id: int = 0, time: float = 0.0) -> int:
     var d: Dictionary = {}
     id = _get_item(id, TYPE.TEXT, d)
 
     d.set(&'pos', coordinates)
     d.set(&'str', string)
+    d.set(&'size', size)
     d.set(&'color', color)
     d.set(&'t', time)
 
@@ -119,7 +121,7 @@ func text(coordinates: Vector3, string: String, color: Color, id: int = 0, time:
     queue_redraw()
     return id
 
-func _draw_text(pos: Vector3, string: String, color: Color) -> void:
+func _draw_text(pos: Vector3, string: String, color: Color, size: float) -> void:
     if not camera.is_position_in_frustum(pos):
         return
 
@@ -130,7 +132,7 @@ func _draw_text(pos: Vector3, string: String, color: Color) -> void:
             string,
             HORIZONTAL_ALIGNMENT_CENTER,
             -1.0,
-            64.0 / pos.distance_to(camera.global_position),
+            minf(4.0 * size / maxf(1.0, pos.distance_to(camera.global_position)), size),
             color
     )
 

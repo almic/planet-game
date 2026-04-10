@@ -130,11 +130,17 @@ func _update_legs(state: PhysicsDirectBodyState3D) -> void:
     ground_normal = Vector3.ZERO
 
     for leg in legs:
-        leg.update(state)
+        leg.pre_update(state)
 
         if leg.is_grounded:
             grounded_leg_count += 1
             ground_normal += leg.ground_normal
+
+    for leg in legs:
+        leg.check_early_step()
+
+    for leg in legs:
+        leg.update(state)
 
     if grounded_leg_count > 0:
         grounded_leg_avg_displacement /= grounded_leg_count

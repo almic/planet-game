@@ -76,7 +76,8 @@ modifier_callback_mode_process = 0
 
 [node name="CCDIK3D" type="CCDIK3D" parent="big_crawler/Skeleton3D" index="0" unique_id=89345736]
 active = false
-max_iterations = 3
+max_iterations = 10
+angular_delta_limit = 0.01745329251994329
 setting_count = 6
 settings/0/target_node = NodePath("../LegTargets/FrontLegPair/FL_Leg/FL_Target")
 settings/0/rest_correction_angle = 0.017453292
