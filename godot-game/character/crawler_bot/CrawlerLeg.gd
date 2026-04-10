@@ -50,7 +50,7 @@ var step_delay: float = 0.15
 ## If a paired leg has started moving in this time frame, allow this leg to
 ## move early to stay synchronized.
 @export_range(0.0, 0.5, 0.01, 'or_greater')
-var step_pair_window: float = 0.05
+var step_pair_window: float = 0.09375
 
 ## How long a legs cross-pair (the set of legs that move exclusive to this leg)
 ## must be grounded before this leg can move.
@@ -150,6 +150,10 @@ var time_since_moved: float = 0.0
 var is_stepping: bool = false
 ## How long it has been since the last step began
 var time_since_stepped: float = 0.0
+
+## The leg is currently lifting up to avoid contact with the ground, and so it
+## should likely be excluded from friction and ground normal calculations.
+var is_lifting: bool = false
 
 ## The leg is in a comfortable position. This is used to signal that the leg
 ## wants to move to a better position.
@@ -498,6 +502,15 @@ func update(state: PhysicsDirectBodyState3D) -> void:
 
     _update_step(state.step)
 
+    # Yield lifting to the active step
+    if not is_stepping:
+        var baseline: float
+        if is_grounded:
+            baseline = (ground_point * global_transform).y
+        else:
+            baseline = target_rest_position.y
+        target.position.y = update_leg_lift(target.position.y, baseline, state.step)
+
     #if index == 0:
         #print((target.global_position - target_last_global).length() / state.step)
 
@@ -557,7 +570,7 @@ func _update_step(delta: float) -> void:
     var flat_target: Vector3 = step_target
     flat_target.y = 0.0
 
-    var leg_delta: float = delta * leg_speed * current_step_distance * 1.33
+    var leg_delta: float = delta * leg_speed * current_step_distance * 1.5
 
     if is_zero_approx(leg_swing_amount):
         step_current = step_current.move_toward(flat_target, leg_delta)
@@ -591,29 +604,30 @@ func _update_step(delta: float) -> void:
         step_current = rotated_step
 
     if step_current.is_equal_approx(flat_target):
-        step_current.y = move_toward(
-            vertical,
-            step_target.y,
-            leg_speed * delta
-        )
+        is_lifting = false
     else:
-        step_current.y = move_toward(
-            vertical,
-            step_target.y + leg_lift_height,
-            leg_speed * delta
-        )
+        is_lifting = true
+
+    step_current.y = update_leg_lift(vertical, step_target.y, leg_speed * delta)
 
     if step_current.distance_squared_to(step_target) < 1e-4:
         is_stepping = false
+        is_lifting = false
         target.position = step_target
     else:
         target.position = step_current
 
 func start_step() -> void:
     is_stepping = true
+    is_lifting = true
     time_since_stepped = 0.0
     step_target = next_step_target
     current_step_distance = (step_target - target_bone_position).length()
+
+func update_leg_lift(current: float, baseline: float, delta: float) -> float:
+    if is_lifting:
+        return move_toward(current, baseline + leg_lift_height, delta)
+    return move_toward(current, baseline, delta)
 
 func can_start_step() -> bool:
     # Must be not moving
