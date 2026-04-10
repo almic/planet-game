@@ -55,6 +55,7 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [ ] Improve leg step location logic, allow sweeping a larger space and track the best location for the next step or the rest of the leg. Probably some evaluation function that compares the current leg location with the best leg location, and if the current position is bad, move to the best one.
 - [ ] When shape step cast safe length increases, you must perform an origin-to-origin raycast from the old step and the new step. If it fails, increment a counter and delay to the next tick. This counter represents the segments of a raycast path from the current step target to the next target, following path the leg target would take, when a valid path is found then update the step target. If the length decreases, assume it is safe to use as a step target (a leg closer to the body is always better than a leg stuck on the wrong side of a wall).
 - [ ] For "simple" solution, if the path takes >45 angle change, run an "animation" which just replays a set acceleration sequence that hopefully gets it flat on the wall it was approaching.
+- [ ] Convert the magic number for leg speed multiplier to an iterative value that increases up to 2.0 while legs are dragging, and decreases to 1.0 while legs are not dragging. Should be able to stabilize leg speed to account for small differences across the legs to minimize dragging.
 
 # Body Orientation
 - There is a desired pitch and roll determined by the target positions of each leg. This will be called the desired body plane.

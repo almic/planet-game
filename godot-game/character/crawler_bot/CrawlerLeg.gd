@@ -63,7 +63,7 @@ var leg_lift_height: float = 0.3
 
 ## How much to swing the leg out while taking a step, 1.0 is 100% swing
 @export_range(0.0, 1.0, 0.01, 'or_greater')
-var leg_swing_amount: float = 0.0
+var leg_swing_amount: float = 0.8
 
 ## When in motion, how far in the direction of travel to shift the leg move target
 @export_range(0.0, 1.0, 0.01, 'or_greater')
@@ -208,8 +208,11 @@ func setup() -> void:
         target_rest_position = global_transform.inverse() * target.global_position
         attachment_point = (body.global_transform.inverse() * global_transform).origin
 
+        # Sweep arc length using the step distance as a chord
         var rest_vector: Vector3 = (body.global_transform.inverse() * target.global_position) - attachment_point
-        step_sweep_length = PI * 0.5 * rest_vector.slide(Vector3.UP).length()
+        var step_radius: float = rest_vector.slide(Vector3.UP).length()
+        var inner_angle: float = 2.0 * asin(step_distance / step_radius)
+        step_sweep_length = (step_radius * inner_angle) / (2.0 * step_distance)
 
         # Get the chain end bone
         var target_path: NodePath = body.leg_ik.get_path_to(target)
@@ -341,7 +344,8 @@ func pre_update(state: PhysicsDirectBodyState3D) -> void:
     if shape_cast.is_colliding():
         next_step_target = shape_cast.get_collision_point(0) * global_transform
 
-        if is_stepping:
+        # Don't update target if leg is already touching the ground (very close)
+        if is_stepping and (not is_grounded):
             current_step_distance = minf(current_step_distance + (next_step_target - step_target).length(), 2.0 * step_distance)
             step_target = next_step_target
 
@@ -553,39 +557,38 @@ func _update_step(delta: float) -> void:
     var flat_target: Vector3 = step_target
     flat_target.y = 0.0
 
+    var leg_delta: float = delta * leg_speed * current_step_distance * 1.33
+
     if is_zero_approx(leg_swing_amount):
-        step_current = step_current.move_toward(
-            flat_target,
-            delta * leg_speed * current_step_distance * 2.718
-        )
+        step_current = step_current.move_toward(flat_target, leg_delta)
     else:
+        var rotated_step: Vector3
         var angle: float = step_current.signed_angle_2(flat_target, Vector3.UP)
         if not is_zero_approx(angle):
-            step_current = step_current.rotated(
+            rotated_step = step_current.rotated(
                 Vector3.UP,
                 signf(angle) * minf(
                     absf(angle),
-                    leg_speed / step_sweep_length
-                    * PI * 0.5
-                    * delta
+                    leg_delta * step_sweep_length
                 )
             )
-
-        var current_length: float = step_current.length()
-        if not is_zero_approx(current_length):
-            step_current = step_current / current_length
-            step_current *= move_toward(
-                current_length,
-                flat_target.length(),
-                leg_speed * delta
-            )
+            if rotated_step.is_zero_approx():
+                rotated_step = rotated_step.move_toward(flat_target, leg_delta)
+            else:
+                var current_length: float = rotated_step.length()
+                var target_length: float = flat_target.length()
+                rotated_step = (
+                      (rotated_step / current_length)
+                    * move_toward(current_length, target_length, leg_delta)
+                )
+        else:
+            rotated_step = step_current.move_toward(flat_target, leg_delta)
 
         if leg_swing_amount < 1.0:
-            var normal: Vector3 = (flat_target - step_current).cross(Vector3.UP)
-            if not normal.is_zero_approx():
-                var linear_plane: Plane = Plane(normal.normalized(), flat_target)
-                var linear_point: Vector3 = linear_plane.project(step_current)
-                step_current = step_current.lerp(linear_point, 1.0 - leg_swing_amount)
+            var linear_step: Vector3 = step_current.move_toward(flat_target, leg_delta)
+            rotated_step = rotated_step.slerp(linear_step, 1.0 - leg_swing_amount)
+
+        step_current = rotated_step
 
     if step_current.is_equal_approx(flat_target):
         step_current.y = move_toward(
