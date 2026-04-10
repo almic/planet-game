@@ -392,6 +392,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                     state.transform.origin + (Vector3.UP * 0.55),
                     '%.3f m/s' % linear_speed,
                     Color.FOREST_GREEN,
+                    24.0,
                     _velocity_debug_text
             )
 
