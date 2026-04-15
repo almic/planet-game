@@ -280,9 +280,11 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
 func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
 
     var can_do_yaw: bool = target_direction.is_finite()
-    for leg in legs:
-        if can_do_yaw and (not leg.is_comfortable) and (not leg.is_moving):
-            can_do_yaw = false
+    if can_do_yaw:
+        for leg in legs:
+            if (not leg.is_comfortable) and (not leg.is_stepping):
+                can_do_yaw = false
+                break
 
     has_desired_rotation = false
 

@@ -250,7 +250,6 @@ ground_bone = &"FrontLeftTarsus_leaf"
 step_distance = 0.8
 rest_distance = 0.1
 move_offset = 0.5
-move_spin = 0.34906585039887
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="FL_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair/FL_Leg" unique_id=1032610666]
@@ -271,8 +270,7 @@ target = NodePath("FR_Target")
 ground_bone = &"FrontRightTarsus_leaf"
 step_distance = 0.8
 rest_distance = 0.1
-move_offset = 0.4
-move_spin = 0.34906585039887
+move_offset = 0.5
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="FR_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair/FR_Leg" unique_id=774657337]
@@ -344,7 +342,6 @@ ground_bone = &"BackLeftTarsus_leaf"
 step_distance = 0.8
 rest_distance = 0.1
 move_offset = 0.5
-move_spin = 0.34906585039887
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="BL_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair/BL_Leg" unique_id=1668808495]
@@ -365,8 +362,7 @@ target = NodePath("BR_Target")
 ground_bone = &"BackRightTarsus_leaf"
 step_distance = 0.8
 rest_distance = 0.1
-move_offset = 0.4
-move_spin = 0.34906585039887
+move_offset = 0.5
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="BR_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair/BR_Leg" unique_id=381680649]
