@@ -122,6 +122,9 @@ func text(coordinates: Vector3, string: String, color: Color, size: float = 16.0
     return id
 
 func _draw_text(pos: Vector3, string: String, color: Color, size: float) -> void:
+    if is_zero_approx(size):
+        return
+
     if not camera.is_position_in_frustum(pos):
         return
 
@@ -132,7 +135,7 @@ func _draw_text(pos: Vector3, string: String, color: Color, size: float) -> void
             string,
             HORIZONTAL_ALIGNMENT_CENTER,
             -1.0,
-            minf(4.0 * size / maxf(1.0, pos.distance_to(camera.global_position)), size),
+            clampf(4.0 * size / maxf(1.0, pos.distance_to(camera.global_position)), 0.01, size),
             color
     )
 
