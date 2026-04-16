@@ -114,6 +114,7 @@ shadow_enabled = true
 directional_shadow_mode = 0
 
 [node name="Player" parent="." unique_id=1957397594 instance=ExtResource("1_fbyci")]
+process_mode = 1
 transform = Transform3D(-6.123233995736766e-17, 0, -1, 0, 1, 0, 1, 0, -6.123233995736766e-17, -0.5000000000000016, 0.05, 23.499999999999996)
 metadata/_edit_group_ = true
 
@@ -454,4 +455,9 @@ mesh = SubResource("SphereMesh_76stg")
 shape = SubResource("SphereShape3D_tk7e2")
 
 [node name="CrawlerBot" parent="." unique_id=461561025 instance=ExtResource("9_dunqf")]
+process_mode = 1
 transform = Transform3D(6.123233995736766e-17, 0, 1, 0, 1, 0, -1, 0, 6.123233995736766e-17, 4.099999999999998, 0.05000000000291038, 23.499999999999996)
+
+[node name="Camera3D" type="Camera3D" parent="CrawlerBot" unique_id=490247063]
+transform = Transform3D(1, 0, 0, 0, 6.123233995736766e-17, 1, 0, -1, 6.123233995736766e-17, 0, 20, 0)
+fov = 20.0

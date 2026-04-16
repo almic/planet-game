@@ -75,8 +75,8 @@ var move_offset: float = 0.6
 var move_spin: float = deg_to_rad(15.0)
 
 ## How quickly to interpolate in/out of leg move offsets.
-@export_range(10.0, 20.0, 0.01, 'or_greater')
-var move_interp_rate: float = 15.0
+@export_range(0.01, 2.0, 0.01, 'or_greater')
+var move_interp_rate: float = 1.0
 
 
 @export_group('Debug', 'debug')
@@ -126,7 +126,7 @@ var is_left: bool:
         return index % 2 == 0
 var apply_ground_forces: bool:
     get():
-        return is_grounded and (not is_lifting)
+        return is_grounded and (not is_stepping)
 var has_initialized: bool = false
 
 ## Initial location of the leg position relative to the body
@@ -356,6 +356,7 @@ func pre_update(state: PhysicsDirectBodyState3D) -> void:
         next_step_target_global = shape_cast.get_collision_point(0)
 
         if is_stepping:
+            step_target_global = next_step_target_global
             step_target = next_step_target_global * global_transform
     elif is_stepping:
         step_target = step_target_global * global_transform
@@ -412,8 +413,10 @@ func _update_step_transform(body_basis: Basis, step: float) -> void:
 
         var cos_theta: float = body.desired_direction.dot(-body_basis.z)
 
-        if is_front or is_back:
-            cos_theta = absf(cos_theta) * 2.0 - 1.0
+        if is_front:
+            cos_theta = maxf(cos_theta * 2.0 - 1.0, -1.0)
+        elif is_back:
+            cos_theta = minf(cos_theta * 2.0 + 1.0, 1.0)
 
         if is_left:
             cos_theta *= -1.0
@@ -421,10 +424,11 @@ func _update_step_transform(body_basis: Basis, step: float) -> void:
         target_transform = target_transform.rotated_local(Vector3.UP, move_spin * cos_theta)
 
     if step_transform != target_transform:
-        # Force at least 0.5cm of travel each interpolation
-        # TODO: min travel should be delta'd, needs a multiply by state.step!!
-        var min_weight: float = minf(2.5e-5 / step_transform.origin.distance_squared_to(target_transform.origin), 1.0)
-        step_transform = step_transform.interpolate_with(target_transform, maxf(step * move_interp_rate, min_weight))
+        # Force at least 2cm/sec of travel each interpolation
+        var min_weight: float = minf(2.0 * step / step_transform.origin.distance_squared_to(target_transform.origin), 1.0)
+        # TODO: improve interpolation by comparing the body's rel ground velocity to desired direction.
+        #       Should interpolate only while it is positive, and reach max rate when at or beyond desired speed
+        step_transform = step_transform.interpolate_with(target_transform, maxf(step * move_interp_rate * body.acceleration, min_weight))
 
         if step_transform.is_equal_approx(target_transform):
             step_transform = target_transform
@@ -585,6 +589,9 @@ func _update_step(delta: float) -> void:
         # Use very small leg speed while interpolating to rest
         leg_speed = maxf(body.max_speed * 0.1, 0.05)
 
+    # NOTE: In general, will be covering twice the comfort distance
+    leg_speed *= maxf(comfort_distance * 2.0, 1.0)
+
     var step_current: Vector3 = target.position
     var vertical: float = step_current.y
     step_current.y = 0.0
@@ -594,7 +601,7 @@ func _update_step(delta: float) -> void:
 
     var current_dist: float = (step_goal - step_current).length()
 
-    var step_delta: float = leg_speed * delta * clampf(current_dist / step_distance, 1.24, 2.24)
+    var step_delta: float = leg_speed * delta * clampf(current_dist / step_distance, 1.0, 2.0)
     var new_step: Vector3 = _calculate_step_vector(step_current, step_goal, step_delta)
 
     current_dist = (step_goal - new_step).length()

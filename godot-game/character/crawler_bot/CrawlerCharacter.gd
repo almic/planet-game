@@ -40,8 +40,7 @@ var body_height_spring_stiffness: float = 1.6
 @export_range(0.01, 1.0, 0.01, 'or_greater')
 var body_height_spring_damping: float = 0.8
 
-## Percentage of total legs necessary to lift the body. Should not be higher
-## than 0.5!
+## Percentage of total legs necessary to lift the body.
 @export_range(0.0, 1.0, 0.01)
 var body_leg_mass_ratio: float = 0.5
 
@@ -186,6 +185,8 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
     if grounded_leg_count < 1:
         return
 
+    var rid: RID = get_rid()
+
     var total_gravity: Vector3 = state.total_gravity * desired_gravity
     var gravity_direction: Vector3 = Vector3.ZERO
     if not state.total_gravity.is_zero_approx():
@@ -212,11 +213,6 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
 
         grounded_leg_avg_displacement = 0.0
 
-        # Update the body virtually
-        state.transform.origin += state.linear_velocity * sub_step
-        var angular_len: float = state.angular_velocity.length()
-        if not is_zero_approx(angular_len):
-            state.transform.basis = state.transform.basis.rotated(state.angular_velocity / angular_len, angular_len * sub_step)
         var spring_direction: Vector3 = state.transform.basis.y
 
         var gravity_alignment: float = state.transform.basis.tdoty(gravity_direction) * desired_gravity
@@ -271,10 +267,23 @@ func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
                     (spring_midpoint + state.transform.origin) - ground_state.transform.origin
                 )
 
-        state.angular_velocity = state.angular_velocity.move_toward(old_angular, rotation_acceleration * leg_ratio * sub_step)
+        if iteration >= max_iterations:
+            break
+
+        # Update the body virtually
+        state.transform.origin += state.linear_velocity * sub_step
+        var angular_len: float = state.angular_velocity.length()
+        if not is_zero_approx(angular_len):
+            state.transform.basis = state.transform.basis.rotated(state.angular_velocity / angular_len, angular_len * sub_step)
+            # NOTE: when changing rotation, need to tell physics server to update so inertia is accurate
+            PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, state.transform)
+
+    # Try to maintain original angular velocity (extra damping, basically)
+    state.angular_velocity = state.angular_velocity.move_toward(old_angular, rotation_acceleration * leg_ratio * state.step)
 
     # Reset changes to the transform
     state.transform = old_transform
+    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, state.transform)
 
 
 func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
