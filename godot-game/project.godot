@@ -16,7 +16,7 @@ config_version=5
 [application]
 
 config/name="Planet Game"
-run/main_scene="uid://blroynww2chph"
+run/main_scene="uid://blmuuqji0cs0b"
 config/features=PackedStringArray("4.6", "Double Precision", "Forward Plus")
 config/icon="res://icon.svg"
 
@@ -25,6 +25,11 @@ config/icon="res://icon.svg"
 GUIDE="*uid://p2jwrgjcbexr"
 InputManager="*uid://c2hqe7e4hjota"
 DebugDraw="*uid://u02lrj3l02mx"
+
+[display]
+
+window/size/viewport_width=960
+window/size/viewport_height=540
 
 [editor_plugins]
 

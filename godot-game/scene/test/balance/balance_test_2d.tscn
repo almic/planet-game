@@ -1,0 +1,77 @@
+[gd_scene format=3 uid="uid://bhwvtrh7r4vpm"]
+
+[ext_resource type="Script" uid="uid://b1qnd56akv6nn" path="res://scene/test/balance/balance_body_2d.gd" id="1_nrc06"]
+[ext_resource type="Script" uid="uid://cs3bd5vdvy2fg" path="res://scene/test/balance/force_point_2d.gd" id="1_txkfr"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_xa52g"]
+size = Vector2(100, 100)
+orientation = 2
+
+[sub_resource type="Gradient" id="Gradient_fxkb5"]
+offsets = PackedFloat32Array(0)
+colors = PackedColorArray(1, 1, 1, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_xa52g"]
+gradient = SubResource("Gradient_fxkb5")
+width = 1
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fxkb5"]
+size = Vector2(100, 100)
+
+[sub_resource type="QuadMesh" id="QuadMesh_fxkb5"]
+size = Vector2(1920, 1080)
+
+[sub_resource type="Gradient" id="Gradient_xa52g"]
+offsets = PackedFloat32Array(0)
+colors = PackedColorArray(0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_5kx50"]
+gradient = SubResource("Gradient_xa52g")
+width = 1
+
+[node name="BalanceTest2d" type="Node2D" unique_id=1414964917]
+metadata/_edit_lock_ = true
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1677457224]
+position = Vector2(960, 540)
+metadata/_edit_lock_ = true
+
+[node name="RigidBody2D" type="RigidBody2D" parent="." unique_id=1146481218]
+position = Vector2(971, 542)
+rotation = 1.639400376536696
+mass = 64.0
+custom_integrator = true
+continuous_cd = 2
+constant_torque = 2.0
+script = ExtResource("1_nrc06")
+
+[node name="MeshInstance2D" type="MeshInstance2D" parent="RigidBody2D" unique_id=1571349193]
+mesh = SubResource("PlaneMesh_xa52g")
+texture = SubResource("GradientTexture1D_xa52g")
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RigidBody2D" unique_id=1655081187]
+shape = SubResource("RectangleShape2D_fxkb5")
+metadata/_edit_lock_ = true
+
+[node name="ForcePoint2D1" type="Marker2D" parent="RigidBody2D" unique_id=184233582]
+position = Vector2(-91.36494555596558, -16.77637396922953)
+script = ExtResource("1_txkfr")
+metadata/_custom_type_script = "uid://cs3bd5vdvy2fg"
+
+[node name="ForcePoint2D2" type="Marker2D" parent="RigidBody2D" unique_id=2080671271]
+position = Vector2(135.37922227027877, -13.909211965257036)
+script = ExtResource("1_txkfr")
+metadata/_custom_type_script = "uid://cs3bd5vdvy2fg"
+
+[node name="ForcePoint2D3" type="Marker2D" parent="RigidBody2D" unique_id=826485276]
+position = Vector2(130.47023948587346, 73.61736621544428)
+script = ExtResource("1_txkfr")
+metadata/_custom_type_script = "uid://cs3bd5vdvy2fg"
+
+[node name="MeshInstance2D" type="MeshInstance2D" parent="." unique_id=951972546]
+z_index = -1
+position = Vector2(960, 540)
+mesh = SubResource("QuadMesh_fxkb5")
+texture = SubResource("GradientTexture1D_5kx50")
+metadata/_edit_lock_ = true
