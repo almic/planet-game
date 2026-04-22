@@ -84,6 +84,7 @@ func _calculate_forces(state: PhysicsDirectBodyState3D) -> void:
     const MAX_ITERATIONS: int = 5
     var new_forces := PackedFloat64Array(forces)
     var force_total: float = 0.0
+    var markiplier: float = minf(2.0 / float(count), 1.0)
     for iteration in range(MAX_ITERATIONS):
 
         rot_total = Vector3.ZERO
@@ -103,7 +104,7 @@ func _calculate_forces(state: PhysicsDirectBodyState3D) -> void:
             var new_grad: Vector3 = (grad - rot_total)
             var max_length: float = rot_normals[i].length()
             # NOTE: parameterize the rate of rest (???)
-            var work_delta: float = -work * 0.05
+            var work_delta: float = -work * 0.01
 
             if not is_zero_approx(max_length):
                 var grad_dir: Vector3 = rot_normals[i] / max_length
@@ -115,7 +116,7 @@ func _calculate_forces(state: PhysicsDirectBodyState3D) -> void:
                     new_grad = grad_dir * dot_grad
 
                 var new_work: float = new_grad.length() / max_length
-                work_delta += (new_work - work) * 0.5
+                work_delta += (new_work - work) * markiplier
 
             new_forces[i] = maxf(new_forces[i] + work_delta, 0.0)
             force_total += new_forces[i]
