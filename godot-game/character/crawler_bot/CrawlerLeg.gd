@@ -82,10 +82,10 @@ var move_interp_rate: float = 1.0
 @export_group('Debug', 'debug')
 
 @export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
-var debug_enable: bool = true
+var debug_enable: bool = false
 
 ## The comfort region for leg
-@export var debug_rest_area: bool = true
+@export var debug_rest_area: bool = false
 var _debug_rest_circle: int = 0
 
 ## The step shape cast
@@ -94,11 +94,11 @@ var _debug_step_cast_shape: int = 0
 var _debug_step_cast_vector: int = 0
 
 ## The target position for the current step
-@export var debug_step_target: bool = true
+@export var debug_step_target: bool = false
 var _debug_target_sphere: int = 0
 
 ## The target IK position for the leg
-@export var debug_ik_target: bool = true
+@export var debug_ik_target: bool = false
 var _debug_ik_sphere: int = 0
 
 ## The ground contact normal of the leg
@@ -111,7 +111,7 @@ var _debug_ground_cast_vector: int = 0
 var _debug_ground_cast_shape: int = 0
 
 ## Render text at the leg giving the reason it takes a step
-@export var debug_step_reason: bool = true
+@export var debug_step_reason: bool = false
 var _debug_step_reason_text_id: int = 0
 var _debug_step_reason_text: String
 

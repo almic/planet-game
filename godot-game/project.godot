@@ -16,7 +16,7 @@ config_version=5
 [application]
 
 config/name="Planet Game"
-run/main_scene="uid://blmuuqji0cs0b"
+run/main_scene="uid://blroynww2chph"
 config/features=PackedStringArray("4.6", "Double Precision", "Forward Plus")
 config/icon="res://icon.svg"
 

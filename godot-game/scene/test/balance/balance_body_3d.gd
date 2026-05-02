@@ -74,20 +74,34 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     last_angular = state.angular_velocity
 
 func _calculate_forces(state: PhysicsDirectBodyState3D) -> void:
-    var rots: PackedVector3Array
-    rots.resize(count)
-    var rot_normals: PackedVector3Array
-    rot_normals.resize(count)
+    ###############
+    ###############
+    ### WARNING ###
+    ###############
+    ###############
+    ## This may be out-dated, look into CrawlerCharacter for any changes/ improvements.
+    ## For the moment, this code will likely not be touched anymore and could have bugs.
 
-    var rot_total: Vector3
     # NOTE: Parameterize the iteration count
     const MAX_ITERATIONS: int = 5
-    var new_forces := PackedFloat64Array(forces)
-    var force_total: float = 0.0
-    var markiplier: float = minf(2.0 / float(count), 1.0)
-    for iteration in range(MAX_ITERATIONS):
+    # NOTE: parameterize the rate of rest (decay???)
+    var decay_rate: float = pow(0.5, state.step)
 
-        rot_total = Vector3.ZERO
+    var rots: PackedVector3Array
+    rots.resize(count)
+    rots.fill(Vector3.ZERO)
+    var rot_normals: PackedVector3Array
+    rot_normals.resize(count)
+    rot_normals.fill(Vector3.ZERO)
+
+    var markiplier: float = minf(2.0 / float(count), 1.0)
+    var power_avg: float = 1.0 / float(count)
+    var it_step: float = 1.0 / float(MAX_ITERATIONS)
+
+    for iteration in range(MAX_ITERATIONS):
+        var new_forces := PackedFloat64Array(forces)
+
+        var rot_total: Vector3 = Vector3.ZERO
         for i in range(count):
             var point: Vector3 = force_points[i].global_position - state.transform.origin - state.center_of_mass
 
@@ -97,16 +111,17 @@ func _calculate_forces(state: PhysicsDirectBodyState3D) -> void:
             rot_total += rots[i]
 
         # Scale method, each point moves its work to match what is needed, and is always slowly relaxing
-        force_total = 0.0
+        var force_total: float = 0.0
         for i in range(count):
-            var grad: Vector3 = rots[i]
             var work: float = new_forces[i]
-            var new_grad: Vector3 = (grad - rot_total)
             var max_length: float = rot_normals[i].length()
-            # NOTE: parameterize the rate of rest (???)
-            var work_delta: float = -work * 0.01
 
+            var new_work: float = work
+            # if (leg.disabled):
+            #     new_work *= dead_decay_rate
             if not is_zero_approx(max_length):
+                var grad: Vector3 = rots[i]
+                var new_grad: Vector3 = grad - (rot_total * markiplier)
                 var grad_dir: Vector3 = rot_normals[i] / max_length
                 var dot_grad: float = new_grad.dot(grad_dir)
 
@@ -115,20 +130,22 @@ func _calculate_forces(state: PhysicsDirectBodyState3D) -> void:
                 else:
                     new_grad = grad_dir * dot_grad
 
-                var new_work: float = new_grad.length() / max_length
-                work_delta += (new_work - work) * markiplier
+                new_work = new_grad.length() / max_length
+                new_work *= pow(decay_rate, new_work / power_avg)
 
-            new_forces[i] = maxf(new_forces[i] + work_delta, 0.0)
+            new_forces[i] = maxf(new_work, 0.0)
             force_total += new_forces[i]
 
+        if force_total > 0.0:
+            for i in range(count):
+                new_forces[i] /= force_total
+
+        force_total = 0.0
         for i in range(count):
-            new_forces[i] /= force_total
+            # NOTE: parameterize the rate of change
+            forces[i] = move_toward(forces[i], new_forces[i], 8.0 * state.step * it_step)
+            force_total += forces[i]
 
-    force_total = 0.0
-    for i in range(count):
-        # NOTE: parameterize the rate of change
-        forces[i] = move_toward(forces[i], new_forces[i], 8.0 * state.step)
-        force_total += forces[i]
-
-    for i in range(count):
-        forces[i] /= force_total
+        if force_total > 1.0:
+            for i in range(count):
+                forces[i] /= force_total

@@ -61,6 +61,7 @@ continuous_cd = true
 script = ExtResource("1_3kbc3")
 leg_ik = NodePath("big_crawler/Skeleton3D/CCDIK3D")
 body_height_offset = 0.9
+body_leg_mass_ratio = 0.4
 acceleration = 6.0
 deceleration = 8.0
 incline_speed_reduction = 0.0
