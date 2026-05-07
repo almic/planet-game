@@ -1,0 +1,35 @@
+[gd_scene format=3 uid="uid://bbk6ygeifp3v3"]
+
+[ext_resource type="Script" uid="uid://ni78qatoxgob" path="res://object/projectile/grenade/grenade.gd" id="1_gk660"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_6c0x6"]
+friction = 0.6
+bounce = 0.8
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_6c0x6"]
+radius = 0.14
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gk660"]
+albedo_color = Color(0.827451, 0.11372549, 0.039215688, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_408e3"]
+material = SubResource("StandardMaterial3D_gk660")
+radius = 0.1
+height = 0.2
+
+[node name="Grenade" type="RigidBody3D" unique_id=1447717412]
+collision_layer = 2
+collision_mask = 19
+physics_material_override = SubResource("PhysicsMaterial_6c0x6")
+continuous_cd = true
+contact_monitor = true
+max_contacts_reported = 2
+linear_damp = 0.08
+angular_damp = 0.08
+script = ExtResource("1_gk660")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=819064211]
+shape = SubResource("SphereShape3D_6c0x6")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=166790434]
+mesh = SubResource("SphereMesh_408e3")

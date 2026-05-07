@@ -71,6 +71,7 @@ texture={
 
 3d_render/layer_2="ThirdPersonOnly"
 3d_physics/layer_1="Character"
+3d_physics/layer_2="Projectile"
 3d_physics/layer_5="StaticWorld"
 
 [physics]

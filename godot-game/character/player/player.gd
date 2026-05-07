@@ -47,6 +47,9 @@ var crouch_safe_fraction: float = 0.6
 @export var input_action_jump: GUIDEAction = preload("uid://oru4dn30hyrs")
 @export var input_action_crouch: GUIDEAction = preload("uid://cyig6itfyeel1")
 
+@export_subgroup('Combat')
+@export var input_action_shoot: GUIDEAction = preload("uid://dcni2sonyj3o6")
+
 @export_subgroup('Debug')
 @export var input_debug_target_player: GUIDEAction = preload("uid://bfqs54sgopsvb")
 @export var input_debug_target_position: GUIDEAction = preload("uid://u1oxg3mtiil8")
@@ -77,6 +80,8 @@ var debug_enable: bool = false
 @onready var collider_stand: CollisionShape3D = %collider_stand
 @onready var collider_crouch: CollisionShape3D = %collider_crouch
 
+var grenade: PackedScene = preload("uid://bbk6ygeifp3v3")
+
 ## Toggle the camera mode
 var camera_third_person: bool = false
 
@@ -88,6 +93,10 @@ var crouch_mode: bool = false
 
 ## Toggle freecam mode
 var freecam_mode: bool = false
+
+## Tracker for shooting, temporary, should be removed when a weapon system is
+## implemented.
+var can_shoot: bool = true
 
 
 var debug_targeting_player: bool = false
@@ -246,7 +255,7 @@ func _handle_input() -> void:
     else:
         desired_height_offset = 0.0
 
-    if input_debug_target_position.is_triggered():
+    if false and input_debug_target_position.is_triggered():
         var active_camera: Camera3D = get_viewport().get_camera_3d()
         if active_camera:
             var query := PhysicsRayQueryParameters3D.new()
@@ -260,3 +269,13 @@ func _handle_input() -> void:
                 crawlers.assign(get_parent_node_3d().find_children('', 'CrawlerCharacter', false))
                 for crawl in crawlers:
                     crawl.target_position = hit.position
+
+    if input_action_shoot.is_triggered():
+        if can_shoot:
+            can_shoot = false
+            var proj: RigidBody3D = grenade.instantiate()
+            get_parent().add_child(proj)
+            proj.global_position = camera.global_position - (0.2 * camera.global_basis.z)
+            proj.linear_velocity = -camera.global_basis.z * 20
+    elif not can_shoot:
+        can_shoot = true

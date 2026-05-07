@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="GUIDEAction" format=3 uid="uid://dcni2sonyj3o6"]
+
+[ext_resource type="Script" uid="uid://cluhc11vixkf1" path="res://addons/guide/guide_action.gd" id="1_wit7r"]
+
+[resource]
+script = ExtResource("1_wit7r")
+name = &"shoot"
+block_lower_priority_actions = false
+display_name = "Shoot"
+metadata/_custom_type_script = "uid://cluhc11vixkf1"
