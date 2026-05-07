@@ -138,7 +138,7 @@ var step_transform: Transform3D = Transform3D.IDENTITY
 ## Position of the leg at rest, set as the target position on setup
 var target_rest_position: Vector3 = Vector3.INF
 var target_global_rest: Vector3 = Vector3.INF
-var target_last_global: Vector3 = Vector3.INF
+var relative_velocity: Vector3 = Vector3.ZERO
 
 ## The leg is currently touching ground
 var is_grounded: bool = false
@@ -182,11 +182,14 @@ var ground_cast: ShapeCast3D
 var ground_body: RID
 var ground_leg_transform: Transform3D
 var ground_normal: Vector3 = Vector3.INF
+## Ground contact position in global space
 var ground_point: Vector3 = Vector3.INF
 var ground_velocity: Vector3 = Vector3.ZERO
+var ground_friction: float = 0.0
 var ground_offset: float = INF
 
 var target_bone_idx: int = -1
+## The IK bone position, relative to this leg
 var target_bone_position: Vector3
 
 var cached_adjacent: Array[CrawlerLeg]
@@ -217,7 +220,6 @@ func _validate_property(property: Dictionary) -> void:
 func setup() -> void:
     if not has_initialized:
         has_initialized = true
-        target_last_global = target.global_position
         target_rest_position = global_transform.inverse() * target.global_position
         attachment_point = (body.global_transform.inverse() * global_transform).origin
 
@@ -327,6 +329,8 @@ func pre_update(state: PhysicsDirectBodyState3D) -> void:
 
     _update_comfort_distance(state.step)
 
+    relative_velocity = ground_velocity * absf(ground_friction)
+    relative_velocity -= state.get_velocity_at_local_position(target.global_position - state.transform.origin)
     _update_target_position(state.step)
 
     var local_rest: Vector3 = step_transform * target_rest_position
@@ -381,6 +385,7 @@ func _update_grounded() -> void:
         ground_velocity = ground_state.get_velocity_at_local_position(
                     ground_point - ground_state.transform.origin
                 )
+        ground_friction = PhysicsServer3D.body_get_param(ground_body, PhysicsServer3D.BODY_PARAM_FRICTION)
 
         if debug_enable and debug_ground_normal:
             _debug_ground_normal_vector = DebugDraw.vector(
@@ -436,18 +441,22 @@ func _update_step_transform(body_basis: Basis, step: float) -> void:
 func _update_comfort_distance(step: float) -> void:
     if body.is_stepping:
         comfort_distance = move_toward(comfort_distance, step_distance, step * 2.0)
-    elif step_transform.is_equal_approx(Transform3D.IDENTITY):
-        # TODO: maybe always move comfort distance? Legs should handle moving targets now.
-        comfort_distance = move_toward(comfort_distance, rest_distance, step * 2.0)
+    else:
+        var t: float = lerpf(rest_distance, step_distance, body.ground_speed / body.max_speed)
+        comfort_distance = move_toward(comfort_distance, t, step * 2.0)
 
 func _update_target_position(step: float) -> void:
     if is_stepping or is_moving or is_lifting:
         # Try to maintain current position at 1m/s
         target.position = target_bone_position.move_toward(target.position, step)
     elif is_grounded:
-        # Try to maintain global position using deceleration
-        var global_bone: Vector3 = global_transform * target_bone_position
-        target.global_position = global_bone.move_toward(target_last_global, body.deceleration * step)
+        # Move along the ground and opposing body velocity
+        target.position += relative_velocity * global_basis * step
+        # Try to maintain relative position using deceleration
+        target.position = target_bone_position.move_toward(
+            target.position,
+            body.deceleration * step
+        )
     else:
         target.position = target_bone_position
 
@@ -532,8 +541,6 @@ func update(state: PhysicsDirectBodyState3D) -> void:
                 Color.AQUA,
                 _debug_ik_sphere
         )
-
-    target_last_global = target.global_position
 
 func _update_step(delta: float) -> void:
     if (

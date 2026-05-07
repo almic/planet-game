@@ -73,7 +73,7 @@ var is_stepping: bool:
 
 var has_desired_rotation: bool = false
 var grounded_leg_count: int = 0
-var grounded_leg_avg_displacement: float = 0.0
+var grounded_leg_avg_displacement: float
 var leg_update_data: PackedVector3Array
 var leg_polygon: PackedVector2Array
 var leg_gravity_power: PackedFloat64Array
@@ -152,7 +152,6 @@ func _update_legs(state: PhysicsDirectBodyState3D) -> void:
             ground_normal += leg.ground_normal
 
     if grounded_leg_count > 0:
-        grounded_leg_avg_displacement /= grounded_leg_count
         ground_normal /= grounded_leg_count
 
         if ground_normal.is_zero_approx():
@@ -176,9 +175,38 @@ func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
             ground_rel_con_velocity = Vector3.ZERO
         return
 
-    ground_rel_con_velocity = state.linear_velocity
-    ground_velocity = ground_rel_con_velocity.slide(ground_normal)
     ground_friction = Vector3.ZERO
+    ground_velocity = Vector3.ZERO
+    ground_rel_con_velocity = Vector3.ZERO
+
+    # Gather relative velocity from all legs, using last gravity power
+    var max_leg_mass: float
+    if is_zero_approx(body_leg_mass_ratio):
+        max_leg_mass = mass
+    else:
+        max_leg_mass = mass / (legs.size() * body_leg_mass_ratio)
+
+    for leg in legs:
+        if not leg.is_grounded:
+            continue
+
+        # Reduce applied force when leg should not be "holding" the ground
+        var power: float = minf(mass * leg_gravity_power[leg.index], max_leg_mass)
+        if not leg.apply_ground_forces:
+            power *= 0.1
+
+        var leg_velocity: Vector3 = power * leg.relative_velocity * state.inverse_mass
+        var leg_ground_velocity: Vector3 = leg_velocity.slide(leg.ground_normal)
+        ground_rel_con_velocity -= leg_velocity
+        ground_velocity -= leg_ground_velocity
+        ground_friction += leg_ground_velocity
+
+        # Apply angular forces here
+        var leg_force: Vector3 = power * leg_ground_velocity
+        state.angular_velocity += (
+              state.inverse_inertia_tensor
+            * (leg.ground_point - state.transform.origin - state.center_of_mass).cross(leg_force)
+        ) * state.step
 
     if not ground_velocity.is_zero_approx():
         ground_direction = ground_velocity.normalized()

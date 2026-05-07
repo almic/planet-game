@@ -49,7 +49,7 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [ ] Make drag coeff a parameter, compute surface area against wind using math and collision shapes (shadows of 3D shapes, hopefully some library tool)
 - [ ] Test using Joint3D to connect rigid body to PhysicalBone3D?
 - [ ] Fix weird rotation effects when at lower delta times
-- [ ] Ground velocity can move leg targets when leg is in contact with ground
+- [x] Ground velocity can move leg targets when leg is in contact with ground
 - [ ] DESTRUCTION TIME
 
 # Walking Improvement Ideas

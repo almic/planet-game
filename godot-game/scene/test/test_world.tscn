@@ -53,6 +53,15 @@ uv1_triplanar = true
 material = SubResource("StandardMaterial3D_6enav")
 size = Vector3(2, 2, 0.1)
 
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_tk7e2"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_dunqf"]
+size = Vector3(20, 20, 0.1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_7wtpe"]
+material = SubResource("StandardMaterial3D_6enav")
+size = Vector3(20, 20, 0.1)
+
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_6enav"]
 rough = true
 
@@ -109,18 +118,30 @@ environment = SubResource("Environment_1vq1p")
 camera_attributes = SubResource("CameraAttributesPhysical_fbyci")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="WorldEnvironment" unique_id=1774272102]
-transform = Transform3D(0.46783724, 0.82738996, -0.31073177, 0, 0.35158026, 0.93615776, 0.88381463, -0.43796948, 0.16448234, 0, 0, 0)
+transform = Transform3D(0.4051589455205773, 0.8923308171338352, 0.1989772619323168, -0.23391860646840737, -0.1092175574384768, 0.9661022728401412, 0.8838146373653337, -0.43796946138583814, 0.1644823324013334, 0, 0, 0)
 shadow_enabled = true
 directional_shadow_mode = 0
 
 [node name="Player" parent="." unique_id=1957397594 instance=ExtResource("1_fbyci")]
 process_mode = 1
-transform = Transform3D(-6.123233995736766e-17, 0, -1, 0, 1, 0, 1, 0, -6.123233995736766e-17, -0.5000000000000016, 0.05, 23.499999999999996)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 12.799999999999988, 0.05, -10.7)
+debug_enabled = true
+debug_friction = true
 metadata/_edit_group_ = true
 
 [node name="Camera3D" type="Camera3D" parent="Player" unique_id=1880891728]
 transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 2, 0.8, 0)
 size = 6.314
+
+[node name="CrawlerBot" parent="." unique_id=461561025 instance=ExtResource("9_dunqf")]
+process_mode = 1
+transform = Transform3D(0.7071067811865476, 0, 0.7071067811865475, 0, 1, 0, -0.7071067811865475, 0, 0.7071067811865476, 12.7, 0.4500000000029125, -3.0000000000000253)
+debug_enabled = true
+debug_friction = true
+
+[node name="Camera3D" type="Camera3D" parent="CrawlerBot" unique_id=1751609405]
+transform = Transform3D(1, 0, -6.123233995736765e-17, 6.123233995736767e-17, 2.0902503831501975e-32, 1, 1.2325952e-32, -1, 1.2325952e-32, -1.126984545533859e-15, 7.649999999997089, -0.099999999999994)
+fov = 40.0
 
 [node name="Floor" type="CSGCombiner3D" parent="." unique_id=589922605]
 use_collision = true
@@ -364,6 +385,32 @@ shape = SubResource("BoxShape3D_qyrsn")
 transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
 mesh = SubResource("BoxMesh_dunqf")
 
+[node name="Slider2" type="RigidBody3D" parent="." unique_id=1262872185]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.8, 0.1, -87.5)
+collision_layer = 16
+collision_mask = 17
+axis_lock_linear_x = true
+axis_lock_linear_y = true
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
+mass = 1000.0
+physics_material_override = SubResource("PhysicsMaterial_tk7e2")
+custom_integrator = true
+continuous_cd = true
+linear_damp = 0.2
+script = ExtResource("4_w5krq")
+extension_length = 175.0
+metadata/_edit_group_ = true
+
+[node name="collider" type="CollisionShape3D" parent="Slider2" unique_id=1119125480]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
+shape = SubResource("BoxShape3D_dunqf")
+
+[node name="floor" type="MeshInstance3D" parent="Slider2" unique_id=509907947]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
+mesh = SubResource("BoxMesh_7wtpe")
+
 [node name="MovingSlope" type="RigidBody3D" parent="." unique_id=913235132]
 transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -79.1, 0.1, -17)
 collision_layer = 16
@@ -458,11 +505,3 @@ mesh = SubResource("SphereMesh_76stg")
 
 [node name="collider" type="CollisionShape3D" parent="Ball2" unique_id=1917694940]
 shape = SubResource("SphereShape3D_tk7e2")
-
-[node name="CrawlerBot" parent="." unique_id=461561025 instance=ExtResource("9_dunqf")]
-process_mode = 1
-transform = Transform3D(6.123233995736766e-17, 0, 1, 0, 1, 0, -1, 0, 6.123233995736766e-17, 4.099999999999998, 0.05000000000291038, 23.499999999999996)
-
-[node name="Camera3D" type="Camera3D" parent="CrawlerBot" unique_id=490247063]
-transform = Transform3D(1, 0, 0, 0, 6.123233995736766e-17, 1, 0, -1, 6.123233995736766e-17, 0, 20, 0)
-fov = 20.0
