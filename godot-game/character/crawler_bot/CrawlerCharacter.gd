@@ -116,10 +116,6 @@ func update_leg_transforms() -> void:
 func damage(source: Object, amount: float, hit_point: Vector3) -> void:
     print('Took %f damage from %s' % [amount, source.name])
 
-    if source is RigidBody3D:
-        var force: float = source.linear_velocity.length_squared() * source.mass * 0.5
-        var force_direction: Vector3 = (hit_point - source.global_position).normalized()
-        apply_impulse(force * force_direction, hit_point - global_position)
 
 func _handle_input() -> void:
 
