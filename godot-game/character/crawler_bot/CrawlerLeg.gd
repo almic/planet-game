@@ -442,7 +442,7 @@ func _update_comfort_distance(step: float) -> void:
     if body.is_stepping:
         comfort_distance = move_toward(comfort_distance, step_distance, step * 2.0)
     else:
-        var t: float = lerpf(rest_distance, step_distance, body.ground_speed / body.max_speed)
+        var t: float = lerpf(rest_distance, step_distance, (body.ground_direction.dot(body.ground_velocity)) / body.max_speed)
         comfort_distance = move_toward(comfort_distance, t, step * 2.0)
 
 func _update_target_position(step: float) -> void:
