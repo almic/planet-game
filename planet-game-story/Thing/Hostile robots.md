@@ -40,11 +40,14 @@ NEEDS WORK! RECONSIDER WHEN IMPLEMENTING!
 3. In Godot, import the skeleton and animations, and each mesh part
 4. Use bone attachments to place a disabled rigid body with the mesh and appropriate colliders
 5. Create hitboxes for parts and joints, each with health and structure points, and assign connected joints/ parts
-6. Damaging parts can apply structure damage to nearby connected joints. Joints can damaged directly, also applying structure damage to parts.
+6. Damaging parts can apply structure damage to nearby connected joints. Joints can be damaged directly, also applying structure damage to parts.
 7. When joints are destroyed, can activate connected rigid body and move to world node for simulation. Should apply health point damage to main body.
 8. When parts take enough structure damage, they should break into pieces and destroy child joints so the parts detach.
 
 This requires a lot of setup and wiring. Code needs to handle arbitrary part layouts, should read the scene tree to connect everything.
+
+### Method
+"Two skeleton" method. One is used as the "target" skeleton, the other is a simulation that uses motors to match the target. The simulation is just the chains/ attachments with rigid bodies and joints. A new script should look at the structure of the skeleton and extract joints and bodies attached to bones with a bone attachment modifier. It should use IK chain settings to match angular constraints, and use existing joint settings for force/ damage calculations. Each physics frame it should rigidly apply any linear/ angular limitations, respecting maximum forces, and matching motor velocities to underlying skeleton pose. When a motor is outside its limitation and is limited by the maximum force, it should apply damage to that joint and possibly break off joints. When breaking joints, collision exclusions should apply in physics until the bodies no longer collide, and apply small corrections as long as they collide to avoid extreme accelerations.
 
 ### Questions for Dismantle
 - How does removing a leg affect a walking bot?
