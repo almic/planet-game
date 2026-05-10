@@ -2,6 +2,9 @@
 extends Node
 
 
+const PHYSICS_TICKS: int = 64
+
+
 var input_global_context: GUIDEMappingContext = preload("uid://d03wntb6hv3sf")
 var input_action_pause: GUIDEAction = preload("uid://djvqcq1sg55wm")
 var input_action_speed: GUIDEAction = preload("uid://c8lqf68owbwtc")
@@ -41,6 +44,9 @@ func _ready() -> void:
     Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
     process_mode = Node.PROCESS_MODE_ALWAYS
 
+    if Engine.physics_ticks_per_second != PHYSICS_TICKS:
+        push_error('Constant PHYSICS_TICK is not the same as Engine.physics_ticks_per_second! Please update the value before launching again.')
+        breakpoint
 
 func _process(_delta: float) -> void:
     if input_action_pause.is_triggered():
@@ -59,6 +65,7 @@ func _process(_delta: float) -> void:
         if input_action_speed.is_triggered():
             print('Time scale: %.4f' % input_action_speed.value_axis_1d)
             Engine.time_scale = clampf(input_action_speed.value_axis_1d, 0.25, 1.0)
+            Engine.physics_ticks_per_second = roundi(Engine.time_scale * PHYSICS_TICKS)
         if input_action_tick.is_triggered():
             print('Stepping one tick!')
             pause_next_tick = true
