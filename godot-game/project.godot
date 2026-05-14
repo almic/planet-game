@@ -73,6 +73,7 @@ texture={
 3d_physics/layer_1="Character"
 3d_physics/layer_2="Projectile"
 3d_physics/layer_5="StaticWorld"
+3d_physics/layer_6="DynamicWorld"
 
 [physics]
 

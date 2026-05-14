@@ -39,7 +39,7 @@ albedo_color = Color(0, 0.78431374, 1, 1)
 
 [node name="Player" type="RigidBody3D" unique_id=1957397594 node_paths=PackedStringArray("spring")]
 physics_interpolation_mode = 1
-collision_mask = 17
+collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
@@ -70,7 +70,7 @@ enabled = false
 shape = SubResource("SphereShape3D_y0s34")
 target_position = Vector3(0, -0.74, 0)
 max_results = 1
-collision_mask = 16
+collision_mask = 48
 debug_shape_custom_color = Color(1, 0, 0, 1)
 script = ExtResource("2_8eijk")
 stiffness = 15000.0

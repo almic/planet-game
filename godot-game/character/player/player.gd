@@ -274,9 +274,10 @@ func _handle_input() -> void:
     if input_action_shoot.is_triggered():
         if can_shoot:
             can_shoot = false
-            var proj: RigidBody3D = grenade.instantiate()
+            var proj: ProjectileBody = grenade.instantiate()
             get_parent().add_child(proj)
             proj.global_position = camera.global_position - (0.2 * camera.global_basis.z)
             proj.linear_velocity = -camera.global_basis.z * 20
+            proj.spawning_body = get_rid()
     elif not can_shoot:
         can_shoot = true
