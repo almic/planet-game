@@ -209,9 +209,9 @@ func _draw_sphere(pos: Vector3, radius: float, color: Color) -> void:
     if is_zero_approx(radius):
         return
 
-    _draw_circle(pos, radius, Vector3.UP, 12, color)
-    _draw_circle(pos, radius, Vector3.FORWARD, 12, color)
-    _draw_circle(pos, radius, Vector3.RIGHT, 12, color)
+    _draw_circle(pos, radius, Vector3.UP, 18, color)
+    _draw_circle(pos, radius, Vector3.FORWARD, 18, color)
+    _draw_circle(pos, radius, Vector3.RIGHT, 18, color)
 
 func circle(coordinates: Vector3, radius: float, axis: Vector3, points: int, color: Color, id: int = 0, time: float = 0.0) -> int:
     var d: Dictionary = {}
