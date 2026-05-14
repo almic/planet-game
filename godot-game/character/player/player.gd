@@ -142,7 +142,7 @@ func _process(_delta: float) -> void:
         if freecam_mode:
             collider_crouch.disabled = true
             collider_stand.disabled = true
-            spring.enabled = false
+            spring_active = false
             force_ground_movement = false
             desired_gravity = 0.0
             crouch_mode = false
@@ -151,7 +151,7 @@ func _process(_delta: float) -> void:
         else:
             # Crouch collider first
             collider_crouch.disabled = false
-            spring.enabled = true
+            spring_active = true
             force_ground_movement = true
             desired_gravity = 1.0
             linear_damp = 0.0
@@ -195,6 +195,7 @@ func _process(_delta: float) -> void:
             collider_stand.disabled = true
     elif (not freecam_mode) and collider_stand.disabled:
         # Test if we can switch to the stand collider using the shape_cast result
+        # NOTE: should be an error if spring is null here
         if spring.get_closest_collision_safe_fraction() >= crouch_safe_fraction:
             collider_stand.disabled = false
             collider_crouch.disabled = true

@@ -2,7 +2,7 @@
 extends Node
 
 
-const PHYSICS_TICKS: int = 64
+const PHYSICS_TICKS: int = 100
 
 
 var input_global_context: GUIDEMappingContext = preload("uid://d03wntb6hv3sf")

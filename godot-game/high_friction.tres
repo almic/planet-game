@@ -1,0 +1,6 @@
+[gd_resource type="PhysicsMaterial" format=3 uid="uid://dgn55vwvw51v0"]
+
+[resource]
+resource_name = "High Friction"
+friction = 0.8
+rough = true
