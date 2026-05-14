@@ -20,6 +20,9 @@ var rotation_overshoot: float = 0.2
 
 @export var leg_ik: IterateIK3D
 
+## The number of grounded legs necessary for jumping
+@export_range(1, 8, 1, 'or_less')
+var legs_needed_for_jump: int = 3
 
 @export_group('Leg Parameters', 'body')
 
@@ -82,7 +85,6 @@ var leg_gravity_power: PackedFloat64Array
 func _ready() -> void:
     super._ready()
 
-    manual_input_handling = true
     skeleton = leg_ik.get_skeleton()
 
     # Load legs from children
@@ -140,10 +142,6 @@ func fix_nested_bodies() -> void:
         # NOTE: godot wipes the owners after the reparenting, stupid...
         body_joints.assign(body.find_children('', 'Joint3D', false, false))
         for j in body_joints:
-            var t: Transform3D = j.global_transform
-            j.get_parent().remove_child(j)
-            scene_root.add_child(j)
-            j.global_transform = t
             if j.node_a:
                 j.node_a = path_map.get(j)[0].get_path()
             if j.node_b:
@@ -154,7 +152,7 @@ func update_leg_transforms() -> void:
         leg.update_ground_leg_transform()
 
 func damage(source: Object, amount: float, hit_point: Vector3) -> void:
-    print('Took %f damage from %s' % [amount, source.name])
+    print('Took %f damage from %s at position %s' % [amount, source.name, str(hit_point)])
 
 
 func _handle_input() -> void:
@@ -168,18 +166,13 @@ func _handle_input() -> void:
         desired_speed = 0.0
         target_position = Vector3.INF
 
+func _update_ground(state: PhysicsDirectBodyState3D) -> void:
 
-func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
-    _handle_input()
-
-    _update_legs(state)
-
-    super._integrate_forces(state)
-
-func _update_legs(state: PhysicsDirectBodyState3D) -> void:
-
-    grounded_leg_count = 0
+    is_on_floor = false
+    is_slipping = false
     ground_normal = Vector3.ZERO
+    ground_position = Vector3.ZERO
+    grounded_leg_count = 0
 
     for leg in legs:
         leg.pre_update(state)
@@ -194,34 +187,32 @@ func _update_legs(state: PhysicsDirectBodyState3D) -> void:
         if leg.apply_ground_forces:
             grounded_leg_count += 1
             ground_normal += leg.ground_normal
+            ground_position += leg.ground_point
 
     if grounded_leg_count > 0:
+        is_on_floor = true
         ground_normal /= grounded_leg_count
+        ground_position /= grounded_leg_count
 
         if ground_normal.is_zero_approx():
             ground_normal = state.transform.basis.y
         else:
             ground_normal = ground_normal.normalized()
 
-func _calculate_ground_force(state: PhysicsDirectBodyState3D) -> void:
-
-    if grounded_leg_count > 0:
-        if not is_on_floor:
-            is_on_floor = true
+        if grounded_leg_count >= legs_needed_for_jump:
+            has_landed_on_ground_for_jump = true
     else:
-        if is_on_floor:
-            is_on_floor = false
-            is_slipping = false
-            ground_normal = Vector3.ZERO
-            ground_friction = Vector3.ZERO
-            ground_direction = Vector3.ZERO
-            ground_velocity = Vector3.ZERO
-            ground_rel_con_velocity = Vector3.ZERO
-        return
+        ground_position = Vector3.INF
+
+func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
 
     ground_friction = Vector3.ZERO
+    ground_direction = Vector3.ZERO
     ground_velocity = Vector3.ZERO
     ground_rel_con_velocity = Vector3.ZERO
+
+    if not is_on_floor:
+        return
 
     # Gather relative velocity from all legs, using last gravity power
     var max_leg_mass: float
@@ -593,9 +584,6 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
         var cos_theta: float = preferred_forward.dot(target_direction)
         if xz_dot > pow(0.03125 - 0.03125 * cos_theta, 0.25):
             yaw = current_forward.signed_angle_2(target_direction, preferred_up)
-            # NOTE: about 0.5 degrees
-            if absf(yaw) > 8.7e-3:
-                has_desired_rotation = true
 
     var roll: float = current_right.signed_angle_2(preferred_right, -preferred_forward)
     var pitch: float = current_forward.signed_angle_2(preferred_forward, preferred_right)
@@ -603,6 +591,10 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
     var angular: Vector3 = Vector3(pitch, yaw, roll)
     angular.x = 0.0
     angular.z = 0.0
+
+    # roughly 0.5 degrees
+    if angular.length_squared() > 7.62e-5:
+        has_desired_rotation = true
 
     var max_angular: Vector3 = angular / state.step
     var limited_angular: Vector3 = angular.sign() * max_angular.abs().minf(rotation_rate * (1.0 / rotation_overshoot))
@@ -613,9 +605,6 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
             state.step * rotation_acceleration * grounded_leg_factor
     )
 
-    # NOTE: roughly 0.5 degrees per second
-    if target_angular.is_zero_approx() and state.angular_velocity.length_squared() < 8e-5:
-        state.angular_velocity = Vector3.ZERO
-        if not has_desired_rotation:
-            # Low angular velocity, facing the target, clear target
-            target_direction = Vector3.INF
+    if (not has_desired_rotation) and state.angular_velocity.length_squared() < 7.62e-5:
+        # Low angular velocity, facing the target, clear target
+        target_direction = Vector3.INF

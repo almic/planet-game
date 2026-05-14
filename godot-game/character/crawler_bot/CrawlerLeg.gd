@@ -45,17 +45,17 @@ var rest_distance: float = 0.05
 
 ## How long this leg must wait before it can step again
 @export_range(0.01, 0.5, 0.01, 'or_greater')
-var step_delay: float = 0.1875
+var step_delay: float = 0.19
 
 ## If a paired leg has started moving in this time frame, allow this leg to
 ## move early to stay synchronized.
 @export_range(0.0, 0.5, 0.01, 'or_greater')
-var step_pair_window: float = 0.09375
+var step_pair_window: float = 0.09
 
 ## How long a legs cross-pair (the set of legs that move exclusive to this leg)
 ## must be grounded before this leg can move.
 @export_range(0.0, 0.5, 0.01, 'or_greater')
-var step_crosspair_wait: float = 0.0625
+var step_crosspair_wait: float = 0.06
 
 ## How much to lift the leg while taking a step, applies on the body's up axis
 @export_range(0.0, 1.0, 0.01, 'or_greater')
