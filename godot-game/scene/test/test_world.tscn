@@ -176,7 +176,6 @@ metadata/_custom_type_script = "uid://y0ge5wpqcwqt"
 
 [node name="18_cm_step_45" type="CSGBox3D" parent="Step" unique_id=665724284]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 4, 2)
-visible = false
 size = Vector3(8, 8, 2)
 material = ExtResource("3_qyrsn")
 script = ExtResource("4_dunqf")
@@ -185,7 +184,6 @@ metadata/_custom_type_script = "uid://y0ge5wpqcwqt"
 
 [node name="18_cm_step_45_2" type="CSGBox3D" parent="Step" unique_id=64960563]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 4, 2)
-visible = false
 size = Vector3(8, 8, 2)
 material = ExtResource("3_qyrsn")
 script = ExtResource("4_dunqf")
@@ -324,7 +322,7 @@ metadata/_edit_lock_ = true
 
 [node name="Player" parent="Characters" unique_id=1957397594 instance=ExtResource("1_fbyci")]
 process_mode = 1
-transform = Transform3D(1, 0, -1.2246467991473532e-16, 0, 1, 0, 1.2246467991473532e-16, 0, 1, 6.699999999999969, 0.1600000000000063, 3.9999999999999916)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.125, 4)
 metadata/_edit_group_ = true
 
 [node name="Camera3D" type="Camera3D" parent="Characters/Player" unique_id=1880891728]
@@ -543,7 +541,7 @@ mesh = SubResource("BoxMesh_gneou")
 
 [node name="Ball" type="RigidBody3D" parent="DynamicWorld" unique_id=428939051]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 3.2, -0.1)
-collision_layer = 2
+collision_layer = 32
 collision_mask = 51
 physics_material_override = SubResource("PhysicsMaterial_76stg")
 continuous_cd = true
@@ -559,7 +557,7 @@ shape = SubResource("SphereShape3D_tk7e2")
 
 [node name="Ball2" type="RigidBody3D" parent="DynamicWorld" unique_id=1987976922]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 3.5, 3)
-collision_layer = 2
+collision_layer = 32
 collision_mask = 51
 physics_material_override = SubResource("PhysicsMaterial_76stg")
 continuous_cd = true
