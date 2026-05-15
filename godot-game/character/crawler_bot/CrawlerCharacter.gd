@@ -111,41 +111,6 @@ func _ready() -> void:
 
     skeleton.skeleton_updated.connect(update_leg_transforms)
 
-    if not Engine.is_editor_hint():
-        fix_nested_bodies.call_deferred()
-
-func fix_nested_bodies() -> void:
-    var nested: Array[RigidBody3D]
-    nested.assign(find_children('', 'RigidBody3D'))
-    var all_joints: Array[Joint3D]
-    all_joints.assign(find_children('', 'Joint3D'))
-
-    # Save all nodes to obtain exact paths later
-    var path_map: Dictionary
-    for j in all_joints:
-        var mapping: Array[Node]
-        mapping.resize(2)
-        if j.node_a:
-            mapping[0] = j.get_node(j.node_a)
-        if j.node_b:
-            mapping[1] = j.get_node(j.node_b)
-        path_map.set(j, mapping)
-
-    # Reparent all bodies
-    var scene_root: Node3D = get_tree().current_scene as Node3D
-    for body in nested:
-        body.reparent(scene_root)
-
-    # Reparent and update all joint paths
-    var body_joints: Array[Joint3D]
-    for body in nested:
-        # NOTE: godot wipes the owners after the reparenting, stupid...
-        body_joints.assign(body.find_children('', 'Joint3D', false, false))
-        for j in body_joints:
-            if j.node_a:
-                j.node_a = path_map.get(j)[0].get_path()
-            if j.node_b:
-                j.node_b = path_map.get(j)[1].get_path()
 
 func update_leg_transforms() -> void:
     for leg in legs:

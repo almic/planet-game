@@ -33,7 +33,7 @@ window/size/viewport_height=540
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/csg_extra/plugin.cfg", "res://addons/debug_draw/plugin.cfg", "res://addons/guide/plugin.cfg")
+enabled=PackedStringArray("res://addons/csg_extra/plugin.cfg", "res://addons/debug_draw/plugin.cfg", "res://addons/guide/plugin.cfg", "res://addons/physical_skeleton/plugin.cfg")
 
 [filesystem]
 
