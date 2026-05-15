@@ -326,8 +326,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                 speed_in_dir = ground_velocity.dot(forward)
 
             # Limit forward acceleration
-            if (not force_ground_movement) and desired_incline_effect > 0.0:
-                var slope_cos_theta: float = state.transform.basis.tdoty(forward)
+            if force_ground_movement and desired_incline_effect > 0.0:
+                var slope_cos_theta: float = local_up.dot(forward)
                 if slope_cos_theta > 0.0:
                     if incline_speed_reduction > 0.0:
                         var angle: float = asin(slope_cos_theta)
