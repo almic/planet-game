@@ -96,6 +96,8 @@ var desired_jump_power: float = 0.0
 var desired_height_offset: float = 0.0
 ## Multiplier to gravity acceleration
 var desired_gravity: float = 1.0
+## Multiplier for surface friction
+var desired_surface_friction: float = 1.0
 
 
 ## The body's direction of motion
@@ -195,7 +197,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                 * lerpf(0.0143, 0.65, lateral_ratio)
         ) * state.inverse_mass # NOTE: Proportional to mass!!!
 
-    if (not has_desired_forward) and (not is_slipping) and deceleration > 0.0 and not ground_velocity.is_zero_approx():
+    if desired_surface_friction > 0.0 and (not has_desired_forward) and (not is_slipping) and deceleration > 0.0 and not ground_velocity.is_zero_approx():
             # Stop quickly
 
             # TODO: Stopping friction is causing weird interactions on slopes.
@@ -206,7 +208,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             var max_stop_speed: float = ground_speed / state.step
             var stop_len: float = minf(deceleration, max_stop_speed)
 
-            ground_friction += (-ground_direction) * stop_len
+            ground_friction += (-ground_direction) * stop_len * desired_surface_friction
 
     # NOTE: Computes and applies spring and ground friction forces from current state
     if spring_active and spring:
@@ -342,12 +344,13 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                         accel_multiplier *= bonus
 
             # Add extra ground friction for turning/ changing direction/ over speed
-            if (not is_slipping) and (not ground_velocity.is_zero_approx()):
+            if desired_surface_friction > 0.0 and (not is_slipping) and (not ground_velocity.is_zero_approx()):
                 var move_friction: Vector3
                 if speed_in_dir > limit_in_dir:
                     move_friction = -ground_direction * minf(deceleration, (speed_in_dir - limit_in_dir) / state.step)
                 else:
                     move_friction = _calculate_move_friction(forward)
+                move_friction *= desired_surface_friction
                 if debug_enabled and debug_friction:
                     _friction_movement_debug_vec = DebugDraw.vector(
                             state.transform.origin + (Vector3.UP * 0.45),

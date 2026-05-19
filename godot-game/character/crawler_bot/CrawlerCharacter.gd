@@ -111,6 +111,8 @@ func _ready() -> void:
 
     skeleton.skeleton_updated.connect(update_leg_transforms)
 
+    desired_surface_friction = 0.0
+
 
 func update_leg_transforms() -> void:
     for leg in legs:
@@ -171,7 +173,6 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
 
 func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
 
-    ground_friction = Vector3.ZERO
     ground_direction = Vector3.ZERO
     ground_velocity = Vector3.ZERO
     ground_rel_con_velocity = Vector3.ZERO
@@ -195,14 +196,12 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
         if not leg.apply_ground_forces:
             power *= 0.1
 
-        var leg_velocity: Vector3 = power * leg.relative_velocity * state.inverse_mass
-        var leg_ground_velocity: Vector3 = leg_velocity.slide(leg.ground_normal)
-        ground_rel_con_velocity -= leg_velocity
-        ground_velocity -= leg_ground_velocity
-        ground_friction += leg_ground_velocity
+        var leg_ground_velocity: Vector3 = leg.ground_rel_con_velocity.slide(leg.ground_normal)
+        ground_rel_con_velocity += leg.ground_rel_con_velocity
+        ground_velocity += leg_ground_velocity
 
         # Apply angular forces here
-        var leg_force: Vector3 = power * leg_ground_velocity
+        var leg_force: Vector3 = 0.0 * power * leg.ground_rel_con_velocity * state.inverse_mass
         state.angular_velocity += (
               state.inverse_inertia_tensor
             * (leg.ground_point - state.transform.origin - state.center_of_mass).cross(leg_force)

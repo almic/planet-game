@@ -138,6 +138,9 @@ var step_transform: Transform3D = Transform3D.IDENTITY
 ## Position of the leg at rest, set as the target position on setup
 var target_rest_position: Vector3 = Vector3.INF
 var target_global_rest: Vector3 = Vector3.INF
+## Contact velocity of this leg relative to the ground
+var ground_rel_con_velocity: Vector3 = Vector3.ZERO
+## Velocity of this leg relative to the main body
 var relative_velocity: Vector3 = Vector3.ZERO
 
 ## The leg is currently touching ground
@@ -329,8 +332,8 @@ func pre_update(state: PhysicsDirectBodyState3D) -> void:
 
     _update_comfort_distance(state.step)
 
-    relative_velocity = ground_velocity * absf(ground_friction)
-    relative_velocity -= state.get_velocity_at_local_position(target.global_position - state.transform.origin)
+    relative_velocity = state.get_velocity_at_local_position(target.global_position - state.transform.origin)
+    ground_rel_con_velocity = relative_velocity - ground_velocity
     _update_target_position(state.step)
 
     var local_rest: Vector3 = step_transform * target_rest_position
@@ -385,7 +388,7 @@ func _update_grounded() -> void:
         ground_velocity = ground_state.get_velocity_at_local_position(
                     ground_point - ground_state.transform.origin
                 )
-        ground_friction = PhysicsServer3D.body_get_param(ground_body, PhysicsServer3D.BODY_PARAM_FRICTION)
+        ground_friction = absf(PhysicsServer3D.body_get_param(ground_body, PhysicsServer3D.BODY_PARAM_FRICTION))
 
         if debug_enable and debug_ground_normal:
             _debug_ground_normal_vector = DebugDraw.vector(
@@ -398,6 +401,7 @@ func _update_grounded() -> void:
         is_grounded = false
         ground_normal = Vector3.INF
         ground_velocity = Vector3.ZERO
+        ground_friction = 0.0
         time_since_grounded = 0.0
         if debug_enable and debug_ground_normal:
             _debug_ground_normal_vector = DebugDraw.vector(
@@ -450,8 +454,11 @@ func _update_target_position(step: float) -> void:
         # Try to maintain current position at 1m/s
         target.position = target_bone_position.move_toward(target.position, step)
     elif is_grounded:
-        # Move along the ground and opposing body velocity
-        target.position += relative_velocity * global_basis * step
+        # Oppose relative body motion
+        var velocity: Vector3 = -relative_velocity
+        # Move with the ground velocity
+        velocity += ground_velocity * clampf(ground_friction * 2.0, 0.0, 1.0)
+        target.position += global_basis.inverse() * velocity * step
         # Try to maintain relative position using deceleration
         target.position = target_bone_position.move_toward(
             target.position,

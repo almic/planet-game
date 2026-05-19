@@ -11,39 +11,68 @@ var _btn_create_ik_joint_bodies = editor_create_ik_bodies
 var _btn_update_joints = editor_update_joints
 
 
-@export_group('Spring Calculator', 'calc')
+@export_group('Spring Calculator', 'calc_spring')
 
-@export_custom(PROPERTY_HINT_RANGE, '0.01,100.0,0.01,or_greater', PROPERTY_USAGE_EDITOR)
-var calc_effective_mass: float = 4.0:
+@export_custom(PROPERTY_HINT_RANGE, '0.001,100.0,0.001,or_greater,suffix:kg', PROPERTY_USAGE_EDITOR)
+var calc_spring_effective_mass: float = 4.0:
     set(value):
-        calc_effective_mass = value
-        editor_update_calculator()
+        calc_spring_effective_mass = value
+        editor_update_spring_calculator()
 
-@export_custom(PROPERTY_HINT_RANGE, '0.001,100.0,0.001,or_greater', PROPERTY_USAGE_EDITOR)
-var calc_frequency: float = 1.2:
+@export_custom(PROPERTY_HINT_RANGE, '0.001,100.0,0.001,or_greater,suffix:Hz', PROPERTY_USAGE_EDITOR)
+var calc_spring_frequency: float = 1.2:
     set(value):
-        calc_frequency = value
-        editor_update_calculator()
+        calc_spring_frequency = value
+        editor_update_spring_calculator()
 
 @export_custom(PROPERTY_HINT_RANGE, '0.0,1.0,0.001', PROPERTY_USAGE_EDITOR)
-var calc_damping_ratio: float = 0.5:
+var calc_spring_damping_ratio: float = 0.5:
     set(value):
-        calc_damping_ratio = value
-        editor_update_calculator()
+        calc_spring_damping_ratio = value
+        editor_update_spring_calculator()
 
 @export_custom(
     PROPERTY_HINT_RANGE,
     '0.0,1.0,0.001,or_greater,hide_control',
     PROPERTY_USAGE_READ_ONLY | PROPERTY_USAGE_EDITOR
 )
-var calc_stiffness: float = 0.0
+var calc_spring_stiffness: float = 0.0
 
 @export_custom(
     PROPERTY_HINT_RANGE,
     '0.0,1.0,0.001,or_greater,hide_control',
     PROPERTY_USAGE_READ_ONLY | PROPERTY_USAGE_EDITOR
 )
-var calc_damping: float = 0.0
+var calc_spring_damping: float = 0.0
+
+
+@export_group('Frequency Calculator', 'calc_freq')
+
+@export_custom(PROPERTY_HINT_RANGE, '0.001,100.0,0.001,or_greater', PROPERTY_USAGE_EDITOR)
+var calc_freq_stiffness: float = 4.0:
+    set(value):
+        calc_freq_stiffness = value
+        editor_update_frequency_calculator()
+
+@export_custom(PROPERTY_HINT_RANGE, '0.001,100.0,0.001,or_greater,suffix:Hz', PROPERTY_USAGE_EDITOR)
+var calc_freq_frequency: float = 1.2:
+    set(value):
+        calc_freq_frequency = value
+        editor_update_frequency_calculator()
+
+@export_custom(PROPERTY_HINT_RANGE, '0.0,1.0,0.001', PROPERTY_USAGE_EDITOR)
+var calc_freq_damping_ratio: float = 0.5:
+    set(value):
+        calc_freq_damping_ratio = value
+        editor_update_frequency_calculator()
+
+@export_custom(
+    PROPERTY_HINT_RANGE,
+    '0.0,1.0,0.001,or_greater,hide_control',
+    PROPERTY_USAGE_READ_ONLY | PROPERTY_USAGE_EDITOR
+)
+var calc_freq_damping: float = 0.0
+
 
 
 ## Contains data and object references on a joint
@@ -92,12 +121,17 @@ func editor_update_joints() -> void:
             'Functionality not implemented! TODO!',EditorToaster.SEVERITY_INFO
     )
 
-func editor_update_calculator() -> void:
+func editor_update_spring_calculator() -> void:
     # Stiffness and damping force calculation from Jolt's frequency/ damping ratio
-    var omega: float = TAU * calc_frequency
-    calc_stiffness = calc_effective_mass * omega * omega
-    calc_damping = 2.0 * calc_effective_mass * calc_damping_ratio * omega
-    print(calc_stiffness, calc_damping)
+    var omega: float = TAU * calc_spring_frequency
+    calc_spring_stiffness = calc_spring_effective_mass * omega * omega
+    calc_spring_damping = 2.0 * calc_spring_effective_mass * calc_spring_damping_ratio * omega
+
+func editor_update_frequency_calculator() -> void:
+    # Stiffness and damping force calculation from Jolt's frequency/ damping ratio
+    var omega: float = TAU * calc_freq_frequency
+    var effective_mass: float = calc_freq_stiffness / (omega * omega)
+    calc_freq_damping = 2.0 * effective_mass * calc_freq_damping_ratio * omega
 
 
 func _process_modification_with_delta(delta: float) -> void:
@@ -113,11 +147,15 @@ func _process_modification_with_delta(delta: float) -> void:
         var parent_rt: Transform3D = joint_data.xform_rel_parent
         var body_rt: Transform3D = joint_data.xform_rel_body
 
-        var joint_parent: Transform3D = parent_rt * joint_data.parent.global_transform
-        var joint_body: Transform3D = body_rt * joint_data.body.global_transform
+        var joint_parent: Transform3D = joint_data.parent.global_transform * parent_rt
+        var joint_body: Transform3D = joint_data.body.global_transform * body_rt
 
         # TODO
+        var error: Vector3 = joint_body.origin - joint_parent.origin
+        var angle: Quaternion = joint_parent.basis.get_rotation_quaternion().inverse() * joint_body.basis.get_rotation_quaternion()
 
+
+        #print('error: %s\nangle: %s' % [str(error), str(angle.get_euler())])
 
 func setup_body_joints() -> void:
     # Do not modify the tree in the editor
@@ -182,11 +220,16 @@ func setup_body_joints() -> void:
     for joint_data in loaded_joints:
         joint_data.body.reparent(scene_root)
 
-    # Update all joint paths
     for joint_data in loaded_joints:
+        # Update all joint paths
         var joint := joint_data.joint
         joint.node_a = path_map.get(joint)[0].get_path()
         joint.node_b = path_map.get(joint)[1].get_path()
+
+        # Copy processing state to bodies and joints
+        joint_data.parent.process_mode = main_body.process_mode
+        joint_data.body.process_mode = main_body.process_mode
+        joint_data.joint.process_mode = main_body.process_mode
 
     joints.clear()
     joints.assign(loaded_joints)
