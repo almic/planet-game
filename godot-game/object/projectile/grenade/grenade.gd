@@ -30,6 +30,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             var shape_rid: RID = PhysicsServer3D.body_get_shape(rid, shape_idx)
             var shape_xform: Transform3D = PhysicsServer3D.body_get_shape_transform(rid, shape_idx)
 
+            # NOTE: Scale by 10% to avoid random collisions with the spawner
+            #       that destroy it on the next frame anyway
+            shape_xform = shape_xform.scaled(Vector3.ONE * 1.1)
+
             query.shape_rid = shape_rid
             query.transform = state.transform * shape_xform
 
