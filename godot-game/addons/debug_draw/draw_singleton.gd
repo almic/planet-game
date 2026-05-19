@@ -128,6 +128,11 @@ func _draw_text(pos: Vector3, string: String, color: Color, size: float) -> void
     if not camera.is_position_in_frustum(pos):
         return
 
+    size = minf(4.0 * size / maxf(1.0, pos.distance_to(camera.global_position)), size)
+    if size < 0.5:
+        return
+    var text_size: int = roundi(size)
+
     var screen: Vector2 = camera.unproject_position(pos)
     draw_string(
             font,
@@ -135,7 +140,7 @@ func _draw_text(pos: Vector3, string: String, color: Color, size: float) -> void
             string,
             HORIZONTAL_ALIGNMENT_CENTER,
             -1.0,
-            clampf(4.0 * size / maxf(1.0, pos.distance_to(camera.global_position)), 0.01, size),
+            text_size,
             color
     )
 
