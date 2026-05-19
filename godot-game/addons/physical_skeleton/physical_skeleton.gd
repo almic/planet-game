@@ -220,6 +220,7 @@ func setup_body_joints() -> void:
     for joint_data in loaded_joints:
         joint_data.body.reparent(scene_root)
 
+    var main_body_state := PhysicsServer3D.body_get_direct_state(main_body.get_rid())
     for joint_data in loaded_joints:
         # Update all joint paths
         var joint := joint_data.joint
@@ -230,6 +231,12 @@ func setup_body_joints() -> void:
         joint_data.parent.process_mode = main_body.process_mode
         joint_data.body.process_mode = main_body.process_mode
         joint_data.joint.process_mode = main_body.process_mode
+
+        # Copy velocity of main body
+        var state := PhysicsServer3D.body_get_direct_state(joint_data.body.get_rid())
+        var local_position: Vector3 = (state.transform.origin + state.center_of_mass) - main_body_state.transform.origin
+        joint_data.body.linear_velocity = main_body_state.get_velocity_at_local_position(local_position)
+        joint_data.body.angular_velocity = main_body_state.angular_velocity
 
     joints.clear()
     joints.assign(loaded_joints)
