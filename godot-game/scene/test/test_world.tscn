@@ -144,16 +144,17 @@ shadow_enabled = true
 directional_shadow_mode = 0
 
 [node name="Floor" type="CSGCombiner3D" parent="." unique_id=589922605]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
 use_collision = true
 collision_layer = 16
 collision_mask = 0
 
 [node name="CSGBox3D" type="CSGBox3D" parent="Floor" unique_id=1741334788]
-size = Vector3(200, 0.1, 200)
+size = Vector3(200, 0.2, 200)
 material = ExtResource("1_1vq1p")
 
 [node name="Step" type="CSGCombiner3D" parent="." unique_id=72050405]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.05, 7.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, 7.6)
 use_collision = true
 collision_layer = 16
 collision_mask = 0
@@ -201,7 +202,7 @@ size = Vector3(2, 8, 2)
 material = ExtResource("3_qyrsn")
 
 [node name="Ramp" type="CSGCombiner3D" parent="." unique_id=439951142]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.05, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 4)
 use_collision = true
 collision_layer = 16
 collision_mask = 0
@@ -263,7 +264,7 @@ script = ExtResource("4_6enav")
 metadata/_custom_type_script = "uid://sl0e0oxfge4y"
 
 [node name="BigRamp" type="CSGCombiner3D" parent="." unique_id=406205410]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 27.1, 0.05, -16.3)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 27.1, 0, -16.3)
 use_collision = true
 collision_layer = 16
 collision_mask = 0
@@ -286,14 +287,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
 size = Vector3(0.3, 2, 1.5)
 
 [node name="SlopeWall" type="CSGCombiner3D" parent="." unique_id=1451121978]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -1.5, 0.05, 23.6)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -1.5, 0, 23.6)
 use_collision = true
 collision_layer = 16
 collision_mask = 0
 metadata/_edit_group_ = true
 
 [node name="CSGBox3D" type="CSGBox3D" parent="SlopeWall" unique_id=107860917]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 25.05000000000291, -12.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 25.05, -12.5)
 size = Vector3(5.8, 50.1, 25)
 material = ExtResource("3_qyrsn")
 metadata/_edit_lock_ = true
@@ -308,12 +309,12 @@ material = ExtResource("3_qyrsn")
 metadata/_edit_lock_ = true
 
 [node name="CSGBox3D2" type="CSGBox3D" parent="SlopeWall" unique_id=337353017]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 50.10000000000582, 12.50000000000291)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 50.1, 12.5)
 size = Vector3(5.8, 0.1, 25)
 material = ExtResource("3_qyrsn")
 
 [node name="CSGBox3D3" type="CSGBox3D" parent="SlopeWall" unique_id=395513505]
-transform = Transform3D(1, 0, 0, 0, 6.123233995736766e-17, 1, 0, -1, 6.123233995736766e-17, 0, 25.05000000000582, -24.99999999999709)
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 25.05, -25)
 size = Vector3(30, 0.1, 20)
 material = ExtResource("3_qyrsn")
 
@@ -322,61 +323,61 @@ metadata/_edit_lock_ = true
 
 [node name="Player" parent="Characters" unique_id=1957397594 instance=ExtResource("1_fbyci")]
 process_mode = 1
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.4, 0.125, 1.8)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 25.3, 0.125, -3.4)
 metadata/_edit_group_ = true
 
 [node name="Camera3D" type="Camera3D" parent="Characters/Player" unique_id=1880891728]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 1.2000000000000002, 1.4, -0.2999999999999998)
+transform = Transform3D(0, -1, 0, 0, 0, 1, -1, 0, 0, -0.2, 3.3, -4.1)
 size = 6.314
 
 [node name="CrawlerBot" parent="Characters" unique_id=461561025 instance=ExtResource("9_dunqf")]
 process_mode = 1
-transform = Transform3D(-0.7071067811865475, 0, -0.7071067811865477, 0, 1, 0, 0.7071067811865477, 0, -0.7071067811865475, 20.822457271005174, 0.15089859858020294, -3.361320666356975)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 14.8, 0.15, -17.36)
 debug_enabled = true
 debug_velocity = true
 debug_friction = true
 
 [node name="Camera3D" type="Camera3D" parent="Characters/CrawlerBot" unique_id=1751609405]
-transform = Transform3D(-1, 0, 1.2246467991473532e-16, 0, 1, 0, -1.2246467991473532e-16, 0, -1, 0.6000000000000003, 1, -5.1)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0.6, 1, -5.1)
 fov = 40.0
 
 [node name="CrawlerBot2" parent="Characters" unique_id=904908703 instance=ExtResource("9_dunqf")]
-process_mode = 4
-transform = Transform3D(-1.0000000000000002, -8.890458e-18, -5.551115e-17, 5.1738769275367284e-17, 1, -2.3010198020423695e-18, 2.220446e-16, 0, -1.0000000000000002, 33.822457271005185, 0.15089859858020205, 37.23867933364302)
+process_mode = 1
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 33.822457271005185, 0.15089859858020205, 37.23867933364302)
 debug_enabled = true
 debug_velocity = true
 debug_friction = true
 
 [node name="CrawlerBot3" parent="Characters" unique_id=702894461 instance=ExtResource("9_dunqf")]
-process_mode = 4
-transform = Transform3D(-0.9659258262890685, 0.25881904510252074, -5.551115e-17, 0.25881904510252085, 0.9659258262890683, -2.301019802042369e-18, 2.1955756056715703e-16, -1.428893780576868e-17, -1.0000000000000002, 35.62245727100518, 1.8508985985802022, 37.23867933364302)
+process_mode = 1
+transform = Transform3D(-0.9659258262890684, 0.25881904510252074, -5.5511150000000004e-17, 0.25881904510252085, 0.9659258262890684, -2.3010198020423687e-18, 2.1955756056715703e-16, -1.4288937805768678e-17, -1.0000000000000002, 35.62245727100518, 1.8508985985802024, 37.23867933364302)
 debug_enabled = true
 debug_velocity = true
 debug_friction = true
 
 [node name="CrawlerBot4" parent="Characters" unique_id=1446551471 instance=ExtResource("9_dunqf")]
-process_mode = 4
-transform = Transform3D(-0.6830127018922194, -0.1830127018922193, -0.7071067811865476, -0.25881904510252074, 0.9659258262890683, -2.3010198020423683e-18, 0.6830127018922195, 0.18301270189221927, -0.7071067811865477, 32.12245727100518, 2.650898598580202, 37.23867933364302)
+process_mode = 1
+transform = Transform3D(-0.6830127018922194, -0.1830127018922193, -0.7071067811865476, -0.25881904510252074, 0.9659258262890684, -2.3010198020423683e-18, 0.6830127018922195, 0.18301270189221927, -0.7071067811865477, 32.12245727100518, 2.650898598580202, 37.23867933364302)
 debug_enabled = true
 debug_velocity = true
 debug_friction = true
 
 [node name="CrawlerBot5" parent="Characters" unique_id=466178254 instance=ExtResource("9_dunqf")]
-process_mode = 4
-transform = Transform3D(1.0000000000000002, -5.551115e-17, 1.236557754105885e-16, 1.9257313396384347e-16, 0.8660254037844387, -0.49999999999999994, -2.225241497356291e-16, 0.49999999999999994, 0.8660254037844387, 35.322457271005185, 4.050898598580202, 39.33867933364303)
+process_mode = 1
+transform = Transform3D(1.0000000000000002, -5.5511150000000004e-17, 1.236557754105885e-16, 1.9257313396384347e-16, 0.8660254037844387, -0.49999999999999994, -2.225241497356291e-16, 0.49999999999999994, 0.8660254037844387, 35.322457271005185, 4.050898598580202, 39.33867933364303)
 debug_enabled = true
 debug_velocity = true
 debug_friction = true
 
 [node name="CrawlerBot6" parent="Characters" unique_id=1727496523 instance=ExtResource("9_dunqf")]
-process_mode = 4
+process_mode = 1
 transform = Transform3D(0.5000000000000004, 0.22414386804201333, -0.8365163037378077, -2.117856635565487e-17, 0.9659258262890682, 0.25881904510252074, 0.8660254037844387, -0.12940952255126045, 0.4829629131445343, 35.322457271005185, 4.050898598580202, 34.83867933364302)
 debug_enabled = true
 debug_velocity = true
 debug_friction = true
 
 [node name="CrawlerBot7" parent="Characters" unique_id=1504961661 instance=ExtResource("9_dunqf")]
-process_mode = 4
+process_mode = 1
 transform = Transform3D(0.43301270189221974, -0.2888486293176435, -0.8538538922680615, -0.9012210650134382, -0.1205127018922193, -0.4162658773652742, 0.0173375885302538, 0.9497595264191646, -0.31249999999999983, 33.12245727100518, 6.450898598580203, 36.83867933364302)
 debug_enabled = true
 debug_velocity = true
@@ -386,7 +387,7 @@ debug_friction = true
 metadata/_edit_lock_ = true
 
 [node name="RotatingFloor" type="RigidBody3D" parent="DynamicWorld" unique_id=1380169061]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.4, 0.15, -2.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.39999999999418, 0.10000000000582077, -2.6000000000058208)
 collision_layer = 32
 collision_mask = 51
 axis_lock_linear_x = true
@@ -408,7 +409,7 @@ mesh = SubResource("CylinderMesh_qyrsn")
 metadata/_edit_lock_ = true
 
 [node name="RotatingFloor2" type="RigidBody3D" parent="DynamicWorld" unique_id=1154465676]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.900000000000006, 0.15, -66.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.9, 0.1, -66.9)
 collision_layer = 32
 collision_mask = 51
 axis_lock_linear_x = true
@@ -429,7 +430,7 @@ shape = SubResource("CylinderShape3D_7wtpe")
 mesh = SubResource("CylinderMesh_76stg")
 
 [node name="Elevator" type="RigidBody3D" parent="DynamicWorld" unique_id=1060895025]
-transform = Transform3D(0, 1, 0, 0, 0, 1, 1, 0, 0, 6.7, 0.1, -14)
+transform = Transform3D(0, 1, 0, 0, 0, 1, 1, 0, 0, 6.7, 0.05, -14)
 collision_layer = 32
 collision_mask = 51
 axis_lock_linear_x = true
@@ -454,7 +455,7 @@ shape = SubResource("BoxShape3D_qyrsn")
 mesh = SubResource("BoxMesh_dunqf")
 
 [node name="Slider" type="RigidBody3D" parent="DynamicWorld" unique_id=1904876756]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 2, 0.1, -14)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 2, 0.05, -14)
 collision_layer = 32
 collision_mask = 51
 axis_lock_linear_y = true
@@ -478,7 +479,7 @@ transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
 mesh = SubResource("BoxMesh_dunqf")
 
 [node name="Slider2" type="RigidBody3D" parent="DynamicWorld" unique_id=1262872185]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.8, 0.1, -87.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.8, 0.05, -87.5)
 collision_layer = 32
 collision_mask = 51
 axis_lock_linear_x = true
@@ -504,7 +505,7 @@ transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
 mesh = SubResource("BoxMesh_7wtpe")
 
 [node name="MovingSlope" type="RigidBody3D" parent="DynamicWorld" unique_id=913235132]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -79.1, 0.1, -17)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -79.1, 0.05, -17)
 collision_layer = 32
 collision_mask = 51
 axis_lock_linear_y = true
@@ -556,7 +557,7 @@ shape = SubResource("BoxShape3D_w5krq")
 mesh = SubResource("BoxMesh_w5krq")
 
 [node name="Cube" type="RigidBody3D" parent="DynamicWorld" unique_id=402500325]
-transform = Transform3D(0.86602540378444, 0.5, 0, -0.5, 0.86602540378444, 0, 0, 0, 1, -80.4454483, 1.5767949, -16.9)
+transform = Transform3D(0.86602540378444, 0.5, 0, -0.5, 0.86602540378444, 0, 0, 0, 1, -80.44500000000698, 1.5270000000018626, -16.89999999999418)
 collision_layer = 32
 collision_mask = 51
 mass = 200.0
@@ -570,7 +571,7 @@ shape = SubResource("BoxShape3D_7wtpe")
 mesh = SubResource("BoxMesh_tk7e2")
 
 [node name="BigCube" type="RigidBody3D" parent="DynamicWorld" unique_id=310657805]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.3545517000000076, 10.2767949, 60.50000000000001)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.3549999999959255, 10.226999999998952, 60.5)
 collision_layer = 32
 collision_mask = 51
 mass = 1000.0
@@ -601,12 +602,13 @@ mesh = SubResource("SphereMesh_76stg")
 shape = SubResource("SphereShape3D_tk7e2")
 
 [node name="Ball2" type="RigidBody3D" parent="DynamicWorld" unique_id=1987976922]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.6, 1.0999999999999999, 0.49999999999999967)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.5, 1.1, -2.1)
 collision_layer = 32
 collision_mask = 51
+mass = 2.0
 physics_material_override = SubResource("PhysicsMaterial_76stg")
 continuous_cd = true
-linear_velocity = Vector3(0, 0, -50)
+linear_velocity = Vector3(0, 0, -34)
 linear_damp = 0.2
 angular_velocity = Vector3(0, 0.7853981633974483, 0.7853981633974483)
 angular_damp = 0.2
@@ -619,8 +621,8 @@ mesh = SubResource("SphereMesh_76stg")
 shape = SubResource("SphereShape3D_tk7e2")
 
 [node name="LargeBall" type="RigidBody3D" parent="DynamicWorld" unique_id=1305058536]
-process_mode = 4
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.7, 10.2, 36.7)
+process_mode = 1
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.7, 10.1, 36.7)
 collision_layer = 32
 collision_mask = 51
 mass = 2000.0
