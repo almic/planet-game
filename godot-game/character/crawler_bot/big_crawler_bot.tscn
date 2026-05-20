@@ -60,6 +60,17 @@ resource_name = "FemurMesh"
 material = SubResource("StandardMaterial3D_2g2re")
 size = Vector3(0.06, 0.25, 0.05)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_f04iu"]
+transparency = 1
+albedo_color = Color(1, 1, 1, 0.5)
+albedo_texture = ExtResource("5_eqa8u")
+uv1_triplanar = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_tdgv8"]
+resource_name = "FemurMesh"
+material = SubResource("StandardMaterial3D_f04iu")
+size = Vector3(0.06, 0.25, 0.05)
+
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_eqa8u"]
 resource_name = "MidLegShape"
 radius = 0.04
@@ -76,6 +87,11 @@ resource_name = "TibiaMesh"
 material = SubResource("StandardMaterial3D_2g2re")
 size = Vector3(0.08, 0.8, 0.05)
 
+[sub_resource type="BoxMesh" id="BoxMesh_kegpd"]
+resource_name = "TibiaMesh"
+material = SubResource("StandardMaterial3D_f04iu")
+size = Vector3(0.08, 0.8, 0.05)
+
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_xefeq"]
 resource_name = "LongLegShape"
 radius = 0.06
@@ -90,6 +106,11 @@ metadata/_custom_type_script = "uid://r30j5e0iugw1"
 [sub_resource type="BoxMesh" id="BoxMesh_a3xbf"]
 resource_name = "TarsusMesh"
 material = SubResource("StandardMaterial3D_2g2re")
+size = Vector3(0.12, 1.7, 0.06)
+
+[sub_resource type="BoxMesh" id="BoxMesh_8gnh6"]
+resource_name = "TarsusMesh"
+material = SubResource("StandardMaterial3D_f04iu")
 size = Vector3(0.12, 1.7, 0.06)
 
 [node name="CrawlerBot" type="RigidBody3D" unique_id=461561025 node_paths=PackedStringArray("leg_ik")]
@@ -468,6 +489,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
 mesh = SubResource("BoxMesh_welis")
 metadata/_edit_lock_ = true
 
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontRightFemur" unique_id=1008953879]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
+mesh = SubResource("BoxMesh_tdgv8")
+metadata/_edit_lock_ = true
+
 [node name="FrontRightTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="4" unique_id=446306188]
 transform = Transform3D(0.8090154949902784, 0.388376134159202, -0.44120029314648235, -3.355602187865058e-08, 0.7506123020740318, 0.660742688635742, 0.5877872121262746, -0.5345510942043119, 0.6072570178172607, 0.3646779299432567, 0.7200000232589459, -0.9153690418762828)
 bone_name = "FrontRightTibia"
@@ -500,6 +526,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3999999999941792, 0)
 mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontRightTibia" unique_id=1312985646]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3999999999941792, 0)
+mesh = SubResource("BoxMesh_kegpd")
+metadata/_edit_lock_ = true
+
 [node name="FrontRightTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="5" unique_id=145349629]
 transform = Transform3D(0.809019414872364, 0.37018324986313633, 0.45656501349641915, -4.359664989665289e-08, -0.7767594601411534, 0.6297970904380906, 0.5877817154553212, -0.509518200022484, -0.628413469164304, 0.6753789055433295, 1.3204899186061452, -1.3430099260531234)
 bone_name = "FrontRightTarsus"
@@ -530,6 +561,11 @@ metadata/_custom_type_script = "uid://y5avqll8ah8b"
 [node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontRightTarsus/FR_Tarsus_Body" unique_id=841348793]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
 mesh = SubResource("BoxMesh_a3xbf")
+metadata/_edit_lock_ = true
+
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontRightTarsus" unique_id=216008797]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
+mesh = SubResource("BoxMesh_8gnh6")
 metadata/_edit_lock_ = true
 
 [node name="FrontLeftFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="6" unique_id=141929963]
@@ -566,6 +602,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
 mesh = SubResource("BoxMesh_welis")
 metadata/_edit_lock_ = true
 
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontLeftFemur" unique_id=932383914]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
+mesh = SubResource("BoxMesh_tdgv8")
+metadata/_edit_lock_ = true
+
 [node name="FrontLeftTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="7" unique_id=1406494824]
 transform = Transform3D(0.8090154296533141, -0.38837622670176186, 0.44120019095214513, 3.453315129423333e-08, 0.7506121728750345, 0.6607428459240261, -0.5877872006492962, -0.5345511875969627, 0.6072568410721759, -0.36467803478138244, 0.720000168763771, -0.9153690003704685)
 bone_name = "FrontLeftTibia"
@@ -598,6 +639,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3999999999941792, 0)
 mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontLeftTibia" unique_id=655429568]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3999999999941792, 0)
+mesh = SubResource("BoxMesh_kegpd")
+metadata/_edit_lock_ = true
+
 [node name="FrontLeftTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="8" unique_id=798975725]
 transform = Transform3D(0.8090193460023091, -0.37018321444922964, -0.45656515042056844, -1.0361043045633358e-07, -0.7767595958153196, 0.6297969521132903, -0.5877818102476577, -0.5095178311985381, -0.628413660515431, -0.6753791190367768, 1.3204899464167226, -1.3430100657406634)
 bone_name = "FrontLeftTarsus"
@@ -628,6 +674,11 @@ metadata/_custom_type_script = "uid://y5avqll8ah8b"
 [node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontLeftTarsus/FL_Tarsus_Body" unique_id=1910406700]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
 mesh = SubResource("BoxMesh_a3xbf")
+metadata/_edit_lock_ = true
+
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontLeftTarsus" unique_id=641841812]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
+mesh = SubResource("BoxMesh_8gnh6")
 metadata/_edit_lock_ = true
 
 [node name="MiddleRightFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="9" unique_id=423662255]
@@ -664,6 +715,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
 mesh = SubResource("BoxMesh_welis")
 metadata/_edit_lock_ = true
 
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/MiddleRightFemur" unique_id=957733687]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
+mesh = SubResource("BoxMesh_tdgv8")
+metadata/_edit_lock_ = true
+
 [node name="MiddleRightTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="10" unique_id=1254913357]
 transform = Transform3D(-1.604058249012835e-07, 0.660743283943673, -0.7506118921170136, 5.849913868679901e-08, 0.7506119514165668, 0.6607432779205142, 0.9999999999999855, 6.207691827403263e-08, -1.5905543075331242e-07, 0.45912884254684494, 0.7199999677908466, 8.85511896827946e-08)
 bone_name = "MiddleRightTibia"
@@ -696,6 +752,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3999999999941792, 0)
 mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/MiddleRightTibia" unique_id=1326105537]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3999999999941792, 0)
+mesh = SubResource("BoxMesh_kegpd")
+metadata/_edit_lock_ = true
+
 [node name="MiddleRightTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="11" unique_id=170592321]
 transform = Transform3D(-1.715908111077143e-07, 0.6297981415130962, 0.7767586097049081, 6.834497717288597e-08, -0.7767587062607548, 0.6297981259083292, 0.999999999999983, 1.611551299739046e-07, 9.024110126002874e-08, 0.9877235728867698, 1.32048953338284, 1.3821274148083938e-07)
 bone_name = "MiddleRightTarsus"
@@ -726,6 +787,11 @@ metadata/_custom_type_script = "uid://y5avqll8ah8b"
 [node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/MiddleRightTarsus/MR_Tarsus_Body" unique_id=364308167]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
 mesh = SubResource("BoxMesh_a3xbf")
+metadata/_edit_lock_ = true
+
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/MiddleRightTarsus" unique_id=951369413]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
+mesh = SubResource("BoxMesh_8gnh6")
 metadata/_edit_lock_ = true
 
 [node name="MiddleLeftFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="12" unique_id=1557707387]
@@ -762,6 +828,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
 mesh = SubResource("BoxMesh_welis")
 metadata/_edit_lock_ = true
 
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/MiddleLeftFemur" unique_id=1656999451]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
+mesh = SubResource("BoxMesh_tdgv8")
+metadata/_edit_lock_ = true
+
 [node name="MiddleLeftTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="13" unique_id=197094913]
 transform = Transform3D(-1.2685083921780245e-07, -0.6607430865100908, 0.7506123107607133, -2.8961619371579447e-08, 0.7506120579417311, 0.6607430591730461, -0.9999999999999915, 6.2076885420694e-08, -1.1435201139889593e-07, -0.4591290047895111, 0.7199999608203632, 8.855121670181623e-08)
 bone_name = "MiddleLeftTibia"
@@ -794,6 +865,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3999999999941792, 0)
 mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/MiddleLeftTibia" unique_id=504422650]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3999999999941792, 0)
+mesh = SubResource("BoxMesh_kegpd")
+metadata/_edit_lock_ = true
+
 [node name="MiddleLeftTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="14" unique_id=1909786607]
 transform = Transform3D(-1.3686696043945794e-07, -0.6297982179860245, -0.7767587538701963, -9.649915678791614e-08, -0.7767587310170847, 0.6297979357375156, -0.9999999999999859, 1.6115514779596445e-07, 4.553763917821779e-08, -0.9877236452360547, 1.3204898693590832, 1.382127376124936e-07)
 bone_name = "MiddleLeftTarsus"
@@ -824,6 +900,11 @@ metadata/_custom_type_script = "uid://y5avqll8ah8b"
 [node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/MiddleLeftTarsus/ML_Tarsus_Body" unique_id=1574724031]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
 mesh = SubResource("BoxMesh_a3xbf")
+metadata/_edit_lock_ = true
+
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/MiddleLeftTarsus" unique_id=1161748740]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
+mesh = SubResource("BoxMesh_8gnh6")
 metadata/_edit_lock_ = true
 
 [node name="BackRightFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="15" unique_id=2003722146]
@@ -860,6 +941,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
 mesh = SubResource("BoxMesh_welis")
 metadata/_edit_lock_ = true
 
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/BackRightFemur" unique_id=1135650221]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
+mesh = SubResource("BoxMesh_tdgv8")
+metadata/_edit_lock_ = true
+
 [node name="BackRightTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="16" unique_id=1352416718]
 transform = Transform3D(-0.8090155064026618, 0.3883760907064636, -0.441200617825633, -1.6201104099689777e-08, 0.7506124716761615, 0.6607425642156202, 0.5877873003051728, 0.5345510045815632, -0.6072573027116971, 0.3646779878360913, 0.7200000515546778, 0.9153690300658033)
 bone_name = "BackRightTibia"
@@ -892,6 +978,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3999999999941792, 0)
 mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/BackRightTibia" unique_id=1779925057]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3999999999941792, 0)
+mesh = SubResource("BoxMesh_kegpd")
+metadata/_edit_lock_ = true
+
 [node name="BackRightTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="17" unique_id=1959162545]
 transform = Transform3D(-0.8090195220685797, 0.37018334572575157, 0.45656518270814994, -6.952121791549748e-08, -0.7767596831838143, 0.6297969620299904, 0.5877817732049206, 0.5095181801945674, 0.6284138204520834, 0.6753788750905351, 1.3204901318127524, 1.343009812348053)
 bone_name = "BackRightTarsus"
@@ -922,6 +1013,11 @@ metadata/_custom_type_script = "uid://y5avqll8ah8b"
 [node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/BackRightTarsus/BR_Tarsus_Body" unique_id=421568421]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
 mesh = SubResource("BoxMesh_a3xbf")
+metadata/_edit_lock_ = true
+
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/BackRightTarsus" unique_id=186214400]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
+mesh = SubResource("BoxMesh_8gnh6")
 metadata/_edit_lock_ = true
 
 [node name="BackLeftFemur" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="18" unique_id=954582355]
@@ -958,6 +1054,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
 mesh = SubResource("BoxMesh_welis")
 metadata/_edit_lock_ = true
 
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/BackLeftFemur" unique_id=392135431]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
+mesh = SubResource("BoxMesh_tdgv8")
+metadata/_edit_lock_ = true
+
 [node name="BackLeftTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="19" unique_id=483154553]
 transform = Transform3D(-0.8090155064026618, -0.3883760907064636, 0.441200617825633, 1.6201104099689777e-08, 0.7506124716761615, 0.6607425642156202, -0.5877873003051728, 0.5345510045815632, -0.6072573027116971, -0.3646779878360913, 0.7200000515546778, 0.9153690300658033)
 bone_name = "BackLeftTibia"
@@ -990,6 +1091,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3999999999941792, 0)
 mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/BackLeftTibia" unique_id=1512834400]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3999999999941792, 0)
+mesh = SubResource("BoxMesh_kegpd")
+metadata/_edit_lock_ = true
+
 [node name="BackLeftTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="20" unique_id=709463790]
 transform = Transform3D(-0.8090195220685797, -0.37018334572575157, -0.45656518270814994, 6.952121791549748e-08, -0.7767596831838143, 0.6297969620299904, -0.5877817732049206, 0.5095181801945674, 0.6284138204520834, -0.6753788750905351, 1.3204901318127524, 1.343009812348053)
 bone_name = "BackLeftTarsus"
@@ -1020,6 +1126,11 @@ metadata/_custom_type_script = "uid://y5avqll8ah8b"
 [node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/BackLeftTarsus/BL_Tarsus_Body" unique_id=895587999]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
 mesh = SubResource("BoxMesh_a3xbf")
+metadata/_edit_lock_ = true
+
+[node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/BackLeftTarsus" unique_id=366722803]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
+mesh = SubResource("BoxMesh_8gnh6")
 metadata/_edit_lock_ = true
 
 [node name="PhysicalSkeleton" type="SkeletonModifier3D" parent="big_crawler/Skeleton3D" index="21" unique_id=165867730]

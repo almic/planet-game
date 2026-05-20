@@ -332,7 +332,7 @@ size = 6.314
 
 [node name="CrawlerBot" parent="Characters" unique_id=461561025 instance=ExtResource("9_dunqf")]
 process_mode = 1
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 14.8, 0.15, -17.36)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 0.125, -5)
 debug_enabled = true
 debug_velocity = true
 debug_friction = true
@@ -340,48 +340,6 @@ debug_friction = true
 [node name="Camera3D" type="Camera3D" parent="Characters/CrawlerBot" unique_id=1751609405]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0.6, 1, -5.1)
 fov = 40.0
-
-[node name="CrawlerBot2" parent="Characters" unique_id=904908703 instance=ExtResource("9_dunqf")]
-process_mode = 1
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 33.822457271005185, 0.15089859858020205, 37.23867933364302)
-debug_enabled = true
-debug_velocity = true
-debug_friction = true
-
-[node name="CrawlerBot3" parent="Characters" unique_id=702894461 instance=ExtResource("9_dunqf")]
-process_mode = 1
-transform = Transform3D(-0.9659258262890684, 0.25881904510252074, -5.5511150000000004e-17, 0.25881904510252085, 0.9659258262890684, -2.3010198020423687e-18, 2.1955756056715703e-16, -1.4288937805768678e-17, -1.0000000000000002, 35.62245727100518, 1.8508985985802024, 37.23867933364302)
-debug_enabled = true
-debug_velocity = true
-debug_friction = true
-
-[node name="CrawlerBot4" parent="Characters" unique_id=1446551471 instance=ExtResource("9_dunqf")]
-process_mode = 1
-transform = Transform3D(-0.6830127018922194, -0.1830127018922193, -0.7071067811865476, -0.25881904510252074, 0.9659258262890684, -2.3010198020423683e-18, 0.6830127018922195, 0.18301270189221927, -0.7071067811865477, 32.12245727100518, 2.650898598580202, 37.23867933364302)
-debug_enabled = true
-debug_velocity = true
-debug_friction = true
-
-[node name="CrawlerBot5" parent="Characters" unique_id=466178254 instance=ExtResource("9_dunqf")]
-process_mode = 1
-transform = Transform3D(1.0000000000000002, -5.5511150000000004e-17, 1.236557754105885e-16, 1.9257313396384347e-16, 0.8660254037844387, -0.49999999999999994, -2.225241497356291e-16, 0.49999999999999994, 0.8660254037844387, 35.322457271005185, 4.050898598580202, 39.33867933364303)
-debug_enabled = true
-debug_velocity = true
-debug_friction = true
-
-[node name="CrawlerBot6" parent="Characters" unique_id=1727496523 instance=ExtResource("9_dunqf")]
-process_mode = 1
-transform = Transform3D(0.5000000000000004, 0.22414386804201333, -0.8365163037378077, -2.117856635565487e-17, 0.9659258262890682, 0.25881904510252074, 0.8660254037844387, -0.12940952255126045, 0.4829629131445343, 35.322457271005185, 4.050898598580202, 34.83867933364302)
-debug_enabled = true
-debug_velocity = true
-debug_friction = true
-
-[node name="CrawlerBot7" parent="Characters" unique_id=1504961661 instance=ExtResource("9_dunqf")]
-process_mode = 1
-transform = Transform3D(0.43301270189221974, -0.2888486293176435, -0.8538538922680615, -0.9012210650134382, -0.1205127018922193, -0.4162658773652742, 0.0173375885302538, 0.9497595264191646, -0.31249999999999983, 33.12245727100518, 6.450898598580203, 36.83867933364302)
-debug_enabled = true
-debug_velocity = true
-debug_friction = true
 
 [node name="DynamicWorld" type="Node" parent="." unique_id=1049443971]
 metadata/_edit_lock_ = true
@@ -576,7 +534,6 @@ collision_layer = 32
 collision_mask = 51
 mass = 1000.0
 physics_material_override = SubResource("PhysicsMaterial_dunqf")
-linear_velocity = Vector3(-15, 0, 0)
 metadata/_edit_group_ = true
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="DynamicWorld/BigCube" unique_id=1466874348]
@@ -608,9 +565,7 @@ collision_mask = 51
 mass = 2.0
 physics_material_override = SubResource("PhysicsMaterial_76stg")
 continuous_cd = true
-linear_velocity = Vector3(0, 0, -34)
 linear_damp = 0.2
-angular_velocity = Vector3(0, 0.7853981633974483, 0.7853981633974483)
 angular_damp = 0.2
 metadata/_edit_group_ = true
 
@@ -627,7 +582,6 @@ collision_layer = 32
 collision_mask = 51
 mass = 2000.0
 physics_material_override = SubResource("PhysicsMaterial_7wtpe")
-linear_velocity = Vector3(-10, 0, 0)
 metadata/_edit_group_ = true
 
 [node name="sphere" type="MeshInstance3D" parent="DynamicWorld/LargeBall" unique_id=1468254239]
