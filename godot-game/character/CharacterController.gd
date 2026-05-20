@@ -504,7 +504,7 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
     var floor_cos_theta: float
     var best_ground_mode: PhysicsServer3D.BodyMode
 
-    if spring_cos_theta >= ray_cos_theta:
+    if (not hit) or spring_cos_theta >= ray_cos_theta:
         ground_normal = spring.normal
         best_ground_mode = spring.other_mode
         floor_cos_theta = spring_cos_theta
@@ -562,7 +562,7 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
     if not test_new_floors:
         return
 
-    if spring_cos_theta >= ray_cos_theta:
+    if (not hit) or spring_cos_theta >= ray_cos_theta:
         ground_normal = spring.normal
         floor_cos_theta = spring_cos_theta
     else:
