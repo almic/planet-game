@@ -78,11 +78,14 @@ var calc_freq_damping: float = 0.0
 ## Contains data and object references on a joint
 class JointData:
     var bone_idx: int = -1
+    var bone_length: float = 0.0
     var parent: RigidBody3D
     var body: RigidBody3D
     var joint: Generic6DOFJoint3D
     var xform_rel_parent: Transform3D
     var xform_rel_body: Transform3D
+    var offset: Vector3
+    var angle: Quaternion
 
 static var INVALID_JOINT: JointData = JointData.new()
 
@@ -108,6 +111,7 @@ var joints: Array[JointData]
 var initialized: bool = false
 var has_bodies: bool = false
 
+var iterate_ik: IterateIK3D
 var _cached_attachments: Array[ModifierBoneTarget3D] = []
 
 
@@ -133,6 +137,14 @@ func editor_update_frequency_calculator() -> void:
     var effective_mass: float = calc_freq_stiffness / (omega * omega)
     calc_freq_damping = 2.0 * effective_mass * calc_freq_damping_ratio * omega
 
+func set_ik_modifier(ik_modifier: IterateIK3D) -> void:
+    if iterate_ik and iterate_ik.modification_processed.is_connected(update_motors):
+        iterate_ik.modification_processed.disconnect(update_motors)
+
+    iterate_ik = ik_modifier
+
+    if iterate_ik and (not iterate_ik.modification_processed.is_connected(update_motors)):
+        iterate_ik.modification_processed.connect(update_motors)
 
 func _process_modification_with_delta(delta: float) -> void:
     if not initialized:
@@ -142,20 +154,85 @@ func _process_modification_with_delta(delta: float) -> void:
     if not has_bodies:
         return
 
+    var to_remove: Array[JointData]
     for joint_data in joints:
-        var gt: Transform3D = joint_data.joint.global_transform
         var parent_rt: Transform3D = joint_data.xform_rel_parent
         var body_rt: Transform3D = joint_data.xform_rel_body
 
         var joint_parent: Transform3D = joint_data.parent.global_transform * parent_rt
         var joint_body: Transform3D = joint_data.body.global_transform * body_rt
 
-        # TODO
-        var error: Vector3 = joint_body.origin - joint_parent.origin
-        var angle: Quaternion = joint_parent.basis.get_rotation_quaternion().inverse() * joint_body.basis.get_rotation_quaternion()
+        var body_diff: Transform3D = joint_parent.affine_inverse() * joint_body
+        joint_data.offset = body_diff.origin
 
+        var offsets: PackedVector3Array = joint_data.joint.get_linear_limit()
+        var error: Vector3 = body_diff.origin
+        for axis in range(3):
+            var lower: float = offsets[0][axis]
+            var upper: float = offsets[1][axis]
+            if error[axis] > upper:
+                error[axis] -= upper
+            elif error[axis] < lower:
+                error[axis] -= lower
+            else:
+                error[axis] = 0
+
+        if error.length() > 0.02:
+            to_remove.append(joint_data)
+            print(joint_data.joint.name)
+            if joint_data.joint.name == &"FR_Femur_Joint":
+                breakpoint
+
+        # Only update rotations
+        var bone_initial_rotation: Quaternion = skeleton.get_bone_pose_rotation(joint_data.bone_idx)
+        var bone_rotation: Quaternion = (joint_data.parent.basis.inverse() * joint_data.body.basis).get_rotation_quaternion()
+        joint_data.angle = bone_rotation
+        if joint_data.parent == main_body:
+            var parent_rotation: Quaternion = skeleton.get_bone_global_pose(skeleton.get_bone_parent(joint_data.bone_idx)).basis.get_rotation_quaternion()
+            bone_rotation = parent_rotation.inverse() * bone_rotation
+        skeleton.set_bone_pose_rotation(joint_data.bone_idx, bone_rotation)
 
         #print('error: %s\nangle: %s' % [str(error), str(angle.get_euler())])
+
+    for joint_data in to_remove:
+        joints.erase(joint_data)
+        joint_data.joint.queue_free()
+        #print('Breaking joint %s on %s' % [joint_data.joint.name, main_body.name])
+
+
+func update_motors() -> void:
+    for joint_data in joints:
+        var target_rotation: Quaternion
+        if joint_data.parent == main_body:
+            var bone_xform: Transform3D = skeleton.get_bone_global_pose(joint_data.bone_idx)
+            target_rotation = bone_xform.basis.get_rotation_quaternion()
+
+            # TODO: linear displacement needed for bones attached to other moving bones so they
+            #       remain accurate to the IK requirements. This attempt basically guarantees that
+            #       the joints displace so much that they just fall off...
+
+            #var offset: Vector3 = joint_data.xform_rel_parent.affine_inverse() * bone_xform.origin
+            #joint_data.joint.set_linear_limit(offset, offset)
+        else:
+            target_rotation = skeleton.get_bone_pose_rotation(joint_data.bone_idx)
+
+        const MAX_VELOCITY: float = 0.5
+
+        var velocities: Vector3 = -(joint_data.angle.inverse() * target_rotation).get_euler()
+        for i in range(3):
+            if absf(velocities[i]) < 1.745e-3:
+                velocities[i] = 0.0
+                continue
+
+        # TODO: velocity calculation improvements
+
+        if joint_data.joint.get_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
+            joint_data.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.x)
+        if joint_data.joint.get_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
+            joint_data.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.y)
+        if joint_data.joint.get_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
+            joint_data.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.z)
+
 
 func setup_body_joints() -> void:
     # Do not modify the tree in the editor
@@ -399,8 +476,32 @@ func _make_joint_data_from_bone_target(target: ModifierBoneTarget3D, loaded_join
 
     var parent: RigidBody3D = bone_joint.get_node(bone_joint.node_a) as RigidBody3D
 
+    # Obtain a length by finding an IK setting with this bone in the chain, using the next bone as the length
+    var length: float = 0.5
+    var found: bool = false
+    for setting in range(iterate_ik.setting_count):
+        for joint in range(iterate_ik.get_joint_count(setting)):
+            if bone_idx == iterate_ik.get_joint_bone(setting, joint):
+                var length_bone: int = iterate_ik.get_joint_bone(setting, joint + 1)
+                length = skeleton.get_bone_pose_position(length_bone).length()
+                found = true
+                break
+        if found:
+            break
+    if not found:
+        push_warning(
+            (
+                'Attachment "%s" for bone %d does not have a setting in the IterateIK3D. Unable '
+                + 'to calculate a bone length, which is needed for motor displacement limits. '
+                + 'Using a default length of %.2f.'
+            ) % [
+                target.name, bone_idx, length
+            ]
+        )
+
     var joint_data: JointData = JointData.new()
     joint_data.bone_idx = bone_idx
+    joint_data.bone_length = length
     joint_data.body = bone_body
     joint_data.joint = bone_joint
     joint_data.parent = parent

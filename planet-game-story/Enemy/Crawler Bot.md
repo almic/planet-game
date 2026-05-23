@@ -89,3 +89,8 @@ Steps will use vectors and rotations + length interpolation. The process is like
 3. Rotate the leg vector towards the target vector, then move its length towards the target vector's length. This should produce a perfect swing and distance interpolation, as if it was actual robotics at work.
 4. Have a `swing_amount` parameter, that while I cannot prove it, I believe it will give nice enough results. When less than `0.0`, skip rotations and everything and just move the point to the target in a straight line. When less than `1.0`, create the plane using one of the endpoints and the normal created by crossing the vector pointing from the current to the target with the up vector. Interpolate the length of the rotated vector to its point on that plane using `1.0 - swing_amount`
 5. Compute how much rotation should happen by taking the current leg speed in meters-per-second over the length of a 90-degree arc with a radius of the rest position of the leg, then multiply by PI/2.0 to get the radians-per-second.
+
+# Physical Skeleton Procedure
+1. Copy physical joint rotations to skeleton pose
+2. IK runs with physical joint pose
+3. Update motors of joints to target IK pose

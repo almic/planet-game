@@ -220,65 +220,57 @@ func _validate_property(property: Dictionary) -> void:
         if body.skeleton:
             property.hint_string = body.skeleton.get_concatenated_bone_names()
 
-func setup() -> void:
-    if not has_initialized:
-        has_initialized = true
-        target_rest_position = global_transform.inverse() * target.global_position
-        attachment_point = (body.global_transform.inverse() * global_transform).origin
-
-        # Get the chain end bone
-        var target_path: NodePath = body.leg_ik.get_path_to(target)
-        for setting in range(body.leg_ik.setting_count):
-            if body.leg_ik.get_target_node(setting) == target_path:
-                target_bone_idx = body.leg_ik.get_end_bone(setting)
-                break
-
-        if target_bone_idx == -1:
-            push_error(
-                'Unable to find end bone targetting node "%s"!' % target.name
-            )
-
-        ground_bone_idx = body.skeleton.find_bone(ground_bone)
-        # Find a bone attachment with the same bone
-        var parent_bone: int = body.skeleton.get_bone_parent(ground_bone_idx)
-        var attachments: Array[ModifierBoneTarget3D]
-        attachments.assign(body.skeleton.find_children('', 'ModifierBoneTarget3D'))
-        for bone_target in attachments:
-            if bone_target.bone != parent_bone:
-                continue
-            ground_cast = ShapeCast3D.new()
-            ground_cast.enabled = false
-            ground_cast.collision_mask = shape_cast.collision_mask
-            # NOTE: Ground cast should share the step cast shape resource (NOT a copy!) so they remain synchronized
-            ground_cast.shape = shape_cast.shape
-            bone_target.add_child(ground_cast, false, Node.INTERNAL_MODE_FRONT)
-
-            var target_position: Vector3 = body.skeleton.get_bone_pose_position(ground_bone_idx)
-            var bone_direction: Vector3 = target_position.normalized()
-            var shape_size: float = (ground_cast.shape as SphereShape3D).radius
-            var start_position: Vector3 = (bone_direction * (ground_hit_start + shape_size))
-            ground_cast.position = target_position - start_position
-            ground_cast.target_position = start_position + (bone_direction * (ground_hit_extra - shape_size))
-
-            break
-
-        if not ground_cast:
-            push_error(
-                    'Leg %s could not find an existing BoneAttachment3D for the bone "%s"! Please create one.' % [
-                        name, body.skeleton.get_bone_name(parent_bone)
-                    ]
-            )
-
-        # Add all children as exclusion for shape cast
-        for child_body in body.find_children('', 'CollisionObject3D'):
-            if child_body is CollisionObject3D:
-                if shape_cast:
-                    shape_cast.add_exception_rid(child_body.get_rid())
-                if ground_cast:
-                    ground_cast.add_exception_rid(child_body.get_rid())
+func setup(
+        ground_nodes: Dictionary[int, Node3D],
+        ik_target_bone: int,
+        cast_exceptions: Array[RID]
+) -> void:
+    if has_initialized:
+        return
 
     cached_adjacent = get_adjacent()
     cached_diagonal = get_diagonal()
+
+    target_rest_position = global_transform.inverse() * target.global_position
+    attachment_point = (body.global_transform.inverse() * global_transform).origin
+
+    target_bone_idx = ik_target_bone
+    if target_bone_idx == -1:
+        push_error(
+            'Unable to find end bone targetting node "%s" for leg %s!' % [target.name, name]
+        )
+        return
+
+    ground_bone_idx = body.skeleton.find_bone(ground_bone)
+
+    var ground_node_bone: int = body.skeleton.get_bone_parent(ground_bone_idx)
+    var ground_cast_node: Node3D = ground_nodes.get(ground_node_bone)
+    if not ground_cast_node:
+        push_error(
+            'Missing ground node for bone "%s" for leg %s!' % [ground_node_bone, name]
+        )
+        return
+
+    ground_cast = ShapeCast3D.new()
+    ground_cast.enabled = false
+    ground_cast.collision_mask = shape_cast.collision_mask
+    # NOTE: Ground cast should share the step cast shape resource (NOT a copy!) so they remain synchronized
+    ground_cast.shape = shape_cast.shape
+    ground_cast_node.add_child(ground_cast, false, Node.INTERNAL_MODE_FRONT)
+
+    var target_position: Vector3 = body.skeleton.get_bone_pose_position(ground_bone_idx)
+    var bone_direction: Vector3 = target_position.normalized()
+    var shape_size: float = (ground_cast.shape as SphereShape3D).radius
+    var start_position: Vector3 = (bone_direction * (ground_hit_start + shape_size))
+    ground_cast.position = target_position - start_position
+    ground_cast.target_position = start_position + (bone_direction * (ground_hit_extra - shape_size))
+
+    for rid in cast_exceptions:
+        shape_cast.add_exception_rid(rid)
+        ground_cast.add_exception_rid(rid)
+
+    has_initialized = true
+
 
 func update_ground_leg_transform() -> void:
     ground_leg_transform = (

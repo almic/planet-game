@@ -18,6 +18,8 @@ var rotation_rate: float = deg_to_rad(180.0)
 @export_range(0.1, 1.0, 0.01, 'or_greater')
 var rotation_overshoot: float = 0.2
 
+@export var skeleton: Skeleton3D
+@export var physical_skeleton: PhysicalSkeleton
 @export var leg_ik: IterateIK3D
 
 ## The number of grounded legs necessary for jumping
@@ -65,7 +67,6 @@ var _debug_leg_gravity_vec: int = 0
 
 
 var legs: Array[CrawlerLeg]
-var skeleton: Skeleton3D
 
 var target_position: Vector3 = Vector3.INF
 var target_direction: Vector3 = Vector3.INF
@@ -85,8 +86,6 @@ var leg_gravity_power: PackedFloat64Array
 func _ready() -> void:
     super._ready()
 
-    skeleton = leg_ik.get_skeleton()
-
     # Load legs from children
     legs.assign(find_children('', 'CrawlerLeg'))
 
@@ -99,16 +98,49 @@ func _ready() -> void:
         # Copy collision mask to casters
         leg.shape_cast.collision_mask = collision_mask
 
+    if Engine.is_editor_hint():
+        return
+
     leg_update_data.resize(count * 3)
     leg_gravity_power.resize(count)
     leg_gravity_power.fill(0.0)
 
+    # Collect leg rigid bodies to ignore for shape casts
+    var child_bodies: Array[RID]
+    for body in find_children('', 'CollisionObject3D'):
+        if body is CollisionObject3D:
+            child_bodies.append(body.get_rid())
+
+    # Get the chain end bones for each leg target
+    var target_bones: Dictionary = {}
+    for setting in range(leg_ik.setting_count):
+        target_bones.set(leg_ik.get_target_node(setting), leg_ik.get_end_bone(setting))
+
+    # Collect target nodes for ground bones
+    var ground_targets: Dictionary[int, Node3D] = {}
+    var attachments: Array[ModifierBoneTarget3D]
+    attachments.assign(skeleton.find_children('', 'ModifierBoneTarget3D'))
+    for attach in attachments:
+        var bodies: Array[RigidBody3D]
+        bodies.assign(attach.find_children('', 'RigidBody3D', false))
+        if bodies.size() == 0:
+            continue
+        ground_targets.set(
+            attach.bone,
+            bodies[0]
+        )
+
     # Initialize legs
     for leg in legs:
-        leg.setup()
+        leg.setup(
+                ground_targets,
+                target_bones.get(leg_ik.get_path_to(leg.target)),
+                child_bodies
+        )
 
     leg_ik.active = not Engine.is_editor_hint()
 
+    physical_skeleton.set_ik_modifier(leg_ik)
     skeleton.skeleton_updated.connect(update_leg_transforms)
 
     desired_surface_friction = 0.0
