@@ -22,9 +22,6 @@ var rotation_overshoot: float = 0.2
 @export var physical_skeleton: PhysicalSkeleton
 @export var leg_ik: IterateIK3D
 
-## The number of grounded legs necessary for jumping
-@export_range(1, 8, 1, 'or_less')
-var legs_needed_for_jump: int = 3
 
 @export_group('Leg Parameters', 'body')
 
@@ -53,6 +50,11 @@ var body_leg_mass_ratio: float = 0.5
 ## enough to be stable while being pushed and entering extreme inclines.
 @export_range(0.01, 30.0, 0.01, 'or_greater')
 var body_max_leg_force: float = 20.0
+
+## The number of grounded legs necessary for jumping
+@export_range(1, 8, 1, 'or_less')
+var body_legs_needed_for_jump: int = 3
+
 
 @export_group('Debug', 'debug')
 
@@ -197,7 +199,7 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
         else:
             ground_normal = ground_normal.normalized()
 
-        if grounded_leg_count >= legs_needed_for_jump:
+        if grounded_leg_count >= body_legs_needed_for_jump:
             has_landed_on_ground_for_jump = true
     else:
         ground_position = Vector3.INF
