@@ -180,8 +180,6 @@ func _process_modification_with_delta(delta: float) -> void:
         if error.length() > 0.02:
             to_remove.append(joint_data)
             print(joint_data.joint.name)
-            if joint_data.joint.name == &"FR_Femur_Joint":
-                breakpoint
 
         # Only update rotations
         var bone_initial_rotation: Quaternion = skeleton.get_bone_pose_rotation(joint_data.bone_idx)

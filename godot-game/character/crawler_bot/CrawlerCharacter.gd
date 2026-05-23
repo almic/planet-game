@@ -141,14 +141,13 @@ func _ready() -> void:
     leg_ik.active = not Engine.is_editor_hint()
 
     physical_skeleton.set_ik_modifier(leg_ik)
-    skeleton.skeleton_updated.connect(update_leg_transforms)
+    physical_skeleton.modification_processed.connect(update_leg_transforms)
 
     desired_surface_friction = 0.0
 
-
 func update_leg_transforms() -> void:
     for leg in legs:
-        leg.update_ground_leg_transform()
+        leg.update_leg_transform()
 
 func damage(source: Object, amount: float, hit_point: Vector3) -> void:
     print('Took %f damage from %s at position %s' % [amount, source.name, str(hit_point)])

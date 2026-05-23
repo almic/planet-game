@@ -32,7 +32,7 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [x] Test using Joint3D to connect rigid body to PhysicalBone3D?
 - [x] Ground velocity can move leg targets when leg is in contact with ground
 - [x] DESTRUCTION TIME
-- [ ] Make legs act on the physical locations of the skeleton and not IK state
+- [x] Make legs act on the physical locations of the skeleton and not IK state
 - [ ] Change leg step behavior to be mostly an internal state, and act when unexpectedly removed from the ground. Legs should not pay attention to any step parameters of other legs, only the ground and comfort state. In fact it is probably best to think of steps as roughly asking its neighbors "hey, are you okay if I were to intentionally come off the ground?" then neighbors should say yes or no using simple logic questions about itself and its neighbors.
 - [ ] Calculate an iterated motor velocity by running up and down leg chains. Odd iterations run from end to root, even iterations run root to end. Errors determine velocities, and velocities incur additional proportional errors on the next higher and lower joint angles. Test one, two, and three iterations to see how quickly velocities converge. Experiment with a "baumgarte" factor to see if it improves convergence rates.
 - [ ] Make positional constraints on joints attached to the main body work properly, they should not cause legs to detach when offsets become large. May need an iterative approach or just limit the maximum change allowed each tick.

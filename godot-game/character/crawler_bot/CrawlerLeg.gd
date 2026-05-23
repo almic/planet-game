@@ -272,7 +272,7 @@ func setup(
     has_initialized = true
 
 
-func update_ground_leg_transform() -> void:
+func update_leg_transform() -> void:
     ground_leg_transform = (
               body.skeleton.global_transform
             * body.skeleton.get_bone_global_pose(body.skeleton.get_bone_parent(ground_bone_idx))
