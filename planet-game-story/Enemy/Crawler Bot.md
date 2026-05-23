@@ -29,28 +29,18 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - Some way to disable/ counteract gravity, possibly depending on grounded legs. An overcomplicated solution is to draw a plane using the grounded legs, and intersect a ray from the "center of mass" towards the nearest position of the polygon, and applying a gravitational resistance at that intersection point, allowing the body to rotate (fall over), and the legs to move to stay upright.
 
 # Plan
-- [x] Make legs move together when one leg notices its pair/ partners are ready
-- [x] Make them face target direction using angular forces
-- [x] Fix weird pitch things where it tries to have a high pitch when the final pitch should be close to zero
-- [x] Fix rest positions not rotating with the body
-- [x] Fix leg rotations over time, just apply some small correction to each bone's rest position every few frames
-- [x] Fix rest transform snapping, should slide along direction of raycast.
-- [x] Determine if a leg is actually grounded, use a shape intersection most likely
-- [x] Apply anti-gravity force based on legs in contact with the ground. At least half the legs must be in contact for full anti-gravity.
-- [x] Use a spring-like force to keep the center of mass some distance away from the ground.
-- [x] Test wall climbing!
-- [x] Cache all leg neighbors when leg layout changes. Saves having to construct up to two lists each tick to check neighbors.
-- [x] Fix leg stalling when stopping
-- [x] Make spring force in the body up direction, not the leg normal
-- [x] Change anti-gravity to be at full power for grounded legs, and grounded legs will share extra from floating legs, up to mass ratio parameter. Add a parameter that will shift that leg's body height offset by some amount in the direction of gravity, interpolated based on the body's UP alignment with gravity.
-- [x] Limit spring force to be some small acceleration over gravity
-- [x] Angle the step cast and increase the length. Legs go through the ground and don't lift at all when they should be lifting a lot.
-- [ ] Force a leg lift when it is negatively affecting the movement of the whole, figure out how to define that in code (good luck)
-- [ ] Make drag coeff a parameter, compute surface area against wind using math and collision shapes (shadows of 3D shapes, hopefully some library tool)
-- [ ] Test using Joint3D to connect rigid body to PhysicalBone3D?
-- [ ] Fix weird rotation effects when at lower delta times
+- [x] Test using Joint3D to connect rigid body to PhysicalBone3D?
 - [x] Ground velocity can move leg targets when leg is in contact with ground
-- [ ] DESTRUCTION TIME
+- [x] DESTRUCTION TIME
+- [ ] Make legs act on the physical locations of the skeleton and not IK state
+- [ ] Change leg step behavior to be mostly an internal state, and act when unexpectedly removed from the ground. Legs should not pay attention to any step parameters of other legs, only the ground and comfort state. In fact it is probably best to think of steps as roughly asking its neighbors "hey, are you okay if I were to intentionally come off the ground?" then neighbors should say yes or no using simple logic questions about itself and its neighbors.
+- [ ] Calculate an iterated motor velocity by running up and down leg chains. Odd iterations run from end to root, even iterations run root to end. Errors determine velocities, and velocities incur additional proportional errors on the next higher and lower joint angles. Test one, two, and three iterations to see how quickly velocities converge. Experiment with a "baumgarte" factor to see if it improves convergence rates.
+- [ ] Make positional constraints on joints attached to the main body work properly, they should not cause legs to detach when offsets become large. May need an iterative approach or just limit the maximum change allowed each tick.
+- [ ] Friction needs to be solved after legs update ground state, and applied locally to main body for rotation and linear acceleration, rather than applying friction as a whole to the main body.
+- [ ] Use SpringCast3D (and probably improve it?) for maintaining ground contact and softening impacts on the legs. Right now legs just hover above the ground or rigidly collide and push the entire body off balance from IK. This solves a disconnect between where the leg colliders impact the ground and where IK wants to place them. Also allow disabling grip when the leg needs to change footing position.
+- [ ] Leg behavior should be effectively disabled when joints are destroyed, IK should be disabled for the entire chain and motors set to 0 target velocity with low force limit to simulate disabled motors that only have friction.
+- [ ] Copy angular limitations to joints from the IK settings
+- [ ] Force a leg lift when it is negatively affecting the movement of the whole, figure out how to define that in code (good luck)
 
 # Walking Improvement Ideas
 - [ ] Improve leg step location logic, allow sweeping a larger space and track the best location for the next step or the rest of the leg. Probably some evaluation function that compares the current leg location with the best leg location, and if the current position is bad, move to the best one.
