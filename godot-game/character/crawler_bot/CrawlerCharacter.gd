@@ -19,7 +19,18 @@ var rotation_rate: float = deg_to_rad(180.0)
 var rotation_overshoot: float = 0.2
 
 @export var skeleton: Skeleton3D
+
+
+@export_group('Physical Skeleton')
+
+@export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
+var enable_physical_skeleton: bool = true
+
 @export var physical_skeleton: PhysicalSkeleton
+
+
+@export_group('Leg IK')
+
 @export var leg_ik: IterateIK3D
 
 
@@ -123,13 +134,18 @@ func _ready() -> void:
     var attachments: Array[ModifierBoneTarget3D]
     attachments.assign(skeleton.find_children('', 'ModifierBoneTarget3D'))
     for attach in attachments:
-        var bodies: Array[RigidBody3D]
-        bodies.assign(attach.find_children('', 'RigidBody3D', false))
-        if bodies.size() == 0:
-            continue
+        var target: Node3D
+        if enable_physical_skeleton:
+            var bodies: Array[RigidBody3D]
+            bodies.assign(attach.find_children('', 'RigidBody3D', false))
+            if bodies.size() == 0:
+                continue
+            target = bodies[0]
+        else:
+            target = attach
         ground_targets.set(
             attach.bone,
-            bodies[0]
+            target
         )
 
     # Initialize legs
@@ -140,10 +156,26 @@ func _ready() -> void:
                 child_bodies
         )
 
-    leg_ik.active = not Engine.is_editor_hint()
-
+    # Should be off for the editor, on in-game
+    leg_ik.active = true
     physical_skeleton.set_ik_modifier(leg_ik)
-    physical_skeleton.modification_processed.connect(update_leg_transforms)
+
+    if enable_physical_skeleton:
+        physical_skeleton.active = true
+        physical_skeleton.modification_processed.connect(update_leg_transforms)
+        # NOTE: deterministic has the effect of just copying the joint positions
+        #       into the working chain state, so as long as the skeleton is
+        #       being updated by physics, "deterministic" is what we want from IK
+        leg_ik.deterministic = true
+    else:
+        # Must run this method, for some reason Skeleton3D respects custom
+        # modifiers "active" flag on load, while IterateIK3D definitely still
+        # processes once even though it is also disabled
+        physical_skeleton.setup_body_joints.call_deferred()
+        leg_ik.modification_processed.connect(update_leg_transforms)
+        # NOTE: ensure this is off when in pure IK mode, see above note for
+        #       physics to understand why this might be enabled
+        leg_ik.deterministic = false
 
     desired_surface_friction = 0.0
 

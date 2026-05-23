@@ -81,7 +81,9 @@ class JointData:
     var bone_length: float = 0.0
     var parent: RigidBody3D
     var body: RigidBody3D
+    var center_of_mass: Vector3
     var joint: Generic6DOFJoint3D
+    var attachment: ModifierBoneTarget3D
     var xform_rel_parent: Transform3D
     var xform_rel_body: Transform3D
     var offset: Vector3
@@ -110,6 +112,7 @@ var joints: Array[JointData]
 
 var initialized: bool = false
 var has_bodies: bool = false
+var bodies_active: bool = false
 
 var iterate_ik: IterateIK3D
 var _cached_attachments: Array[ModifierBoneTarget3D] = []
@@ -152,6 +155,14 @@ func _process_modification_with_delta(delta: float) -> void:
         initialized = true
 
     if not has_bodies:
+        return
+
+    if active:
+        if not bodies_active:
+            activate_bodies()
+    else:
+        if bodies_active:
+            deactivate_bodies()
         return
 
     var to_remove: Array[JointData]
@@ -198,7 +209,44 @@ func _process_modification_with_delta(delta: float) -> void:
         #print('Breaking joint %s on %s' % [joint_data.joint.name, main_body.name])
 
 
+func activate_bodies() -> void:
+    for joint_data in joints:
+        # Make body visible
+        joint_data.body.visible = true
+
+        # Copy processing state to bodies and joints
+        # TODO: this causes the joint to rebuild, and probably immediately, so
+        #       we may need to be sure to run through joints from root to end
+        joint_data.body.process_mode = main_body.process_mode
+        joint_data.joint.process_mode = main_body.process_mode
+
+        # Teleport to joint attachment node
+        joint_data.body.global_transform = joint_data.attachment.global_transform
+        joint_data.body.force_update_transform()
+
+        # Copy velocity of main body
+        var main_body_state := PhysicsServer3D.body_get_direct_state(main_body.get_rid())
+        var local_position: Vector3 = (joint_data.body.global_position + joint_data.center_of_mass) - main_body_state.transform.origin
+        joint_data.body.linear_velocity = main_body_state.get_velocity_at_local_position(local_position)
+        joint_data.body.angular_velocity = main_body_state.angular_velocity
+
+    bodies_active = true
+
+func deactivate_bodies() -> void:
+    for joint_data in joints:
+        # Hide body
+        joint_data.body.visible = false
+
+        # Copy processing state to bodies and joints
+        joint_data.body.process_mode = Node.PROCESS_MODE_DISABLED
+        joint_data.joint.process_mode = Node.PROCESS_MODE_DISABLED
+
+    bodies_active = false
+
 func update_motors() -> void:
+    if not bodies_active:
+        return
+
     for joint_data in joints:
         var target_rotation: Quaternion
         if joint_data.parent == main_body:
@@ -302,19 +350,17 @@ func setup_body_joints() -> void:
         joint.node_a = path_map.get(joint)[0].get_path()
         joint.node_b = path_map.get(joint)[1].get_path()
 
-        # Copy processing state to bodies and joints
-        joint_data.parent.process_mode = main_body.process_mode
-        joint_data.body.process_mode = main_body.process_mode
-        joint_data.joint.process_mode = main_body.process_mode
-
-        # Copy velocity of main body
-        var state := PhysicsServer3D.body_get_direct_state(joint_data.body.get_rid())
-        var local_position: Vector3 = (state.transform.origin + state.center_of_mass) - main_body_state.transform.origin
-        joint_data.body.linear_velocity = main_body_state.get_velocity_at_local_position(local_position)
-        joint_data.body.angular_velocity = main_body_state.angular_velocity
+        # Store center of mass
+        # NOTE: when enabling after being disabled, physics state isn't ready yet,
+        #       so we have to cache now before it is disabled.
+        joint_data.center_of_mass = PhysicsServer3D.body_get_param(joint_data.body.get_rid(), PhysicsServer3D.BODY_PARAM_CENTER_OF_MASS)
 
     joints.clear()
     joints.assign(loaded_joints)
+
+    # Initially disable joints
+    deactivate_bodies()
+
     has_bodies = true
 
 ## Travels up the scene tree until it finds the first RigidBody3D
@@ -503,6 +549,7 @@ func _make_joint_data_from_bone_target(target: ModifierBoneTarget3D, loaded_join
     joint_data.body = bone_body
     joint_data.joint = bone_joint
     joint_data.parent = parent
+    joint_data.attachment = target
 
     joint_data.xform_rel_body = bone_body.global_transform.affine_inverse() * bone_joint.global_transform
     joint_data.xform_rel_parent = parent.global_transform.affine_inverse() * bone_joint.global_transform
