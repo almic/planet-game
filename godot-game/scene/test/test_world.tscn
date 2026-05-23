@@ -319,11 +319,11 @@ size = Vector3(30, 0.1, 20)
 material = ExtResource("3_qyrsn")
 
 [node name="Characters" type="Node" parent="." unique_id=2116430924]
+process_mode = 1
 metadata/_edit_lock_ = true
 
 [node name="Player" parent="Characters" unique_id=1957397594 instance=ExtResource("1_fbyci")]
-process_mode = 1
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 25.3, 0.125, -3.4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.125, 0.5)
 metadata/_edit_group_ = true
 
 [node name="Camera3D" type="Camera3D" parent="Characters/Player" unique_id=1880891728]
@@ -331,7 +331,6 @@ transform = Transform3D(0, -1, 0, 0, 0, 1, -1, 0, 0, -0.2, 3.3, -4.1)
 size = 6.314
 
 [node name="CrawlerBot" parent="Characters" unique_id=461561025 instance=ExtResource("9_dunqf")]
-process_mode = 1
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 0.125, -5)
 debug_enabled = true
 debug_velocity = true
@@ -342,6 +341,7 @@ transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0.6, 1, -5.1)
 fov = 40.0
 
 [node name="DynamicWorld" type="Node" parent="." unique_id=1049443971]
+process_mode = 1
 metadata/_edit_lock_ = true
 
 [node name="RotatingFloor" type="RigidBody3D" parent="DynamicWorld" unique_id=1380169061]
@@ -543,7 +543,7 @@ shape = SubResource("BoxShape3D_76stg")
 mesh = SubResource("BoxMesh_gneou")
 
 [node name="Ball" type="RigidBody3D" parent="DynamicWorld" unique_id=428939051]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 3.2, -0.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 3, 2)
 collision_layer = 32
 collision_mask = 51
 physics_material_override = SubResource("PhysicsMaterial_76stg")
@@ -559,7 +559,7 @@ mesh = SubResource("SphereMesh_76stg")
 shape = SubResource("SphereShape3D_tk7e2")
 
 [node name="Ball2" type="RigidBody3D" parent="DynamicWorld" unique_id=1987976922]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.5, 1.1, -2.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 1, 4)
 collision_layer = 32
 collision_mask = 51
 mass = 2.0
@@ -576,7 +576,6 @@ mesh = SubResource("SphereMesh_76stg")
 shape = SubResource("SphereShape3D_tk7e2")
 
 [node name="LargeBall" type="RigidBody3D" parent="DynamicWorld" unique_id=1305058536]
-process_mode = 1
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.7, 10.1, 36.7)
 collision_layer = 32
 collision_mask = 51
