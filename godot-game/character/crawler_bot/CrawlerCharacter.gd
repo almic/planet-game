@@ -95,6 +95,9 @@ var leg_update_data: PackedVector3Array
 var leg_polygon: PackedVector2Array
 var leg_gravity_power: PackedFloat64Array
 
+var linear_leg_accel: Vector3
+var angular_leg_accel: Vector3
+
 
 func _ready() -> void:
     super._ready()
@@ -241,7 +244,10 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
     ground_direction = Vector3.ZERO
     ground_velocity = Vector3.ZERO
     ground_rel_con_velocity = Vector3.ZERO
+    angular_leg_accel = Vector3.ZERO
+    linear_leg_accel = Vector3.ZERO
 
+    # NOTE: is_on_floor is effectively a `grounded_leg_count != 0` test
     if not is_on_floor:
         return
 
@@ -252,25 +258,43 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
     else:
         max_leg_mass = mass / (legs.size() * body_leg_mass_ratio)
 
+    var body_friction: float = PhysicsServer3D.body_get_param(get_rid(), PhysicsServer3D.BODY_PARAM_FRICTION)
+
     for leg in legs:
         if not leg.is_grounded:
             continue
-
-        # Reduce applied force when leg should not be "holding" the ground
-        var power: float = minf(mass * leg_gravity_power[leg.index], max_leg_mass)
-        if not leg.apply_ground_forces:
-            power *= 0.1
 
         var leg_ground_velocity: Vector3 = leg.ground_rel_con_velocity.slide(leg.ground_normal)
         ground_rel_con_velocity += leg.ground_rel_con_velocity
         ground_velocity += leg_ground_velocity
 
-        # Apply angular forces here
-        var leg_force: Vector3 = 0.0 * power * leg.ground_rel_con_velocity * state.inverse_mass
-        state.angular_velocity += (
-              state.inverse_inertia_tensor
-            * (leg.ground_point - state.transform.origin - state.center_of_mass).cross(leg_force)
-        ) * state.step
+        if enable_physical_skeleton:
+            continue
+
+        # "Effective mass" per leg
+        var leg_mass: float = minf(mass * leg_gravity_power[leg.index], max_leg_mass)
+
+        # Reduce applied force when leg should not be "holding" the ground
+        if not leg.apply_ground_forces:
+            leg_mass *= 0.1
+
+        # Collision
+        var leg_force: Vector3 = leg_mass * leg.ground_normal * leg.ground_normal.dot(leg.ground_rel_con_velocity)
+
+        # Friction
+        var friction: float = absf(minf(body_friction, leg.ground_friction))
+        leg_force += -leg_ground_velocity * leg_mass * friction
+
+        angular_leg_accel += state.inverse_inertia_tensor * (leg.ground_point - state.transform.origin - state.center_of_mass).cross(leg_force)
+        linear_leg_accel += state.inverse_inertia * leg_force
+
+        # Push into the ground here
+        var ground_state := PhysicsServer3D.body_get_direct_state(leg.ground_body)
+        if ground_state:
+            ground_state.apply_force(-leg_force, leg.ground_point - ground_state.transform.origin)
+
+    ground_rel_con_velocity /= grounded_leg_count
+    ground_velocity /= grounded_leg_count
 
     if not ground_velocity.is_zero_approx():
         ground_direction = ground_velocity.normalized()
@@ -279,13 +303,17 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
 
 
 func _custom_pre_movement_forces(state: PhysicsDirectBodyState3D) -> void:
-    _solve_leg_offsets(state)
+    _solve_leg_forces(state)
 
     _solve_rotation(state)
 
-func _solve_leg_offsets(state: PhysicsDirectBodyState3D) -> void:
+func _solve_leg_forces(state: PhysicsDirectBodyState3D) -> void:
     if grounded_leg_count < 1:
         return
+
+    # Add leg accelerations immediately, the next section is responsible for stabilizing the crawler
+    state.linear_velocity += linear_leg_accel * state.step
+    state.angular_velocity += angular_leg_accel * state.step
 
     var rid: RID = get_rid()
 
@@ -629,10 +657,11 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
     var limited_angular: Vector3 = angular.sign() * max_angular.abs().minf(rotation_rate * (1.0 / rotation_overshoot))
     var target_angular: Vector3 = state.transform.basis * limited_angular
 
-    state.angular_velocity = state.angular_velocity.move_toward(
-            target_angular * rotation_overshoot,
-            state.step * rotation_acceleration * grounded_leg_factor
-    )
+    # TODO: this is bad, please figure it out. It rotates WAY too fast with acceleration, should
+    #       just add angular velocity to attempt to reach target directions.
+    #       I just changed it so it doesn't negate incoming velocity when it has zero desired change.
+    state.angular_velocity += target_angular * (1.0 + rotation_overshoot) * state.step * grounded_leg_factor
+    #state.angular_velocity += target_angular * (1.0 + rotation_overshoot) * state.step * rotation_acceleration * grounded_leg_factor
 
     if (not has_desired_rotation) and state.angular_velocity.length_squared() < 7.62e-5:
         # Low angular velocity, facing the target, clear target
