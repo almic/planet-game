@@ -323,7 +323,7 @@ process_mode = 1
 metadata/_edit_lock_ = true
 
 [node name="Player" parent="Characters" unique_id=1957397594 instance=ExtResource("1_fbyci")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.125, 0.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 0.125, 4)
 metadata/_edit_group_ = true
 
 [node name="Camera3D" type="Camera3D" parent="Characters/Player" unique_id=1880891728]
@@ -331,21 +331,24 @@ transform = Transform3D(0, -1, 0, 0, 0, 1, -1, 0, 0, -0.2, 3.3, -4.1)
 size = 6.314
 
 [node name="CrawlerBot" parent="Characters" unique_id=461561025 instance=ExtResource("9_dunqf")]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 0.125, -5)
+transform = Transform3D(-0.7071067811865476, 0, 0.7071067811865475, 0, 1, 0, -0.7071067811865475, 0, -0.7071067811865476, 44, 0, -6)
+enable_physical_skeleton = false
 debug_enabled = true
 debug_velocity = true
 debug_friction = true
 
 [node name="Camera3D" type="Camera3D" parent="Characters/CrawlerBot" unique_id=1751609405]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0.6, 1, -5.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, 0)
+projection = 1
 fov = 40.0
+size = 5.875
 
 [node name="DynamicWorld" type="Node" parent="." unique_id=1049443971]
 process_mode = 1
 metadata/_edit_lock_ = true
 
 [node name="RotatingFloor" type="RigidBody3D" parent="DynamicWorld" unique_id=1380169061]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.39999999999418, 0.10000000000582077, -2.6000000000058208)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.5, 0.10000000000582077, -2.5)
 collision_layer = 32
 collision_mask = 51
 axis_lock_linear_x = true

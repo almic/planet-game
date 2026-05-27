@@ -36,6 +36,31 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [x] Add bool to CrawlerCharacter to disable physical system and use IK only, so that testing can compare the two for accuracy. Ideally the physical system should only add reaction forces to legs and not have much affect on movement ability.
 - [x] Friction needs to be solved after legs update ground state, and applied locally to the "ground" leg body in physics mode, or the main body in virtual mode, for rotation and linear acceleration, rather than applying friction as a whole to the main body.
 - [ ] Change leg step behavior to be mostly an internal state, and act when unexpectedly removed from the ground. Legs should not pay attention to any step parameters of other legs, only the ground and comfort state. In fact it is probably best to think of steps as roughly asking its neighbors "hey, are you okay if I were to intentionally come off the ground?" then neighbors should say yes or no using simple logic questions about itself and its neighbors.
+
+What happens now
+1. `_integrate_forces()`
+    1. `_update_ground()`
+        1. leg update
+    2. `pose_updated()`
+    3. Forces are applied to the body
+2. PHYSICS TICK
+
+What I want to happen
+
+1. `_integrate_forces()`
+    1. `_update_ground()`
+        1. `leg.pre_update()`
+            1. `_update_grounded()` (update leg ground state)
+        2. `leg.check_early_step()` (early step state)
+        3. `leg.update()` (stepping & move leg targets)
+        4. `skeleton.advance()` (update IK)
+            1. `leg_pose_updated()`
+                1. `pose_updated()` (calculate leg velocity)
+    2. `_calculate_ground_vectors()`
+    3. `_custom_pre_movement_forces()`
+    4. Desired motion applied
+2. PHYSICS TICK
+
 - [ ] Use SpringCast3D (and probably improve it?) for maintaining ground contact and softening impacts on the legs. Right now legs just hover above the ground or rigidly collide and push the entire body off balance from IK. This solves a disconnect between where the leg colliders impact the ground and where IK wants to place them. Also allow disabling grip when the leg needs to change footing position.
 - [ ] Fix walking on the wrong side of surfaces, virtual clipping. One idea is to ray trace along the bones of the chain, and if it intersects anything but the crawler bodies, ignore any ground cast contact. If it hits the main body, consider it a good ground.
 - [ ] Update joints array to be in chain-order, so forward iteration is root-to-end and backward iteration is end-to-root. When a joint is destroyed, it should be deleted, and child joints should be "disabled" and removed from iteration list, and parents should be set to "non-functional" and target some "safe" rotation.

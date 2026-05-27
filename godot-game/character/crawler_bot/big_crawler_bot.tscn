@@ -119,7 +119,6 @@ mass = 10.0
 physics_material_override = ExtResource("1_ro1ip")
 custom_integrator = true
 continuous_cd = true
-angular_damp = 0.1
 script = ExtResource("1_3kbc3")
 skeleton = NodePath("big_crawler/Skeleton3D")
 physical_skeleton = NodePath("big_crawler/Skeleton3D/PhysicalSkeleton")
@@ -139,7 +138,7 @@ shape = SubResource("CapsuleShape3D_3kbc3")
 [node name="big_crawler" parent="." unique_id=1739686264 instance=ExtResource("2_2g2re")]
 
 [node name="Skeleton3D" parent="big_crawler" index="0" unique_id=1808933544]
-modifier_callback_mode_process = 0
+modifier_callback_mode_process = 2
 
 [node name="PhysicalSkeleton" type="SkeletonModifier3D" parent="big_crawler/Skeleton3D" index="0" unique_id=165867730]
 unique_name_in_owner = false

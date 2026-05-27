@@ -165,7 +165,7 @@ func _ready() -> void:
 
     if enable_physical_skeleton:
         physical_skeleton.active = true
-        physical_skeleton.modification_processed.connect(update_leg_transforms)
+        physical_skeleton.modification_processed.connect(leg_pose_updated)
         # NOTE: deterministic has the effect of just copying the joint positions
         #       into the working chain state, so as long as the skeleton is
         #       being updated by physics, "deterministic" is what we want from IK
@@ -175,16 +175,16 @@ func _ready() -> void:
         # modifiers "active" flag on load, while IterateIK3D definitely still
         # processes once even though it is also disabled
         physical_skeleton.setup_body_joints.call_deferred()
-        leg_ik.modification_processed.connect(update_leg_transforms)
+        leg_ik.modification_processed.connect(leg_pose_updated)
         # NOTE: ensure this is off when in pure IK mode, see above note for
         #       physics to understand why this might be enabled
         leg_ik.deterministic = false
 
     desired_surface_friction = 0.0
 
-func update_leg_transforms() -> void:
+func leg_pose_updated() -> void:
     for leg in legs:
-        leg.update_leg_transform()
+        leg.pose_updated()
 
 func damage(source: Object, amount: float, hit_point: Vector3) -> void:
     print('Took %f damage from %s at position %s' % [amount, source.name, str(hit_point)])
@@ -224,6 +224,8 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
             ground_normal += leg.ground_normal
             ground_position += leg.ground_point
 
+    skeleton.advance(state.step, true)
+
     if grounded_leg_count > 0:
         is_on_floor = true
         ground_normal /= grounded_leg_count
@@ -244,6 +246,7 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
     ground_direction = Vector3.ZERO
     ground_velocity = Vector3.ZERO
     ground_rel_con_velocity = Vector3.ZERO
+    ground_friction = Vector3.ZERO
     angular_leg_accel = Vector3.ZERO
     linear_leg_accel = Vector3.ZERO
 
@@ -278,20 +281,24 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
         if not leg.apply_ground_forces:
             leg_mass *= 0.1
 
-        # Collision
-        var leg_force: Vector3 = leg_mass * leg.ground_normal * leg.ground_normal.dot(leg.ground_rel_con_velocity)
+        # Collision force applying into the ground, only allow impacts and not pulls
+        var leg_force: Vector3 = leg_mass * leg.ground_normal * minf(leg.ground_normal.dot(leg.ground_rel_con_velocity), 0.0)
+
+        # NOTE: Save linear friction for ground_friction
+        linear_leg_accel -= state.inverse_inertia * leg_force
 
         # Friction
-        var friction: float = absf(minf(body_friction, leg.ground_friction))
-        leg_force += -leg_ground_velocity * leg_mass * friction
+        var friction: Vector3 = leg_ground_velocity * leg_mass * absf(minf(body_friction, leg.ground_friction))
+        ground_friction -= state.inverse_inertia * friction
 
-        angular_leg_accel += state.inverse_inertia_tensor * (leg.ground_point - state.transform.origin - state.center_of_mass).cross(leg_force)
-        linear_leg_accel += state.inverse_inertia * leg_force
+        # Angular acceleration from collision and friction
+        leg_force += friction
+        angular_leg_accel -= state.inverse_inertia_tensor * (leg.ground_point - state.transform.origin - state.center_of_mass).cross(leg_force)
 
         # Push into the ground here
         var ground_state := PhysicsServer3D.body_get_direct_state(leg.ground_body)
         if ground_state:
-            ground_state.apply_force(-leg_force, leg.ground_point - ground_state.transform.origin)
+            ground_state.apply_force(leg_force, leg.ground_point - ground_state.transform.origin)
 
     ground_rel_con_velocity /= grounded_leg_count
     ground_velocity /= grounded_leg_count
@@ -322,7 +329,6 @@ func _solve_leg_forces(state: PhysicsDirectBodyState3D) -> void:
     if not state.total_gravity.is_zero_approx():
         gravity_direction = state.total_gravity.normalized()
 
-    var leg_ratio: float = float(grounded_leg_count) / float(legs.size())
     var leg_mass: float = mass / legs.size()
     var max_leg_mass: float
 
@@ -340,8 +346,6 @@ func _solve_leg_forces(state: PhysicsDirectBodyState3D) -> void:
     var max_iterations: int = 3
     var sub_step: float = state.step / max_iterations
     var old_transform: Transform3D = state.transform
-
-    var old_angular: Vector3 = state.angular_velocity
 
     var total_grav_vec: Vector3 = Vector3.ZERO
 
@@ -469,8 +473,10 @@ func _solve_leg_forces(state: PhysicsDirectBodyState3D) -> void:
                 0.1
             )
 
-    # Try to maintain original angular velocity (extra damping, basically)
-    state.angular_velocity = state.angular_velocity.move_toward(old_angular, rotation_acceleration * leg_ratio * state.step)
+    # NOTE: There used to be code here that moved the angular velocity back towards
+    #       the incoming value, but this was causing bobbing because the whole
+    #       purpose of the method is to stabilize angular rotation, so undoing
+    #       that work meant it would perpetuate small velocities forever.
 
     # Reset changes to the transform
     state.transform = old_transform
