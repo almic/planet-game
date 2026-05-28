@@ -35,7 +35,10 @@ var pause_next_tick: bool = false
 func _ready() -> void:
     GUIDE.enable_mapping_context(input_global_context)
 
-    var root := get_tree().root
+    var tree: SceneTree = get_tree()
+    tree.physics_frame.connect(on_step_physics)
+
+    var root: Window = tree.root
     root.mouse_entered.connect(on_mouse_entered)
     root.mouse_exited.connect(on_mouse_exited)
     root.focus_entered.connect(on_focus_entered)
@@ -70,7 +73,7 @@ func _process(_delta: float) -> void:
             print('Stepping one tick!')
             pause_next_tick = true
 
-func _physics_process(_delta: float) -> void:
+func on_step_physics() -> void:
     if pause_next_tick:
         if is_paused():
             unpause()
