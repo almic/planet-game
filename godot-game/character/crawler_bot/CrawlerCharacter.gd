@@ -216,7 +216,7 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
         leg.check_early_step()
 
     for leg in legs:
-        leg.update(state)
+        leg.update()
 
         # At this point, all legs have decided if they want to apply ground forces or not
         if leg.apply_ground_forces:

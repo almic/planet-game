@@ -63,6 +63,13 @@ uv1_triplanar = true
 material = SubResource("StandardMaterial3D_6enav")
 size = Vector3(2, 2, 0.1)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_tk7e2"]
+size = Vector3(8, 7.5, 0.1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_ntkx1"]
+material = SubResource("StandardMaterial3D_6enav")
+size = Vector3(8, 7.5, 0.1)
+
 [sub_resource type="BoxShape3D" id="BoxShape3D_dunqf"]
 size = Vector3(20, 20, 0.1)
 
@@ -154,13 +161,14 @@ size = Vector3(200, 0.2, 200)
 material = ExtResource("1_1vq1p")
 
 [node name="Step" type="CSGCombiner3D" parent="." unique_id=72050405]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, 7.6)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 20, 0, 14)
 use_collision = true
 collision_layer = 16
 collision_mask = 0
+metadata/_edit_group_ = true
 
 [node name="18_cm_step" type="CSGBox3D" parent="Step" unique_id=393102135]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 2.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 2.5, 1)
 size = Vector3(8, 5, 2)
 material = ExtResource("3_qyrsn")
 script = ExtResource("4_dunqf")
@@ -168,7 +176,7 @@ steps = 28
 metadata/_custom_type_script = "uid://y0ge5wpqcwqt"
 
 [node name="18_cm_step2" type="CSGBox3D" parent="Step" unique_id=171394997]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 2.5, 0)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -5, 2.5, 1)
 size = Vector3(8, 5, 2)
 material = ExtResource("3_qyrsn")
 script = ExtResource("4_dunqf")
@@ -176,7 +184,7 @@ steps = 28
 metadata/_custom_type_script = "uid://y0ge5wpqcwqt"
 
 [node name="18_cm_step_45" type="CSGBox3D" parent="Step" unique_id=665724284]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 4, 2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 4, -1)
 size = Vector3(8, 8, 2)
 material = ExtResource("3_qyrsn")
 script = ExtResource("4_dunqf")
@@ -184,7 +192,7 @@ steps = 45
 metadata/_custom_type_script = "uid://y0ge5wpqcwqt"
 
 [node name="18_cm_step_45_2" type="CSGBox3D" parent="Step" unique_id=64960563]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 4, 2)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -5, 4, -1)
 size = Vector3(8, 8, 2)
 material = ExtResource("3_qyrsn")
 script = ExtResource("4_dunqf")
@@ -192,12 +200,12 @@ steps = 45
 metadata/_custom_type_script = "uid://y0ge5wpqcwqt"
 
 [node name="bridge" type="CSGBox3D" parent="Step" unique_id=1715889425]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 2.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 1)
 size = Vector3(2, 5, 2)
 material = ExtResource("3_qyrsn")
 
 [node name="bridge2" type="CSGBox3D" parent="Step" unique_id=1156440416]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 4, 2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -1)
 size = Vector3(2, 8, 2)
 material = ExtResource("3_qyrsn")
 
@@ -276,6 +284,19 @@ material = ExtResource("3_qyrsn")
 script = ExtResource("4_6enav")
 metadata/_custom_type_script = "uid://sl0e0oxfge4y"
 
+[node name="Platform" type="CSGCombiner3D" parent="." unique_id=538248203]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 40, 0, 20)
+use_collision = true
+collision_layer = 16
+collision_mask = 0
+
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="Platform" unique_id=1392327675]
+transform = Transform3D(0.9238795325112868, 0, 0.3826834323650898, 0, 1, 0, -0.3826834323650898, 0, 0.9238795325112868, 0, 5, 0)
+radius = 10.0
+height = 10.0
+smooth_faces = false
+material = ExtResource("3_qyrsn")
+
 [node name="RampWall" type="CSGCombiner3D" parent="." unique_id=25885024]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.6, 20.5, 11.5)
 use_collision = true
@@ -323,7 +344,7 @@ process_mode = 1
 metadata/_edit_lock_ = true
 
 [node name="Player" parent="Characters" unique_id=1957397594 instance=ExtResource("1_fbyci")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 0.125, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.5, 0.125, 5)
 metadata/_edit_group_ = true
 
 [node name="Camera3D" type="Camera3D" parent="Characters/Player" unique_id=1880891728]
@@ -331,14 +352,14 @@ transform = Transform3D(0, -1, 0, 0, 0, 1, -1, 0, 0, -0.2, 3.3, -4.1)
 size = 6.314
 
 [node name="CrawlerBot" parent="Characters" unique_id=461561025 instance=ExtResource("9_dunqf")]
-transform = Transform3D(-0.7071067811865476, 0, 0.7071067811865475, 0, 1, 0, -0.7071067811865475, 0, -0.7071067811865476, 44, 0, -6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.5, 0.5, -2.5)
 enable_physical_skeleton = false
 debug_enabled = true
 debug_velocity = true
 debug_friction = true
 
 [node name="Camera3D" type="Camera3D" parent="Characters/CrawlerBot" unique_id=1751609405]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, 0)
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 8, 0)
 projection = 1
 fov = 40.0
 size = 5.875
@@ -415,6 +436,32 @@ shape = SubResource("BoxShape3D_qyrsn")
 [node name="floor" type="MeshInstance3D" parent="DynamicWorld/Elevator" unique_id=1515547502]
 mesh = SubResource("BoxMesh_dunqf")
 
+[node name="Elevator2" type="RigidBody3D" parent="DynamicWorld" unique_id=99750070]
+transform = Transform3D(0, 1, 0, 0, 0, 1, 1, 0, 0, 40, 0.05000000000291038, 6.75)
+collision_layer = 32
+collision_mask = 51
+axis_lock_linear_x = true
+axis_lock_linear_z = true
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
+mass = 2000.0
+physics_material_override = ExtResource("7_7wtpe")
+custom_integrator = true
+continuous_cd = true
+linear_damp = 0.2
+script = ExtResource("4_w5krq")
+extension_length = 9.9
+extension_acceleration = 1.0
+return_acceleration = 1.0
+metadata/_edit_group_ = true
+
+[node name="collider" type="CollisionShape3D" parent="DynamicWorld/Elevator2" unique_id=1770500294]
+shape = SubResource("BoxShape3D_tk7e2")
+
+[node name="floor" type="MeshInstance3D" parent="DynamicWorld/Elevator2" unique_id=830738482]
+mesh = SubResource("BoxMesh_ntkx1")
+
 [node name="Slider" type="RigidBody3D" parent="DynamicWorld" unique_id=1904876756]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 2, 0.05, -14)
 collision_layer = 32
@@ -440,7 +487,7 @@ transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
 mesh = SubResource("BoxMesh_dunqf")
 
 [node name="Slider2" type="RigidBody3D" parent="DynamicWorld" unique_id=1262872185]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.8, 0.05, -87.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0.05000000000291038, -85)
 collision_layer = 32
 collision_mask = 51
 axis_lock_linear_x = true
@@ -454,7 +501,7 @@ custom_integrator = true
 continuous_cd = true
 linear_damp = 0.2
 script = ExtResource("4_w5krq")
-extension_length = 175.0
+extension_length = 170.0
 metadata/_edit_group_ = true
 
 [node name="collider" type="CollisionShape3D" parent="DynamicWorld/Slider2" unique_id=1119125480]
@@ -546,7 +593,7 @@ shape = SubResource("BoxShape3D_76stg")
 mesh = SubResource("BoxMesh_gneou")
 
 [node name="Ball" type="RigidBody3D" parent="DynamicWorld" unique_id=428939051]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 3, 2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.2, 3, -12.9)
 collision_layer = 32
 collision_mask = 51
 physics_material_override = SubResource("PhysicsMaterial_76stg")
@@ -562,7 +609,7 @@ mesh = SubResource("SphereMesh_76stg")
 shape = SubResource("SphereShape3D_tk7e2")
 
 [node name="Ball2" type="RigidBody3D" parent="DynamicWorld" unique_id=1987976922]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 1, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.2, 1, -10.9)
 collision_layer = 32
 collision_mask = 51
 mass = 2.0

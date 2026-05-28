@@ -189,16 +189,17 @@ var ground_body: RID
 var ground_normal: Vector3 = Vector3.INF
 ## Ground contact position in global space
 var ground_point: Vector3 = Vector3.INF
-## Ground local space position of contact
-var ground_local_position: Vector3 = Vector3.INF
 ## Velocity of the ground at the contact point
 var ground_velocity: Vector3 = Vector3.ZERO
+## Computed real velocity of the ground from tick-to-tick
+var ground_last_velocity: Vector3 = Vector3.ZERO
 var ground_xform: Transform3D = Transform3D.IDENTITY
 var ground_friction: float = 0.0
+## Set by the parent CrawlerCharacter class, exists here for (attempted) organization
 var ground_offset: float = INF
 
 var ground_last_rid: RID
-var ground_last_local_position: Vector3
+var ground_last_local: Vector3
 
 var target_bone_idx: int = -1
 
@@ -303,9 +304,10 @@ func pose_updated() -> void:
 
     if is_grounded:
         var leg_velocity: Vector3 = (target.global_position - target_last_global_position) / cached_step
-        if index == 0 and leg_velocity.length() > 0.0001:
-            print(leg_velocity)
-        ground_rel_con_velocity = leg_velocity - ground_velocity
+        if grounded_last_tick:
+            ground_rel_con_velocity = leg_velocity - ground_last_velocity
+        else:
+            ground_rel_con_velocity = leg_velocity - ground_velocity
 
     target_last_global_position = target.global_position
 
@@ -332,21 +334,23 @@ func pose_updated() -> void:
         )
 
 func pre_update(state: PhysicsDirectBodyState3D) -> void:
+    cached_step = state.step
+
     if force_lifting:
         is_lifting = true
 
     # time_since_moved += state.step
-    time_since_start_step += state.step
-    time_since_last_step += state.step
+    time_since_start_step += cached_step
+    time_since_last_step += cached_step
 
     _update_grounded()
 
     if is_grounded:
         time_since_grounded += state.step
 
-    _update_step_transform(state.transform.basis, state.step)
+    _update_step_transform(state.transform.basis)
 
-    _update_comfort_distance(state.step)
+    _update_comfort_distance()
 
     var local_rest: Vector3 = step_transform * target_rest_position
     target_global_rest = global_transform * local_rest
@@ -430,7 +434,7 @@ func _update_grounded() -> void:
                     0.001
             )
 
-func _update_step_transform(body_basis: Basis, step: float) -> void:
+func _update_step_transform(body_basis: Basis) -> void:
     var target_transform: Transform3D = Transform3D.IDENTITY
     if body.has_desired_forward:
         target_transform.origin += body_basis.inverse() * body.desired_direction * move_offset
@@ -452,20 +456,20 @@ func _update_step_transform(body_basis: Basis, step: float) -> void:
 
     if step_transform != target_transform:
         # Force at least 2cm/sec of travel each interpolation
-        var min_weight: float = minf(2.0 * step / step_transform.origin.distance_squared_to(target_transform.origin), 1.0)
+        var min_weight: float = minf(2.0 * cached_step / step_transform.origin.distance_squared_to(target_transform.origin), 1.0)
         # TODO: improve interpolation by comparing the body's rel ground velocity to desired direction.
         #       Should interpolate only while it is positive, and reach max rate when at or beyond desired speed
-        step_transform = step_transform.interpolate_with(target_transform, maxf(step * move_interp_rate * body.acceleration, min_weight))
+        step_transform = step_transform.interpolate_with(target_transform, maxf(cached_step * move_interp_rate * body.acceleration, min_weight))
 
         if step_transform.is_equal_approx(target_transform):
             step_transform = target_transform
 
-func _update_comfort_distance(step: float) -> void:
+func _update_comfort_distance() -> void:
     if body.is_stepping:
-        comfort_distance = move_toward(comfort_distance, step_distance, step * 2.0)
+        comfort_distance = move_toward(comfort_distance, step_distance, cached_step * 2.0)
     else:
         var t: float = lerpf(rest_distance, step_distance, (body.ground_direction.dot(body.ground_velocity)) / body.max_speed)
-        comfort_distance = move_toward(comfort_distance, t, step * 2.0)
+        comfort_distance = move_toward(comfort_distance, t, cached_step * 2.0)
 
 func _update_shape_cast(body_basis: Basis) -> void:
 
@@ -521,15 +525,23 @@ func check_early_step() -> void:
     if (not is_stepping) and can_start_step():
         start_step()
 
-func update(state: PhysicsDirectBodyState3D) -> void:
-
-    cached_step = state.step
+func update() -> void:
 
     # Prevent stepping when force lifting is enabled
     if force_lifting:
         is_stepping = false
     else:
-        _update_target(state.step)
+        _update_target()
+
+    # Stay relative to the current ground
+    if apply_ground_forces:
+        if grounded_last_tick:
+            var old_ground_state := PhysicsServer3D.body_get_direct_state(ground_last_rid)
+            # NOTE: we actually track ground location as where the target bone was after IK/ Physics
+            #       which is why `target_last_global_position` is used instead of some ground position
+            ground_last_velocity = (old_ground_state.transform * ground_last_local) - target_last_global_position
+            ground_last_velocity /= cached_step
+        ground_last_local = ground_xform.affine_inverse() * target.global_position
 
     # Yield lifting to the active step
     if not is_stepping:
@@ -541,9 +553,9 @@ func update(state: PhysicsDirectBodyState3D) -> void:
         else:
             baseline = target_rest_position.y
 
-        target.position.y = update_leg_lift(target.position.y, baseline, body.max_speed * state.step)
+        target.position.y = update_leg_lift(target.position.y, baseline, body.max_speed * cached_step)
 
-func _update_target(delta: float) -> void:
+func _update_target() -> void:
     if (
             (not is_moving)
         and (not is_stepping)
@@ -556,11 +568,8 @@ func _update_target(delta: float) -> void:
         # When grounded, maintain previous ground location with friction
         if grounded_last_tick:
             var old_ground_state := PhysicsServer3D.body_get_direct_state(ground_last_rid)
-            var old_ground_position: Vector3 = old_ground_state.transform * ground_last_local_position
-            target.global_position = target.global_position.move_toward(old_ground_position, body.max_speed * delta)
-        # Stay relative to the current ground
-        if is_grounded:
-            ground_last_local_position = ground_xform.affine_inverse() * target.global_position
+            var old_ground_position: Vector3 = old_ground_state.transform * ground_last_local
+            target.global_position = target.global_position.move_toward(old_ground_position, body.max_speed * cached_step)
 
         if debug_enable and debug_step_target:
             _debug_target_sphere = DebugDraw.sphere(
@@ -619,7 +628,7 @@ func _update_target(delta: float) -> void:
 
     var current_dist: float = (step_goal - step_current).length()
 
-    var step_delta: float = leg_speed * delta * clampf(current_dist / step_distance, 1.0, 2.0)
+    var step_delta: float = leg_speed * cached_step * clampf(current_dist / step_distance, 1.0, 2.0)
     var new_step: Vector3 = _calculate_step_vector(step_current, step_goal, step_delta)
 
     current_dist = (step_goal - new_step).length()
@@ -641,9 +650,6 @@ func _update_target(delta: float) -> void:
         is_lifting = false
         time_since_last_step = 0.0
         target.position = step_target
-
-        if is_grounded:
-            ground_last_local_position = ground_xform.affine_inverse() * target.global_position
 
         if debug_enable and debug_step_reason:
             _debug_step_reason_text_id = DebugDraw.text(
