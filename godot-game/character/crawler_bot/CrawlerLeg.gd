@@ -290,12 +290,7 @@ func pose_updated() -> void:
 
     # Render before copying the IK result
     if debug_enable and debug_ik_target:
-        _debug_ik_sphere = DebugDraw.sphere(
-                target.global_position,
-                0.02,
-                Color.AQUA,
-                _debug_ik_sphere
-        )
+        _draw_ik_target()
 
     target.global_position = (
               body.skeleton.global_transform
@@ -312,26 +307,7 @@ func pose_updated() -> void:
     target_last_global_position = target.global_position
 
     if debug_enable and debug_ground_cast:
-        var shape_origin: Vector3 = ground_cast.target_position
-        var shape_color: Color
-        if ground_cast.is_colliding():
-            shape_origin *= ground_cast.get_closest_collision_unsafe_fraction()
-            shape_color = Color.DARK_ORCHID
-        else:
-            shape_color = Color.DARK_SLATE_GRAY
-
-        _debug_ground_cast_vector = DebugDraw.vector(
-                ground_cast.global_position,
-                ground_cast.global_basis * shape_origin,
-                shape_color,
-                _debug_ground_cast_vector
-        )
-        _debug_ground_cast_shape = DebugDraw.sphere(
-                ground_cast.global_transform * shape_origin,
-                (ground_cast.shape as SphereShape3D).radius,
-                shape_color,
-                _debug_ground_cast_shape
-        )
+        _draw_ground_cast()
 
 func pre_update(state: PhysicsDirectBodyState3D) -> void:
     cached_step = state.step
@@ -361,18 +337,7 @@ func pre_update(state: PhysicsDirectBodyState3D) -> void:
     is_comfortable = dist_sqr_to_rest <= comfort_distance * comfort_distance
 
     if debug_enable and debug_rest_area:
-        var color: Color = Color.GREEN
-        if not is_comfortable:
-            color = Color.RED
-        _debug_rest_circle = DebugDraw.circle(
-                target_global_rest,
-                comfort_distance,
-                global_basis.y,
-                16,
-                color,
-                _debug_rest_circle,
-                1.0
-        )
+        _draw_rest_area()
 
     _update_shape_cast(state.transform.basis)
     if shape_cast.is_colliding():
@@ -412,12 +377,8 @@ func _update_grounded() -> void:
         ground_friction = PhysicsServer3D.body_get_param(ground_body, PhysicsServer3D.BODY_PARAM_FRICTION)
 
         if debug_enable and debug_ground_normal:
-            _debug_ground_normal_vector = DebugDraw.vector(
-                    ground_point,
-                    ground_normal * 0.5,
-                    Color.CORNFLOWER_BLUE,
-                    _debug_ground_normal_vector
-            )
+            _draw_ground_normal()
+
     elif is_grounded:
         is_grounded = false
         ground_normal = Vector3.INF
@@ -426,13 +387,7 @@ func _update_grounded() -> void:
         ground_friction = 0.0
         time_since_grounded = 0.0
         if debug_enable and debug_ground_normal:
-            _debug_ground_normal_vector = DebugDraw.vector(
-                    Vector3.ZERO,
-                    Vector3.ZERO,
-                    Color.CORNFLOWER_BLUE,
-                    _debug_ground_normal_vector,
-                    0.001
-            )
+            _draw_ground_normal(true)
 
 func _update_step_transform(body_basis: Basis) -> void:
     var target_transform: Transform3D = Transform3D.IDENTITY
@@ -493,26 +448,7 @@ func _update_shape_cast(body_basis: Basis) -> void:
     shape_cast.force_shapecast_update()
 
     if debug_enable and debug_step_cast:
-        var shape_origin: Vector3 = shape_cast.target_position
-        var shape_color: Color
-        if shape_cast.is_colliding():
-            shape_origin *= shape_cast.get_closest_collision_unsafe_fraction()
-            shape_color = Color.OLIVE_DRAB
-        else:
-            shape_color = Color.DARK_SLATE_GRAY
-
-        _debug_step_cast_vector = DebugDraw.vector(
-                shape_cast.global_position,
-                shape_cast.global_basis * shape_origin,
-                shape_color,
-                _debug_step_cast_vector
-        )
-        _debug_step_cast_shape = DebugDraw.sphere(
-                shape_cast.global_transform * shape_origin,
-                (shape_cast.shape as SphereShape3D).radius,
-                shape_color,
-                _debug_step_cast_shape
-        )
+        _draw_step_cast()
 
     shape_cast.transform = old_shape_cast_xform
 
@@ -572,34 +508,15 @@ func _update_target() -> void:
             target.global_position = target.global_position.move_toward(old_ground_position, body.max_speed * cached_step)
 
         if debug_enable and debug_step_target:
-            _debug_target_sphere = DebugDraw.sphere(
-                    Vector3.ZERO,
-                    0.0,
-                    Color.TRANSPARENT,
-                    _debug_target_sphere,
-                    0.0
-            )
+            _draw_step_target(true)
 
         return
 
     if debug_enable:
         if debug_step_target:
-            _debug_target_sphere = DebugDraw.sphere(
-                    global_transform * step_target,
-                    (shape_cast.shape as SphereShape3D).radius,
-                    Color.FIREBRICK * Color(1.0, 1.0, 1.0, 0.3),
-                    _debug_target_sphere,
-                    1.0
-            )
+            _draw_step_target()
         if debug_step_reason:
-            _debug_step_reason_text_id = DebugDraw.text(
-                    target.global_position,
-                    _debug_step_reason_text,
-                    Color.DARK_ORANGE,
-                    24.0,
-                    _debug_step_reason_text_id,
-                    1.0
-            )
+            _draw_step_reason()
 
     var leg_speed: float
 
@@ -652,14 +569,7 @@ func _update_target() -> void:
         target.position = step_target
 
         if debug_enable and debug_step_reason:
-            _debug_step_reason_text_id = DebugDraw.text(
-                    Vector3.INF,
-                    '',
-                    Color.DARK_ORANGE,
-                    16.0,
-                    _debug_step_reason_text_id,
-                    0.1
-            )
+            _draw_step_reason(true)
     else:
         target.position = new_step
 
@@ -838,3 +748,124 @@ func get_diagonal() -> Array[CrawlerLeg]:
         result.append(body.legs[idx])
 
     return result
+
+func _draw_step_cast() -> void:
+    var shape_origin: Vector3 = shape_cast.target_position
+    var shape_color: Color
+    if shape_cast.is_colliding():
+        shape_origin *= shape_cast.get_closest_collision_unsafe_fraction()
+        shape_color = Color.OLIVE_DRAB
+    else:
+        shape_color = Color.DARK_SLATE_GRAY
+
+    _debug_step_cast_vector = DebugDraw.vector(
+            shape_cast.global_position,
+            shape_cast.global_basis * shape_origin,
+            shape_color,
+            _debug_step_cast_vector
+    )
+    _debug_step_cast_shape = DebugDraw.sphere(
+            shape_cast.global_transform * shape_origin,
+            (shape_cast.shape as SphereShape3D).radius,
+            shape_color,
+            _debug_step_cast_shape
+    )
+
+func _draw_step_target(clear: bool = false) -> void:
+    if clear:
+        _debug_target_sphere = DebugDraw.sphere(
+                Vector3.ZERO,
+                0.0,
+                Color.TRANSPARENT,
+                _debug_target_sphere,
+                0.0
+        )
+        return
+    _debug_target_sphere = DebugDraw.sphere(
+            global_transform * step_target,
+            (shape_cast.shape as SphereShape3D).radius,
+            Color.FIREBRICK * Color(1.0, 1.0, 1.0, 0.3),
+            _debug_target_sphere,
+            1.0
+    )
+
+func _draw_step_reason(clear: bool = false) -> void:
+    if clear:
+        _debug_step_reason_text_id = DebugDraw.text(
+                Vector3.INF,
+                '',
+                Color.DARK_ORANGE,
+                16.0,
+                _debug_step_reason_text_id,
+                0.1
+        )
+        return
+    _debug_step_reason_text_id = DebugDraw.text(
+            target.global_position,
+            _debug_step_reason_text,
+            Color.DARK_ORANGE,
+            24.0,
+            _debug_step_reason_text_id,
+            1.0
+    )
+
+func _draw_ik_target() -> void:
+    _debug_ik_sphere = DebugDraw.sphere(
+            target.global_position,
+            0.02,
+            Color.AQUA,
+            _debug_ik_sphere
+    )
+
+func _draw_ground_cast() -> void:
+    var shape_origin: Vector3 = ground_cast.target_position
+    var shape_color: Color
+    if ground_cast.is_colliding():
+        shape_origin *= ground_cast.get_closest_collision_unsafe_fraction()
+        shape_color = Color.DARK_ORCHID
+    else:
+        shape_color = Color.DARK_SLATE_GRAY
+
+    _debug_ground_cast_vector = DebugDraw.vector(
+            ground_cast.global_position,
+            ground_cast.global_basis * shape_origin,
+            shape_color,
+            _debug_ground_cast_vector
+    )
+    _debug_ground_cast_shape = DebugDraw.sphere(
+            ground_cast.global_transform * shape_origin,
+            (ground_cast.shape as SphereShape3D).radius,
+            shape_color,
+            _debug_ground_cast_shape
+    )
+
+func _draw_ground_normal(clear: bool = false) -> void:
+    if clear:
+        _debug_ground_normal_vector = DebugDraw.vector(
+                Vector3.ZERO,
+                Vector3.ZERO,
+                Color.CORNFLOWER_BLUE,
+                _debug_ground_normal_vector,
+                0.001
+        )
+        return
+    _debug_ground_normal_vector = DebugDraw.vector(
+            ground_point,
+            ground_normal * 0.5,
+            Color.CORNFLOWER_BLUE,
+            _debug_ground_normal_vector
+    )
+
+func _draw_rest_area() -> void:
+    var color: Color = Color.GREEN
+    if not is_comfortable:
+        color = Color.RED
+    _debug_rest_circle = DebugDraw.circle(
+            target_global_rest,
+            comfort_distance,
+            global_basis.y,
+            16,
+            color,
+            _debug_rest_circle,
+            1.0
+    )
