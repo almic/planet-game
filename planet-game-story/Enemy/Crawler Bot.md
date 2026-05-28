@@ -37,6 +37,109 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [x] Friction needs to be solved after legs update ground state, and applied locally to the "ground" leg body in physics mode, or the main body in virtual mode, for rotation and linear acceleration, rather than applying friction as a whole to the main body.
 - [ ] Change leg step behavior to be mostly an internal state, and act when unexpectedly removed from the ground. Legs should not pay attention to any step parameters of other legs, only the ground and comfort state. In fact it is probably best to think of steps as roughly asking its neighbors "hey, are you okay if I were to intentionally come off the ground?" then neighbors should say yes or no using simple logic questions about itself and its neighbors.
 
+Goals of a leg
+1. Stay comfortable
+2. Stay on the ground
+
+Algorithm
+0. Search for suitable ground
+1. If the leg is comfortable and grounded...
+    1. If `ground_time` is larger than `X * InputManager.PHYSICS_TICKS`...
+        1. If suitable ground is available AND further than `early_step` distance...
+            1. Ask all pairs (Pair Query), if OK...
+                1. Ask all neighbors (Neighbor Query), if OK...
+                    1. Target suitable ground (take a step)
+                    2. Set `target_is_ground` to `true`
+                    3. Terminate
+    2. Stay on ground
+    3. If `drag_time` is positive...
+        1. Decrement `drag_time` by `3`
+    4. Terminate
+2. (Not Comfortable OR Not Grounded OR Both)
+3. If not grounded...
+    1. If `drag_time` is positive...
+        1. Decrement `drag_time` by `2`
+    2. Reason: Floating
+    3. If suitable ground available...
+        1. Target it (take a step)
+        2. Set `target_is_ground` to `true`
+        3. Terminate
+    4. Target comfortable lifted position (temporary lift)
+        - Future: Expand search for suitable ground
+    5. Terminate
+4. (Grounded and Not Comfortable)
+5. If suitable ground available...
+    1. Ask all neighbors for permission to leave the ground (see next section)
+    2. If all neighbors are OK...
+        1. Target it (take a step)
+        2. Reason: Not Comfortable
+        3. Set `target_is_ground` to `true`
+        4. Terminate
+    - Future: Expand search for suitable ground
+6. Either some neighbors are in disagreement, or no available ground.
+7. If current `ground_rel_con_velocity.dot(body.ground_direction)` is at least half of `body.ground_direction.dot(body.ground_velocity)`...
+    1. Increment `drag_time` by `2`
+    2. If `drag_time` exceeds `2 * X * InputManager.PHYSICS_TICKS`...
+        1. Reason: Dragging
+        2. If suitable ground available...
+            1. Target it (take a step)
+            2. Set `target_is_ground` to `true`
+            3. Terminate
+        3. Target comfortable lifted position (temporary lift)
+        4. Terminate
+8. Otherwise, if `drag_time` is positive...
+    1. Decrement by `1`
+9. Terminate
+
+Pair Query:
+1. Lookup `paired` legs from CrawlerCharacter cache
+2. Initialize value `pair_inactive` to `true`
+3. For each valid leg, if...
+    1. `target_is_ground`...
+        1. `target_time` is less than some value...
+            1. Reason: Sync with leg
+            2. Return OK
+        2. Set `pair_inactive` to `false`
+4. If `pair_inactive`...
+    1. Reason: Early Step
+    2. Return OK
+5. Return DISAGREE
+
+Neighbor Query:
+1. Lookup `anti_paired` legs from CrawlerCharacter cache
+2. For each valid leg, if...
+    1. It is performing a temporary lift...
+        1. Return DISAGREE
+    2. It is targeting suitable ground...
+        1. Return DISAGREE
+    3. It is not comfortable...
+        1. Return DISAGREE
+3. Return OK
+
+Ground Time:
+- Reset to `0` when `is_grounded` is `false`
+- Reset when targeting new ground (take a step)
+- Reset when targeting lift position (temporary or forced)
+- Increment by `1` while grounded and no targets
+
+Target Time:
+- Reset to `-1` when reaching a target
+- Increment by `1` while traveling to target
+
+Target Is Ground:
+- Reset to `false` when reaching a target
+
+Leg Target:
+1. Initialize `new_position` to `target.position`
+2. Compute `z_axis_swing_angle` between `target.position` and `current_target` from the first IK bone in the leg chain
+3. Rotate `new_position` by `signf(z_axis_swing_angle) * minf(absf(z_axis_swing_angle), swing_rate)`
+4. Rotate `target.position` by `z_axis_swing_angle`
+5. Compute `x_axis_swing_angle` between `target.position` and `current_target` from the position of the 'last' IK bone in the leg chain
+6. Rotate `new_position` by `x_axis_swing_angle` similarly to the previous z-axis swing
+7. Rotate `target.position` by `x_axis_swing_angle`
+8. Compute a linear travel using the arc length using a radius from the first bone in the chain to `target.position` and angle of `swing_rate`, without passing through the point. Apply the linear travel to `new_position`.
+9. Set `target.position` to `new_position`
+
 What happens now
 1. `_integrate_forces()`
     1. `_update_ground()`
