@@ -198,17 +198,17 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
         ) * state.inverse_mass # NOTE: Proportional to mass!!!
 
     if desired_surface_friction > 0.0 and (not has_desired_forward) and (not is_slipping) and deceleration > 0.0 and not ground_velocity.is_zero_approx():
-            # Stop quickly
+        # Stop quickly
 
-            # TODO: Stopping friction is causing weird interactions on slopes.
-            #       This must be addressed by trying new ways to calculate it here.
-            var lateral_ground: Vector3 = ground_rel_con_velocity.slide(local_up)
-            var ground_speed: float = lateral_ground.length()
+        # TODO: Stopping friction is causing weird interactions on slopes.
+        #       This must be addressed by trying new ways to calculate it here.
+        var lateral_ground: Vector3 = ground_rel_con_velocity.slide(local_up)
+        var ground_speed: float = lateral_ground.length()
 
-            var max_stop_speed: float = ground_speed / state.step
-            var stop_len: float = minf(deceleration, max_stop_speed)
+        var max_stop_speed: float = ground_speed / state.step
+        var stop_len: float = minf(deceleration, max_stop_speed)
 
-            ground_friction += (-ground_direction) * stop_len * desired_surface_friction
+        ground_friction += (-ground_direction) * stop_len * desired_surface_friction
 
     # NOTE: Computes and applies spring and ground friction forces from current state
     if spring_active and spring:
