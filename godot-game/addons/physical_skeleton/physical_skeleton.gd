@@ -74,11 +74,13 @@ var calc_freq_damping_ratio: float = 0.5:
 var calc_freq_damping: float = 0.0
 
 
-
 ## Contains data and object references on a joint
 class JointData:
     var bone_idx: int = -1
     var bone_length: float = 0.0
+    var is_ik_joint: bool = false
+    var is_enabled: bool = true
+    var ik_setting_idx: int = -1
     var parent: RigidBody3D
     var body: RigidBody3D
     var center_of_mass: Vector3
@@ -116,6 +118,7 @@ var bodies_active: bool = false
 
 var iterate_ik: IterateIK3D
 var _cached_attachments: Array[ModifierBoneTarget3D] = []
+var _target_to_settings: Dictionary
 
 
 func editor_create_ik_bodies() -> void:
@@ -144,7 +147,12 @@ func set_ik_modifier(ik_modifier: IterateIK3D) -> void:
     if iterate_ik and iterate_ik.modification_processed.is_connected(update_motors):
         iterate_ik.modification_processed.disconnect(update_motors)
 
+    _target_to_settings.clear()
     iterate_ik = ik_modifier
+
+    for i in range(iterate_ik.setting_count):
+        var target_node: Node3D = iterate_ik.get_node(iterate_ik.get_target_node(i))
+        _target_to_settings.set(target_node, i)
 
     if iterate_ik and (not iterate_ik.modification_processed.is_connected(update_motors)):
         iterate_ik.modification_processed.connect(update_motors)
@@ -188,9 +196,11 @@ func _process_modification_with_delta(delta: float) -> void:
             else:
                 error[axis] = 0
 
+        """
         if error.length() > 0.02:
             to_remove.append(joint_data)
-            print(joint_data.joint.name)
+            continue
+        """
 
         # Only update rotations
         var bone_initial_rotation: Quaternion = skeleton.get_bone_pose_rotation(joint_data.bone_idx)
@@ -203,10 +213,77 @@ func _process_modification_with_delta(delta: float) -> void:
 
         #print('error: %s\nangle: %s' % [str(error), str(angle.get_euler())])
 
+    var to_disable: Array[RigidBody3D] = []
+
     for joint_data in to_remove:
-        joints.erase(joint_data)
+        print('Breaking joint %s on %s' % [joint_data.joint.name, main_body.name])
+
+        if joint_data.is_ik_joint and iterate_ik:
+            if joint_data.ik_setting_idx < iterate_ik.setting_count:
+                iterate_ik.set_target_node(joint_data.ik_setting_idx, NodePath(""))
+
+        var index: int = joints.find(joint_data)
+        joints.remove_at(index)
         joint_data.joint.queue_free()
-        #print('Breaking joint %s on %s' % [joint_data.joint.name, main_body.name])
+        if joint_data.parent != main_body:
+            to_disable.append(joint_data.parent)
+
+        if index >= joints.size():
+            continue
+
+        var next_parent: RigidBody3D = joint_data.body
+        var child: JointData = joints[index]
+
+        while child.parent == next_parent:
+            print('Removing joint %s' % child.body.name)
+            # "kill" joint motors, set velocity to zero and use a low torque limit
+            # TODO: make max force a parameter
+            const DEAD_TORQUE: float = 10.0
+            if child.joint.get_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
+                child.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, 0)
+                child.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, DEAD_TORQUE)
+            if child.joint.get_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
+                child.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, 0)
+                child.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, DEAD_TORQUE)
+            if child.joint.get_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
+                child.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, 0)
+                child.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, DEAD_TORQUE)
+
+            joints.remove_at(index)
+            if index >= joints.size():
+                break
+            next_parent = child.body
+            child = joints[index]
+
+    for body in to_disable:
+        for i in range(joints.size()):
+            var joint_data: JointData = joints[i]
+            if joint_data.body != body:
+                continue
+
+            # Already disabled this chain, nothing to do
+            if not joint_data.is_enabled:
+                break
+
+            print('Disabling %s' % joint_data.body)
+            joint_data.is_enabled = false
+
+            var next_body: RigidBody3D = joint_data.parent
+            while true:
+                if next_body == main_body:
+                    break
+
+                i -= 1
+                if i < 0:
+                    break
+
+                joint_data = joints[i]
+                if joint_data.body != next_body:
+                    break
+
+                print('Disabling %s' % joint_data.body)
+                joint_data.is_enabled = false
+                next_body = joint_data.parent
 
 
 func activate_bodies() -> void:
@@ -248,6 +325,9 @@ func update_motors() -> void:
         return
 
     for joint_data in joints:
+        if not joint_data.is_enabled:
+            continue
+
         var target_rotation: Quaternion
         if joint_data.parent == main_body:
             var bone_xform: Transform3D = skeleton.get_bone_global_pose(joint_data.bone_idx)
@@ -298,6 +378,31 @@ func setup_body_joints() -> void:
     var attachments: Array[ModifierBoneTarget3D] = get_bone_attachments()
     var loaded_joints: Array[JointData]
 
+    # Start by loading IK paths
+    if iterate_ik:
+        for setting in range(iterate_ik.setting_count):
+            for joint in range(iterate_ik.get_joint_count(setting)):
+                var bone_idx: int = iterate_ik.get_joint_bone(setting, joint)
+                var joint_data: JointData = _make_joint_data_from_bone_idx(bone_idx, loaded_joints)
+
+                # Badly formed joint, we should stop right away.
+                if joint_data == INVALID_JOINT:
+                    return
+
+                if not joint_data:
+                    # TODO: cache limitations and apply them onto the next joint
+                    #       some chains start without bodies, so the first body
+                    #       needs to have expanded limits to account for this.
+                    continue
+
+                joint_data.is_ik_joint = true
+                joint_data.ik_setting_idx = setting
+
+                # TODO: copy IK limitations onto the Joint3D
+
+                loaded_joints.append(joint_data)
+
+    # Load any remaining attachments
     for target in attachments:
         var bone_idx: int = target.bone
         if bone_idx == -1:

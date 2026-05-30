@@ -164,14 +164,15 @@ What I want to happen
     4. Desired motion applied
 2. PHYSICS TICK
 
-- [ ] Use SpringCast3D (and probably improve it?) for maintaining ground contact and softening impacts on the legs. Right now legs just hover above the ground or rigidly collide and push the entire body off balance from IK. This solves a disconnect between where the leg colliders impact the ground and where IK wants to place them. Also allow disabling grip when the leg needs to change footing position.
+- [ ] Use SpringCast3D (and probably improve it?) for maintaining ground contact and softening impacts on the legs. Right now legs just hover above the ground or rigidly collide and push the entire body off balance from IK. This solves a disconnect between where the leg colliders impact the ground and where IK wants to place them. Also allow disabling grip when the leg needs to change footing position. Make sure to iterate the forces as 6 springs would otherwise probably over-accelerate, iterating would allow damping to equalize the forces as both bodies would incur huge initial acceleration each frame.
 - [ ] Fix walking on the wrong side of surfaces, virtual clipping. One idea is to ray trace along the bones of the chain, and if it intersects anything but the crawler bodies, ignore any ground cast contact. If it hits the main body, consider it a good ground.
-- [ ] Update joints array to be in chain-order, so forward iteration is root-to-end and backward iteration is end-to-root. When a joint is destroyed, it should be deleted, and child joints should be "disabled" and removed from iteration list, and parents should be set to "non-functional" and target some "safe" rotation.
+
+# Current Plan
+- [x] Update joints array to be in chain-order, so forward iteration is root-to-end and backward iteration is end-to-root. When a joint is destroyed, it should be deleted, and child joints should be "disabled" and removed from iteration list, and parents should be set to "non-functional" and target some "safe" rotation.
 - [ ] Calculate an iterated motor velocity by running up and down leg chains. Odd iterations run from end to root, even iterations run root to end. Errors determine velocities, and velocities incur additional proportional errors on the next higher and lower joint angles. Test one, two, and three iterations to see how quickly velocities converge. Experiment with a "baumgarte" factor to see if it improves convergence rates.
 - [ ] Make positional constraints on joints attached to the main body work properly, they should not cause legs to detach when offsets become large. May need an iterative approach or just limit the maximum change allowed each tick.
-- [ ] Leg behavior should be effectively disabled when joints are destroyed, IK should be disabled for the entire chain and motors set to 0 target velocity with low force limit to simulate disabled motors that only have friction.
+- [x] Leg behavior should be effectively disabled when joints are destroyed, IK should be disabled for the entire chain and motors set to 0 target velocity with low force limit to simulate disabled motors that only have friction.
 - [ ] Copy angular limitations to joints from the IK settings
-- [ ] Force a leg lift when it is negatively affecting the movement of the whole, figure out how to define that in code (good luck)
 
 # Walking Improvement Ideas
 - [ ] Improve leg step location logic, allow sweeping a larger space and track the best location for the next step or the rest of the leg. Probably some evaluation function that compares the current leg location with the best leg location, and if the current position is bad, move to the best one.

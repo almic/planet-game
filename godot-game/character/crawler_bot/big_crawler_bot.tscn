@@ -27,6 +27,7 @@ angle = 2.0943951023932
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_welis"]
 resource_name = "LegCastShape"
+margin = 0.0
 radius = 0.2
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2g2re"]

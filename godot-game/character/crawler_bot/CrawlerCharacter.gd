@@ -72,6 +72,11 @@ var body_legs_needed_for_jump: int = 3
 @export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
 var debug_enable: bool = false
 
+@export var debug_new_leg_mode: bool = false:
+    set(value):
+        debug_new_leg_mode = value
+        _update_leg_modes()
+
 @export var debug_leg_polygon: bool = false
 var _debug_leg_polyline: int = 0
 
@@ -146,6 +151,7 @@ func _ready() -> void:
             target = bodies[0]
         else:
             target = attach
+
         ground_targets.set(
             attach.bone,
             target
@@ -159,13 +165,15 @@ func _ready() -> void:
                 child_bodies
         )
 
+    _update_leg_modes()
+
     # Should be off for the editor, on in-game
     leg_ik.active = true
     physical_skeleton.set_ik_modifier(leg_ik)
 
     if enable_physical_skeleton:
         physical_skeleton.active = true
-        physical_skeleton.modification_processed.connect(leg_pose_updated)
+        physical_skeleton.modification_processed.connect(_update_legs)
         # NOTE: deterministic has the effect of just copying the joint positions
         #       into the working chain state, so as long as the skeleton is
         #       being updated by physics, "deterministic" is what we want from IK
@@ -175,20 +183,23 @@ func _ready() -> void:
         # modifiers "active" flag on load, while IterateIK3D definitely still
         # processes once even though it is also disabled
         physical_skeleton.setup_body_joints.call_deferred()
-        leg_ik.modification_processed.connect(leg_pose_updated)
+        leg_ik.modification_processed.connect(_on_leg_pose_updated)
         # NOTE: ensure this is off when in pure IK mode, see above note for
         #       physics to understand why this might be enabled
         leg_ik.deterministic = false
 
     desired_surface_friction = 0.0
 
-func leg_pose_updated() -> void:
+func _on_leg_pose_updated() -> void:
     for leg in legs:
         leg.pose_updated()
 
 func damage(source: Object, amount: float, hit_point: Vector3) -> void:
     print('Took %f damage from %s at position %s' % [amount, source.name, str(hit_point)])
 
+func _update_leg_modes() -> void:
+    for leg in legs:
+        leg.use_new_leg_mode = debug_new_leg_mode
 
 func _handle_input() -> void:
 
@@ -207,29 +218,32 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
     is_slipping = false
     ground_normal = Vector3.ZERO
     ground_position = Vector3.ZERO
-    grounded_leg_count = 0
+    ground_velocity = Vector3.ZERO
 
     for leg in legs:
         leg.pre_update(state)
 
-    for leg in legs:
-        leg.check_early_step()
+    # NOTE: different order of operations when in virtual mode
+    if not enable_physical_skeleton:
+        _update_legs()
 
-    for leg in legs:
-        leg.update()
-
-        # At this point, all legs have decided if they want to apply ground forces or not
-        if leg.apply_ground_forces:
-            grounded_leg_count += 1
-            ground_normal += leg.ground_normal
-            ground_position += leg.ground_point
-
+    # This kicks off several callbacks:
+    # PHYSICS:
+    #     1. Matches skeleton pose to physical joints
+    #     2. Calls '_update_legs()' which provides the current pose and calculates new targets
+    #     3. IterateIK moves joints towards targets
+    #     4. PhysicalSkeleton calculates joint motor velocities for the next physics step
+    # VIRTUAL:
+    #     1. IterateIK moves joints towards targets
+    #     2. Calls '_on_leg_pose_updated()' which copies the IK results to leg targets
     skeleton.advance(state.step, true)
 
     if grounded_leg_count > 0:
         is_on_floor = true
-        ground_normal /= grounded_leg_count
-        ground_position /= grounded_leg_count
+        var inv_legs: float = 1.0 / float(grounded_leg_count)
+        ground_normal *= inv_legs
+        ground_position *= inv_legs
+        ground_velocity *= inv_legs
 
         if ground_normal.is_zero_approx():
             ground_normal = state.transform.basis.y
@@ -241,10 +255,29 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
     else:
         ground_position = Vector3.INF
 
+func _update_legs() -> void:
+    # NOTE: this is called before IK, so virtual cannot copy the pose yet
+    if enable_physical_skeleton:
+        _on_leg_pose_updated()
+
+    for leg in legs:
+        leg.check_early_step()
+
+    grounded_leg_count = 0
+
+    for leg in legs:
+        leg.update()
+
+        # At this point, all legs have computed final ground states
+        if leg.apply_ground_forces:
+            grounded_leg_count += 1
+            ground_normal += leg.ground_normal
+            ground_position += leg.ground_point
+            ground_velocity += leg.ground_velocity
+
 func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
 
     ground_direction = Vector3.ZERO
-    ground_velocity = Vector3.ZERO
     ground_rel_con_velocity = Vector3.ZERO
     ground_friction = Vector3.ZERO
     angular_leg_accel = Vector3.ZERO
@@ -254,6 +287,11 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
     if not is_on_floor:
         return
 
+    ground_rel_con_velocity = state.linear_velocity - ground_velocity
+    ground_velocity = ground_rel_con_velocity.slide(state.transform.basis.y).slide(ground_normal)
+
+    # TODO: stopping friction when not traveling
+    """
     # Gather relative velocity from all legs, using last gravity power
     var max_leg_mass: float
     if is_zero_approx(body_leg_mass_ratio):
@@ -268,11 +306,6 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
             continue
 
         var leg_ground_velocity: Vector3 = leg.ground_rel_con_velocity.slide(leg.ground_normal)
-        ground_rel_con_velocity += leg.ground_rel_con_velocity
-        ground_velocity += leg_ground_velocity
-
-        if enable_physical_skeleton:
-            continue
 
         # "Effective mass" per leg
         var leg_mass: float = minf(mass * leg_gravity_power[leg.index], max_leg_mass)
@@ -299,14 +332,16 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
         var ground_state := PhysicsServer3D.body_get_direct_state(leg.ground_body)
         if ground_state:
             ground_state.apply_force(leg_force, leg.ground_point - ground_state.transform.origin)
-
-    ground_rel_con_velocity /= grounded_leg_count
-    ground_velocity /= grounded_leg_count
+    """
 
     if not ground_velocity.is_zero_approx():
         ground_direction = ground_velocity.normalized()
     else:
         ground_direction = Vector3.ZERO
+
+    # Legs need final ground velocities for some updates
+    for leg in legs:
+        leg.post_update()
 
 
 func _custom_pre_movement_forces(state: PhysicsDirectBodyState3D) -> void:

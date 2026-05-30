@@ -124,6 +124,7 @@ var index: int = -1
 var is_left: bool:
     get():
         return index % 2 == 0
+## True when `is_grounded and (not is_stepping)`
 var apply_ground_forces: bool:
     get():
         return is_grounded and (not is_stepping)
@@ -208,6 +209,12 @@ var cached_diagonal: Array[CrawlerLeg]
 var cached_step: float
 
 
+## Target step height
+var step_height: float = 0.0
+
+var use_new_leg_mode: bool = false
+
+
 func _ready() -> void:
     if not shape_cast:
         for child in find_children('', 'ShapeCast3D', false):
@@ -283,6 +290,10 @@ func setup(
 
 
 func pose_updated() -> void:
+    if use_new_leg_mode:
+        _new_pose_updated()
+        return
+
     leg_normal = (
               body.skeleton.global_transform
             * body.skeleton.get_bone_global_pose(body.skeleton.get_bone_parent(ground_bone_idx))
@@ -297,19 +308,20 @@ func pose_updated() -> void:
             * body.skeleton.get_bone_global_pose(target_bone_idx).origin
     )
 
-    if is_grounded:
-        var leg_velocity: Vector3 = (target.global_position - target_last_global_position) / cached_step
-        if grounded_last_tick:
-            ground_rel_con_velocity = leg_velocity - ground_last_velocity
-        else:
-            ground_rel_con_velocity = leg_velocity - ground_velocity
-
-    target_last_global_position = target.global_position
-
     if debug_enable and debug_ground_cast:
         _draw_ground_cast()
 
+func _new_pose_updated() -> void:
+    pass
+
+# TODO: This method needs to have a lot of stuff moved into the "update" method
+#       instead, as this method does not know anything about the true leg
+#       transforms because they haven't been updated yet
 func pre_update(state: PhysicsDirectBodyState3D) -> void:
+    if use_new_leg_mode:
+        _new_pre_update(state)
+        return
+
     cached_step = state.step
 
     if force_lifting:
@@ -326,7 +338,9 @@ func pre_update(state: PhysicsDirectBodyState3D) -> void:
 
     _update_step_transform(state.transform.basis)
 
-    _update_comfort_distance()
+    # Run in pre-update to get ahead of the comfort distances
+    if body.is_stepping:
+        comfort_distance = move_toward(comfort_distance, step_distance, cached_step * 2.0)
 
     var local_rest: Vector3 = step_transform * target_rest_position
     target_global_rest = global_transform * local_rest
@@ -349,11 +363,10 @@ func pre_update(state: PhysicsDirectBodyState3D) -> void:
     elif is_stepping:
         step_target = step_target_global * global_transform
 
-func _update_grounded() -> void:
-    grounded_last_tick = is_grounded
-    if grounded_last_tick:
-        ground_last_rid = ground_body
+func _new_pre_update(state: PhysicsDirectBodyState3D) -> void:
+    pass
 
+func _update_grounded() -> void:
     var has_ground: bool = false
     ground_cast.force_shapecast_update()
     if ground_cast.is_colliding():
@@ -419,13 +432,6 @@ func _update_step_transform(body_basis: Basis) -> void:
         if step_transform.is_equal_approx(target_transform):
             step_transform = target_transform
 
-func _update_comfort_distance() -> void:
-    if body.is_stepping:
-        comfort_distance = move_toward(comfort_distance, step_distance, cached_step * 2.0)
-    else:
-        var t: float = lerpf(rest_distance, step_distance, (body.ground_direction.dot(body.ground_velocity)) / body.max_speed)
-        comfort_distance = move_toward(comfort_distance, t, cached_step * 2.0)
-
 func _update_shape_cast(body_basis: Basis) -> void:
 
     # Rotate in direction of motion
@@ -453,6 +459,9 @@ func _update_shape_cast(body_basis: Basis) -> void:
     shape_cast.transform = old_shape_cast_xform
 
 func check_early_step() -> void:
+    if use_new_leg_mode:
+        return
+
     allow_step_sync = false
     if force_lifting or (not shape_cast.is_colliding()):
         return
@@ -462,36 +471,35 @@ func check_early_step() -> void:
         start_step()
 
 func update() -> void:
+    if use_new_leg_mode:
+        _new_update()
+        return
+    _update_target()
 
+    target_last_global_position = target.global_position
+
+func _new_update() -> void:
+    pass
+
+func post_update() -> void:
+    if use_new_leg_mode:
+        _new_post_update()
+        return
+
+    if not body.is_stepping:
+        var t: float = lerpf(rest_distance, step_distance, (body.ground_direction.dot(body.ground_velocity)) / body.max_speed)
+        comfort_distance = move_toward(comfort_distance, t, cached_step * 2.0)
+
+func _new_post_update() -> void:
+    pass
+
+func _update_target() -> void:
     # Prevent stepping when force lifting is enabled
     if force_lifting:
         is_stepping = false
-    else:
-        _update_target()
+        target.position.y = _calculate_lift(target.position.y, body.max_speed * cached_step)
+        return
 
-    # Stay relative to the current ground
-    if apply_ground_forces:
-        if grounded_last_tick:
-            var old_ground_state := PhysicsServer3D.body_get_direct_state(ground_last_rid)
-            # NOTE: we actually track ground location as where the target bone was after IK/ Physics
-            #       which is why `target_last_global_position` is used instead of some ground position
-            ground_last_velocity = (old_ground_state.transform * ground_last_local) - target_last_global_position
-            ground_last_velocity /= cached_step
-        ground_last_local = ground_xform.affine_inverse() * target.global_position
-
-    # Yield lifting to the active step
-    if not is_stepping:
-        var baseline: float
-        if is_grounded:
-            baseline = (ground_point * global_transform).y
-        elif shape_cast.is_colliding():
-            baseline = (next_step_target_global * global_transform).y
-        else:
-            baseline = target_rest_position.y
-
-        target.position.y = update_leg_lift(target.position.y, baseline, body.max_speed * cached_step)
-
-func _update_target() -> void:
     if (
             (not is_moving)
         and (not is_stepping)
@@ -501,11 +509,8 @@ func _update_target() -> void:
         start_step()
 
     if not is_stepping:
-        # When grounded, maintain previous ground location with friction
-        if grounded_last_tick:
-            var old_ground_state := PhysicsServer3D.body_get_direct_state(ground_last_rid)
-            var old_ground_position: Vector3 = old_ground_state.transform * ground_last_local
-            target.global_position = target.global_position.move_toward(old_ground_position, body.max_speed * cached_step)
+
+        target.position.y = _calculate_lift(target.position.y, body.max_speed * cached_step)
 
         if debug_enable and debug_step_target:
             _draw_step_target(true)
@@ -537,7 +542,6 @@ func _update_target() -> void:
     leg_speed *= maxf(comfort_distance * 2.0, 1.0)
 
     var step_current: Vector3 = target.position
-    var vertical: float = step_current.y
     step_current.y = 0.0
 
     var step_goal: Vector3 = step_target
@@ -549,14 +553,14 @@ func _update_target() -> void:
     var new_step: Vector3 = _calculate_step_vector(step_current, step_goal, step_delta)
 
     current_dist = (step_goal - new_step).length()
-    var max_step_height: float = step_target.y + minf(leg_lift_height, current_dist)
+    step_height = step_target.y + minf(leg_lift_height, current_dist)
 
-    if vertical < max_step_height:
+    if target.position.y < step_height:
         is_lifting = true
     else:
         is_lifting = false
 
-    new_step.y = move_toward(vertical, max_step_height, step_delta)
+    new_step.y = _calculate_lift(target.position.y, step_delta)
 
     # Fix to step delta
     var step_change: Vector3 = new_step - target.position
@@ -623,7 +627,17 @@ func start_step() -> void:
     step_target = step_target_global * global_transform
     step_origin = target.position
 
-func update_leg_lift(current: float, baseline: float, delta: float) -> float:
+func _calculate_lift(current: float, delta: float) -> float:
+    var baseline: float
+    if is_stepping:
+        baseline = step_height
+    elif is_grounded:
+        baseline = (ground_point * global_transform).y
+    elif shape_cast.is_colliding():
+        baseline = (next_step_target_global * global_transform).y
+    else:
+        baseline = target_rest_position.y
+
     if is_lifting:
         return move_toward(current, baseline + leg_lift_height, delta)
     return move_toward(current, baseline, delta)
@@ -635,7 +649,7 @@ func can_start_step() -> bool:
 
     if is_grounded:
         # Wait for this leg to remain in place before stepping again
-        if (not apply_ground_forces) or time_since_last_step < step_delay:
+        if time_since_last_step < step_delay:
             return false
 
         for leg in get_adjacent():
@@ -661,7 +675,7 @@ func can_start_step() -> bool:
     if not body.has_desired_forward:
         return false
 
-    if (not apply_ground_forces) or time_since_grounded < step_delay:
+    if (not is_grounded) or time_since_grounded < step_delay:
         return false
 
     allow_step_sync = true
