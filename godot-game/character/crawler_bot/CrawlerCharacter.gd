@@ -2,6 +2,17 @@
 class_name CrawlerCharacter extends CharacterController
 
 
+## Whole body mass of the crawler. This is used with 'Leg Mass Ratio' to
+## disperse the mass between the main body and the individual leg segments.
+@export_range(0.01, 100.0, 0.01, 'or_greater')
+var total_mass: float = 30.0:
+    set(value):
+        total_mass = value
+        _update_body_mass()
+
+@export_custom(PROPERTY_HINT_NONE, '', PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY)
+var _single_leg_mass: float = 0.0
+
 @export_range(0.01, 8.0, 0.01, 'or_greater')
 var max_speed: float = 3.0
 
@@ -36,6 +47,15 @@ var enable_physical_skeleton: bool = true
 
 @export_group('Leg Parameters', 'body')
 
+## How many legs are equivalent to the mass of the central body. When greater
+## than the total number of legs, more than 50% of the total mass will be
+## concentrated in the main body.
+@export_range(1.0, 16.0, 0.01, 'or_greater')
+var body_leg_mass_ratio: float = 5.0:
+    set(value):
+        body_leg_mass_ratio = value
+        _update_body_mass()
+
 ## How far off the ground to keep the body's center of mass
 @export_range(0.0, 0.5, 0.01, 'or_greater', 'suffix:m')
 var body_height_offset: float = 0.5
@@ -55,7 +75,7 @@ var body_height_spring_damping: float = 0.8
 
 ## Percentage of total legs necessary to lift the body.
 @export_range(0.0, 1.0, 0.01)
-var body_leg_mass_ratio: float = 0.5
+var body_leg_lift_ratio: float = 0.5
 
 ## How much effective acceleration legs can apply to the body. Should be just
 ## enough to be stable while being pushed and entering extreme inclines.
@@ -118,6 +138,8 @@ func _ready() -> void:
 
         # Copy collision mask to casters
         leg.shape_cast.collision_mask = collision_mask
+
+    _update_body_mass()
 
     if Engine.is_editor_hint():
         return
@@ -196,6 +218,57 @@ func _on_leg_pose_updated() -> void:
 
 func damage(source: Object, amount: float, hit_point: Vector3) -> void:
     print('Took %f damage from %s at position %s' % [amount, source.name, str(hit_point)])
+
+func _update_body_mass() -> void:
+    """
+    My math homework for these equations:
+
+    TotalMass = B + nL
+    B = Ratio * L
+    L = B / Ratio
+
+    TotalMass = B + n(B / Ratio)
+    TotalMass = B * (1 + (n / Ratio))
+    B = TotalMass / (1 + (n / Ratio))
+
+    TotalMass = (Ratio * L) + nL
+    TotalMass = L * (Ratio + n)
+    L = TotalMass / (Ratio + n)
+    """
+    var leg_count: int = legs.size()
+    if leg_count == 0:
+        return # Not ready yet
+    var body_mass: float = total_mass / (1 + (leg_count / body_leg_mass_ratio))
+    var leg_mass: float = total_mass / (leg_count + body_leg_mass_ratio)
+
+    mass = body_mass
+    _single_leg_mass = leg_mass
+
+    # Now for the hard part, distribute leg_mass to bone bodies in IK chains
+    var rigid_bodies: Array[RigidBody3D]
+    rigid_bodies.assign(find_children('', 'RigidBody3D'))
+    # Map rigid bodies to bone ids
+    var bone_body_map: Dictionary = {}
+    for body in rigid_bodies:
+        var body_parent: ModifierBoneTarget3D = body.get_parent() as ModifierBoneTarget3D
+        if not body_parent:
+            push_error("RigidBody3D %s does not have a parent ModifierBoneTarget3D! Fix!!" % body.name)
+            return
+        bone_body_map.set(body_parent.bone, body)
+
+    for setting in range(leg_ik.setting_count):
+        var bone_total_length: float = 0.0
+        for joint in range(leg_ik.get_joint_count(setting) - 1):
+            var bone_idx: int = leg_ik.get_joint_bone(setting, joint + 1)
+            bone_total_length += skeleton.get_bone_rest(bone_idx).origin.length()
+        for joint in range(leg_ik.get_joint_count(setting) - 1):
+            var bone_for_body: int = leg_ik.get_joint_bone(setting, joint)
+            var bone_for_length: int = leg_ik.get_joint_bone(setting, joint + 1)
+            var body: RigidBody3D = bone_body_map.get(bone_for_body)
+            if not body:
+                push_error("Bone %s does not have an associated RigidBody3D! Fix!!" % skeleton.get_bone_name(bone_for_body))
+                return
+            body.mass = leg_mass * (skeleton.get_bone_rest(bone_for_length).origin.length() / bone_total_length)
 
 func _update_leg_modes() -> void:
     for leg in legs:
@@ -294,10 +367,10 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
     """
     # Gather relative velocity from all legs, using last gravity power
     var max_leg_mass: float
-    if is_zero_approx(body_leg_mass_ratio):
-        max_leg_mass = mass
+    if is_zero_approx(body_leg_lift_ratio):
+        max_leg_mass = total_mass
     else:
-        max_leg_mass = mass / (legs.size() * body_leg_mass_ratio)
+        max_leg_mass = total_mass / (legs.size() * body_leg_lift_ratio)
 
     var body_friction: float = PhysicsServer3D.body_get_param(get_rid(), PhysicsServer3D.BODY_PARAM_FRICTION)
 
@@ -308,7 +381,7 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
         var leg_ground_velocity: Vector3 = leg.ground_rel_con_velocity.slide(leg.ground_normal)
 
         # "Effective mass" per leg
-        var leg_mass: float = minf(mass * leg_gravity_power[leg.index], max_leg_mass)
+        var leg_mass: float = minf(total_mass * leg_gravity_power[leg.index], max_leg_mass)
 
         # Reduce applied force when leg should not be "holding" the ground
         if not leg.apply_ground_forces:
@@ -364,15 +437,15 @@ func _solve_leg_forces(state: PhysicsDirectBodyState3D) -> void:
     if not state.total_gravity.is_zero_approx():
         gravity_direction = state.total_gravity.normalized()
 
-    var leg_mass: float = mass / legs.size()
+    var leg_mass: float = total_mass / legs.size()
     var max_leg_mass: float
 
-    if is_zero_approx(body_leg_mass_ratio):
-        max_leg_mass = mass
+    if is_zero_approx(body_leg_lift_ratio):
+        max_leg_mass = total_mass
     else:
-        max_leg_mass = mass / (legs.size() * body_leg_mass_ratio)
+        max_leg_mass = total_mass / (legs.size() * body_leg_lift_ratio)
 
-    var shared_mass: float = minf(mass / grounded_leg_count, max_leg_mass)
+    var shared_mass: float = minf(total_mass / grounded_leg_count, max_leg_mass)
 
     var max_force: float = body_max_leg_force * leg_mass
 
@@ -455,7 +528,7 @@ func _solve_leg_forces(state: PhysicsDirectBodyState3D) -> void:
             # Negate gravity, not exceeding the capability of a single leg
             var grav_force_vec: Vector3
             if true:
-                grav_force_vec = -total_gravity * minf(mass * leg_gravity_power[leg.index], max_leg_mass)
+                grav_force_vec = -total_gravity * minf(total_mass * leg_gravity_power[leg.index], max_leg_mass)
                 if debug_enable and debug_leg_gravity:
                     total_grav_vec += (
                           (grav_force_vec + (anti_gravity_point - state.center_of_mass)) * sub_step
@@ -552,7 +625,7 @@ func _calculate_leg_gravity_power(state: PhysicsDirectBodyState3D) -> void:
 
     # NOTE: Used to calculate power share by assuming a leg is capable of lifting the entire body,
     #       although in practice this will have limitations.
-    var anti_gravity: Vector3 = -state.total_gravity * state.step / state.inverse_mass
+    var anti_gravity: Vector3 = -state.total_gravity * state.step * total_mass
 
     var markiplier: float = minf(2.0 / float(grounded_leg_count), 1.0)
     var power_avg: float = 1.0 / float(grounded_leg_count)

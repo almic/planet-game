@@ -81,6 +81,7 @@ class JointData:
     var is_ik_joint: bool = false
     var is_enabled: bool = true
     var ik_setting_idx: int = -1
+    var ik_joint_idx: int = -1
     var parent: RigidBody3D
     var body: RigidBody3D
     var center_of_mass: Vector3
@@ -88,7 +89,7 @@ class JointData:
     var attachment: ModifierBoneTarget3D
     var xform_rel_parent: Transform3D
     var xform_rel_body: Transform3D
-    var offset: Vector3
+    var offset: Transform3D
     var angle: Quaternion
 
 static var INVALID_JOINT: JointData = JointData.new()
@@ -119,6 +120,7 @@ var bodies_active: bool = false
 var iterate_ik: IterateIK3D
 var _cached_attachments: Array[ModifierBoneTarget3D] = []
 var _target_to_settings: Dictionary
+var cached_delta: float
 
 
 func editor_create_ik_bodies() -> void:
@@ -173,16 +175,16 @@ func _process_modification_with_delta(delta: float) -> void:
             deactivate_bodies()
         return
 
+    cached_delta = delta
+
     var to_remove: Array[JointData]
     for joint_data in joints:
-        var parent_rt: Transform3D = joint_data.xform_rel_parent
-        var body_rt: Transform3D = joint_data.xform_rel_body
 
-        var joint_parent: Transform3D = joint_data.parent.global_transform * parent_rt
-        var joint_body: Transform3D = joint_data.body.global_transform * body_rt
+        var joint_parent: Transform3D = joint_data.parent.global_transform * joint_data.xform_rel_parent
+        var joint_body: Transform3D = joint_data.body.global_transform * joint_data.xform_rel_body
 
         var body_diff: Transform3D = joint_parent.affine_inverse() * joint_body
-        joint_data.offset = body_diff.origin
+        joint_data.offset = body_diff
 
         var offsets: PackedVector3Array = joint_data.joint.get_linear_limit()
         var error: Vector3 = body_diff.origin
@@ -201,15 +203,6 @@ func _process_modification_with_delta(delta: float) -> void:
             to_remove.append(joint_data)
             continue
         """
-
-        # Only update rotations
-        var bone_initial_rotation: Quaternion = skeleton.get_bone_pose_rotation(joint_data.bone_idx)
-        var bone_rotation: Quaternion = (joint_data.parent.basis.inverse() * joint_data.body.basis).get_rotation_quaternion()
-        joint_data.angle = bone_rotation
-        if joint_data.parent == main_body:
-            var parent_rotation: Quaternion = skeleton.get_bone_global_pose(skeleton.get_bone_parent(joint_data.bone_idx)).basis.get_rotation_quaternion()
-            bone_rotation = parent_rotation.inverse() * bone_rotation
-        skeleton.set_bone_pose_rotation(joint_data.bone_idx, bone_rotation)
 
         #print('error: %s\nangle: %s' % [str(error), str(angle.get_euler())])
 
@@ -285,6 +278,66 @@ func _process_modification_with_delta(delta: float) -> void:
                 joint_data.is_enabled = false
                 next_body = joint_data.parent
 
+    for joint_data in joints:
+        # Snap to parent position and axis of rotation
+        var parent_xform: Transform3D = (joint_data.parent.global_transform * joint_data.xform_rel_parent)
+        var bone_position: Vector3 = skeleton.global_transform.affine_inverse() * parent_xform.origin
+        bone_position = skeleton.get_bone_global_pose(skeleton.get_bone_parent(joint_data.bone_idx)).affine_inverse() * bone_position
+        var bone_rotation: Quaternion
+        if joint_data.is_ik_joint:
+            bone_rotation = _snap_bone_to_rotation_axis(joint_data)
+        else:
+            bone_rotation = joint_data.offset.basis.get_rotation_quaternion()
+
+        joint_data.angle = bone_rotation
+
+
+        #joint_data.body.global_transform = (
+                #joint_data.body.global_transform.interpolate_with(
+                    #Transform3D(parent_xform.basis * Basis(bone_rotation), parent_xform.origin),
+                    #1.0
+                #)
+        #)
+        #joint_data.body.global_basis = (
+                #joint_data.body.global_basis.slerp(
+                    #parent_xform.basis * Basis(bone_rotation),
+                    #0.0
+                #)
+        #)
+        #joint_data.body.force_update_transform()
+
+        #var body_state := PhysicsServer3D.body_get_direct_state(joint_data.body.get_rid())
+        #var body_state_xform: Transform3D
+        #if body_state:
+            #body_state_xform = body_state.transform
+
+        bone_rotation = skeleton.get_bone_rest(joint_data.bone_idx).basis.get_rotation_quaternion() * bone_rotation
+        var last_position: Vector3 = skeleton.get_bone_pose_position(joint_data.bone_idx)
+        var last_rotation: Quaternion = skeleton.get_bone_pose_rotation(joint_data.bone_idx)
+        skeleton.set_bone_pose(joint_data.bone_idx, Transform3D(bone_rotation, bone_position))
+
+func _snap_bone_to_rotation_axis(joint_data: JointData) -> Quaternion:
+    var rotation_axis_vector: Vector3 = iterate_ik.get_joint_rotation_axis_vector(joint_data.ik_setting_idx, joint_data.ik_joint_idx)
+    if rotation_axis_vector.is_zero_approx():
+        return joint_data.offset.basis.get_rotation_quaternion()
+
+    rotation_axis_vector = rotation_axis_vector.normalized()
+
+    # When nearly aligned to the axis of rotation... must give up
+    var local_vector: Vector3 = joint_data.offset.basis.y
+    if is_equal_approx(absf(local_vector.dot(rotation_axis_vector)), 1.0):
+        return joint_data.offset.basis.get_rotation_quaternion()
+
+    local_vector = local_vector.slide(rotation_axis_vector).normalized()
+    var axis: RotationAxis = iterate_ik.get_joint_rotation_axis(joint_data.ik_setting_idx, joint_data.ik_joint_idx)
+    if axis == ROTATION_AXIS_X:
+        return Basis(Vector3.RIGHT, local_vector, Vector3.RIGHT.cross(local_vector)).get_rotation_quaternion()
+    elif axis == ROTATION_AXIS_Z:
+        return Basis(local_vector.cross(Vector3.BACK), local_vector, Vector3.BACK).get_rotation_quaternion()
+    else:
+        # This one is too much, I won't be using it and I don't have anything to prove
+        push_error("I'm sorry Dave, I'm afraid I can't do that.")
+        return joint_data.offset.basis.get_rotation_quaternion()
 
 func activate_bodies() -> void:
     for joint_data in joints:
@@ -324,41 +377,65 @@ func update_motors() -> void:
     if not bodies_active:
         return
 
-    for joint_data in joints:
-        if not joint_data.is_enabled:
+    const ITERATIONS: int = 1
+    for i in range(ITERATIONS):
+        var impulse: bool = false
+        if i % 2 == 0:
+            for joint_data in joints:
+                if not joint_data.is_enabled:
+                    continue
+
+                var applied_impulse: bool = _solve_joint_motor(joint_data, cached_delta)
+                impulse = impulse || applied_impulse
+        else:
+            for joint in range(joints.size() - 1, -1, -1):
+                var joint_data: JointData = joints[joint]
+                if not joint_data.is_enabled:
+                    continue
+
+                var applied_impulse: bool = _solve_joint_motor(joint_data, cached_delta)
+                impulse = impulse || applied_impulse
+        if not impulse:
+            break
+
+func _solve_joint_motor(joint_data: JointData, delta: float) -> bool:
+
+    var target_rotation: Quaternion = skeleton.get_bone_pose_rotation(joint_data.bone_idx)
+    target_rotation = skeleton.get_bone_rest(joint_data.bone_idx).basis.get_rotation_quaternion().inverse() * target_rotation
+    """
+    if joint_data.parent == main_body:
+        var bone_xform: Transform3D = skeleton.get_bone_global_pose(joint_data.bone_idx)
+
+        # TODO: linear displacement needed for bones attached to other moving bones so they
+        #       remain accurate to the IK requirements. This attempt basically guarantees that
+        #       the joints displace so much that they just fall off...
+    """
+
+    const MAX_VELOCITY: float = 0.5
+
+    var velocities: Vector3 = -(joint_data.angle.inverse() * target_rotation).get_euler()
+    #if velocities.y > deg_to_rad(1.0):
+        #breakpoint
+    for i in range(3):
+        if absf(velocities[i]) < 1.745e-3:
+            velocities[i] = 0.0
             continue
 
-        var target_rotation: Quaternion
-        if joint_data.parent == main_body:
-            var bone_xform: Transform3D = skeleton.get_bone_global_pose(joint_data.bone_idx)
-            target_rotation = bone_xform.basis.get_rotation_quaternion()
+    velocities = velocities.sign() * (velocities.abs() / delta).minf(0.5)
 
-            # TODO: linear displacement needed for bones attached to other moving bones so they
-            #       remain accurate to the IK requirements. This attempt basically guarantees that
-            #       the joints displace so much that they just fall off...
+    if velocities == Vector3.ZERO:
+        return false
 
-            #var offset: Vector3 = joint_data.xform_rel_parent.affine_inverse() * bone_xform.origin
-            #joint_data.joint.set_linear_limit(offset, offset)
-        else:
-            target_rotation = skeleton.get_bone_pose_rotation(joint_data.bone_idx)
+    # TODO: velocity calculation improvements
 
-        const MAX_VELOCITY: float = 0.5
+    if joint_data.joint.get_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
+        joint_data.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.x)
+    if joint_data.joint.get_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
+        joint_data.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.y)
+    if joint_data.joint.get_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
+        joint_data.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.z)
 
-        var velocities: Vector3 = -(joint_data.angle.inverse() * target_rotation).get_euler()
-        for i in range(3):
-            if absf(velocities[i]) < 1.745e-3:
-                velocities[i] = 0.0
-                continue
-
-        # TODO: velocity calculation improvements
-
-        if joint_data.joint.get_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
-            joint_data.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.x)
-        if joint_data.joint.get_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
-            joint_data.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.y)
-        if joint_data.joint.get_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
-            joint_data.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.z)
-
+    return true
 
 func setup_body_joints() -> void:
     # Do not modify the tree in the editor
@@ -381,7 +458,7 @@ func setup_body_joints() -> void:
     # Start by loading IK paths
     if iterate_ik:
         for setting in range(iterate_ik.setting_count):
-            for joint in range(iterate_ik.get_joint_count(setting)):
+            for joint in range(iterate_ik.get_joint_count(setting) - 1):
                 var bone_idx: int = iterate_ik.get_joint_bone(setting, joint)
                 var joint_data: JointData = _make_joint_data_from_bone_idx(bone_idx, loaded_joints)
 
@@ -390,15 +467,54 @@ func setup_body_joints() -> void:
                     return
 
                 if not joint_data:
-                    # TODO: cache limitations and apply them onto the next joint
-                    #       some chains start without bodies, so the first body
-                    #       needs to have expanded limits to account for this.
                     continue
 
                 joint_data.is_ik_joint = true
                 joint_data.ik_setting_idx = setting
+                joint_data.ik_joint_idx = joint
 
-                # TODO: copy IK limitations onto the Joint3D
+                var rotation_axis: RotationAxis = iterate_ik.get_joint_rotation_axis(setting, joint)
+                if not (rotation_axis < ROTATION_AXIS_ALL):
+                    push_error(
+                        (
+                            "Physical chains with IK must be limited to 1 axis of rotation! "
+                            + "Setting %d on joint %d has a Rotation Axis of %s"\
+                        ) % [setting, joint, str(rotation_axis)]
+                    )
+                    return
+
+                var limitation: JointLimitationCone3D = iterate_ik.get_joint_limitation(setting, joint) as JointLimitationCone3D
+                var limitation_angle: float = TAU
+                var rotation_offset: Vector3 = Vector3.ZERO
+                if limitation:
+                    limitation_angle = limitation.angle
+                    rotation_offset = iterate_ik.get_joint_limitation_rotation_offset(setting, joint).get_euler()
+
+                    # Verify rotation offset is normal, should only apply on the axis of rotation
+                    for i in range(3):
+                        if i == rotation_axis:
+                            continue
+                        elif absf(rotation_offset[i]) >= 1.74e-3: # about 0.1 degrees
+                            push_error(
+                                (
+                                    "Reading strange rotation offset for setting %d/ joint %d. Has "
+                                    + "offset for axis %d but can only rotate on axis %d. Please "
+                                    + "correct the rotation offset so it only spins axis %d."
+                                ) % [setting, joint, i, rotation_axis, rotation_axis]
+                            )
+                            return
+
+                var lower_limit: float = rotation_offset[rotation_axis] - (limitation_angle * 0.5)
+                var upper_limit: float = rotation_offset[rotation_axis] + (limitation_angle * 0.5)
+                if rotation_axis == ROTATION_AXIS_X:
+                    joint_data.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, lower_limit)
+                    joint_data.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, upper_limit)
+                elif rotation_axis == ROTATION_AXIS_Z:
+                    joint_data.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, lower_limit)
+                    joint_data.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, upper_limit)
+                else: # rotation_axis == ROTATION_AXIS_Y
+                    joint_data.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, lower_limit)
+                    joint_data.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, upper_limit)
 
                 loaded_joints.append(joint_data)
 
@@ -443,12 +559,28 @@ func setup_body_joints() -> void:
             mapping[1] = joint.get_node(joint.node_b)
         path_map.set(joint, mapping)
 
+        # Exclude collision from parent physical IK bone, if it exists
+        if joint_data.is_ik_joint and joint_data.ik_joint_idx > 0:
+            var parent_bone_idx: int = iterate_ik.get_joint_bone(joint_data.ik_setting_idx, joint_data.ik_joint_idx - 1)
+            for target in attachments:
+                if target.bone == parent_bone_idx:
+                    var bodies: Array[RigidBody3D]
+                    bodies.assign(target.find_children('', 'RigidBody3D', false))
+                    if bodies.size() > 0:
+                        var body: RigidBody3D = bodies[0]
+                        joint_data.body.add_collision_exception_with(body)
+                        body.add_collision_exception_with(joint_data.body)
+
     # Reparent all bodies
     var scene_root: Node3D = get_tree().current_scene as Node3D
     for joint_data in loaded_joints:
         joint_data.body.reparent(scene_root)
 
-    var main_body_state := PhysicsServer3D.body_get_direct_state(main_body.get_rid())
+    var main_body_rid: RID = main_body.get_rid()
+    var main_body_state := PhysicsServer3D.body_get_direct_state(main_body_rid)
+    var space := main_body_state.get_space_state()
+    var query := PhysicsShapeQueryParameters3D.new()
+    query.collision_mask = PhysicsServer3D.body_get_collision_layer(main_body_rid)
     for joint_data in loaded_joints:
         # Update all joint paths
         var joint := joint_data.joint
@@ -459,6 +591,36 @@ func setup_body_joints() -> void:
         # NOTE: when enabling after being disabled, physics state isn't ready yet,
         #       so we have to cache now before it is disabled.
         joint_data.center_of_mass = PhysicsServer3D.body_get_param(joint_data.body.get_rid(), PhysicsServer3D.BODY_PARAM_CENTER_OF_MASS)
+
+        # If the main body is intersecting this body, ensure it has a collision
+        # exception. This can happen when joint bodies exist fully contained in
+        # the main body, causing the next joint to not add the exception by default.
+        var body_rid: RID = joint_data.body.get_rid()
+        var intersects_main_body: bool = false
+        for body_shape in range(PhysicsServer3D.body_get_shape_count(body_rid)):
+            var body_shape_rid: RID = PhysicsServer3D.body_get_shape(body_rid, body_shape)
+            var shape_xform: Transform3D = PhysicsServer3D.body_get_shape_transform(body_rid, body_shape)
+
+            query.shape_rid = body_shape_rid
+            query.transform = joint_data.body.global_transform * shape_xform
+
+            var intersections: Array[Dictionary] = space.intersect_shape(query, 8)
+            for hit in intersections:
+                if hit.rid == main_body_rid:
+                    intersects_main_body = true
+                    break
+
+            if intersects_main_body:
+                break
+
+        if intersects_main_body:
+            print(
+                (
+                    'Joint body %s initially intersects %s, adding exception'
+                ) % [joint_data.body.name, main_body.name]
+            )
+            joint_data.body.add_collision_exception_with(main_body)
+            main_body.add_collision_exception_with(joint_data.body)
 
     joints.clear()
     joints.assign(loaded_joints)
