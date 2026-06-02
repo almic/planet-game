@@ -11,6 +11,21 @@ var _btn_create_ik_joint_bodies = editor_create_ik_bodies
 var _btn_update_joints = editor_update_joints
 
 
+## How many copies to create of the first joints in the chain. Set to zero to
+## disable copies.
+@export_range(0, 10, 1, 'or_greater')
+var first_joint_copies: int = 3
+
+## How many copies to create of other joints in the chain. Set to zero to
+## disable copies
+@export_range(0, 10, 1, 'or_greater')
+var joint_copies: int = 2
+
+## Length to spread the joints on the rotation axis
+@export_range(0.0, 0.2, 0.001)
+var joint_copy_width: float = 0.01
+
+
 @export_group('Spring Calculator', 'calc_spring')
 
 @export_custom(PROPERTY_HINT_RANGE, '0.001,100.0,0.001,or_greater,suffix:kg', PROPERTY_USAGE_EDITOR)
@@ -282,6 +297,7 @@ func _process_modification_with_delta(delta: float) -> void:
         # Snap to parent position and axis of rotation
         var parent_xform: Transform3D = (joint_data.parent.global_transform * joint_data.xform_rel_parent)
         var bone_position: Vector3 = skeleton.global_transform.affine_inverse() * parent_xform.origin
+        #var bone_position: Vector3 = skeleton.global_transform.affine_inverse() * joint_data.body.transform.origin
         bone_position = skeleton.get_bone_global_pose(skeleton.get_bone_parent(joint_data.bone_idx)).affine_inverse() * bone_position
         var bone_rotation: Quaternion
         if joint_data.is_ik_joint:
@@ -290,7 +306,6 @@ func _process_modification_with_delta(delta: float) -> void:
             bone_rotation = joint_data.offset.basis.get_rotation_quaternion()
 
         joint_data.angle = bone_rotation
-
 
         #joint_data.body.global_transform = (
                 #joint_data.body.global_transform.interpolate_with(
@@ -312,9 +327,8 @@ func _process_modification_with_delta(delta: float) -> void:
             #body_state_xform = body_state.transform
 
         bone_rotation = skeleton.get_bone_rest(joint_data.bone_idx).basis.get_rotation_quaternion() * bone_rotation
-        var last_position: Vector3 = skeleton.get_bone_pose_position(joint_data.bone_idx)
-        var last_rotation: Quaternion = skeleton.get_bone_pose_rotation(joint_data.bone_idx)
         skeleton.set_bone_pose(joint_data.bone_idx, Transform3D(bone_rotation, bone_position))
+        #skeleton.set_bone_pose_rotation(joint_data.bone_idx, bone_rotation)
 
 func _snap_bone_to_rotation_axis(joint_data: JointData) -> Quaternion:
     var rotation_axis_vector: Vector3 = iterate_ik.get_joint_rotation_axis_vector(joint_data.ik_setting_idx, joint_data.ik_joint_idx)
@@ -377,6 +391,22 @@ func update_motors() -> void:
     if not bodies_active:
         return
 
+    """ Rebuild joint using ideal IK results
+    for joint_data in joints:
+        if joint_data.ik_joint_idx < 1:
+            continue
+
+        var bone_xform: Transform3D = skeleton.global_transform * skeleton.get_bone_global_pose(joint_data.bone_idx)
+        var old_body_xform: Transform3D = joint_data.body.transform
+        joint_data.body.transform = old_body_xform.interpolate_with(bone_xform, 0.5)
+        joint_data.body.force_update_transform()
+        var node_path: NodePath = joint_data.joint.node_a
+        joint_data.joint.node_a = NodePath()
+        joint_data.joint.node_a = node_path
+        joint_data.body.transform = old_body_xform
+        joint_data.body.force_update_transform()
+    """
+
     const ITERATIONS: int = 1
     for i in range(ITERATIONS):
         var impulse: bool = false
@@ -402,14 +432,6 @@ func _solve_joint_motor(joint_data: JointData, delta: float) -> bool:
 
     var target_rotation: Quaternion = skeleton.get_bone_pose_rotation(joint_data.bone_idx)
     target_rotation = skeleton.get_bone_rest(joint_data.bone_idx).basis.get_rotation_quaternion().inverse() * target_rotation
-    """
-    if joint_data.parent == main_body:
-        var bone_xform: Transform3D = skeleton.get_bone_global_pose(joint_data.bone_idx)
-
-        # TODO: linear displacement needed for bones attached to other moving bones so they
-        #       remain accurate to the IK requirements. This attempt basically guarantees that
-        #       the joints displace so much that they just fall off...
-    """
 
     const MAX_VELOCITY: float = 0.5
 
@@ -421,7 +443,7 @@ func _solve_joint_motor(joint_data: JointData, delta: float) -> bool:
             velocities[i] = 0.0
             continue
 
-    velocities = velocities.sign() * (velocities.abs() / delta).minf(0.5)
+    velocities = velocities.sign() * (velocities.abs() / delta).minf(MAX_VELOCITY)
 
     if velocities == Vector3.ZERO:
         return false
@@ -509,12 +531,19 @@ func setup_body_joints() -> void:
                 if rotation_axis == ROTATION_AXIS_X:
                     joint_data.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, lower_limit)
                     joint_data.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, upper_limit)
+                    pass
                 elif rotation_axis == ROTATION_AXIS_Z:
                     joint_data.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, lower_limit)
                     joint_data.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, upper_limit)
+                    pass
                 else: # rotation_axis == ROTATION_AXIS_Y
                     joint_data.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, lower_limit)
                     joint_data.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, upper_limit)
+
+                """ Rigid joints attempt
+                # Attach to main body instead
+                joint_data.joint.node_a = joint_data.joint.get_path_to(main_body)
+                """
 
                 loaded_joints.append(joint_data)
 
@@ -550,15 +579,18 @@ func setup_body_joints() -> void:
     # Save all nodes to obtain exact paths later
     var path_map: Dictionary
     for joint_data in loaded_joints:
-        var mapping: Array[Node]
-        mapping.resize(2)
-        var joint := joint_data.joint
-        if joint.node_a:
-            mapping[0] = joint.get_node(joint.node_a)
-        if joint.node_b:
-            mapping[1] = joint.get_node(joint.node_b)
-        path_map.set(joint, mapping)
+        var nested_joint: Array[Joint3D]
+        nested_joint.assign(joint_data.body.find_children('', 'Joint3D', false, false))
+        for joint in nested_joint:
+            var mapping: Array[Node]
+            mapping.resize(2)
+            if joint.node_a:
+                mapping[0] = joint.get_node(joint.node_a)
+            if joint.node_b:
+                mapping[1] = joint.get_node(joint.node_b)
+            path_map.set(joint, mapping)
 
+        """
         # Exclude collision from parent physical IK bone, if it exists
         if joint_data.is_ik_joint and joint_data.ik_joint_idx > 0:
             var parent_bone_idx: int = iterate_ik.get_joint_bone(joint_data.ik_setting_idx, joint_data.ik_joint_idx - 1)
@@ -570,6 +602,7 @@ func setup_body_joints() -> void:
                         var body: RigidBody3D = bodies[0]
                         joint_data.body.add_collision_exception_with(body)
                         body.add_collision_exception_with(joint_data.body)
+        """
 
     # Reparent all bodies
     var scene_root: Node3D = get_tree().current_scene as Node3D
@@ -581,11 +614,34 @@ func setup_body_joints() -> void:
     var space := main_body_state.get_space_state()
     var query := PhysicsShapeQueryParameters3D.new()
     query.collision_mask = PhysicsServer3D.body_get_collision_layer(main_body_rid)
+
+    # Make use of negative value wrapping to make initial joints have higher priority
+    var solver_priority: int = 1
+
     for joint_data in loaded_joints:
         # Update all joint paths
-        var joint := joint_data.joint
-        joint.node_a = path_map.get(joint)[0].get_path()
-        joint.node_b = path_map.get(joint)[1].get_path()
+        var nested_joint: Array[Joint3D]
+        # NOTE: must have owner set to false, reparenting breaks owners somehow...
+        nested_joint.assign(joint_data.body.find_children('', 'Joint3D', false, false))
+        for joint in nested_joint:
+            # Move joint up axis if copies should be made
+            if (
+                        joint == joint_data.joint
+                    and joint_data.is_ik_joint
+                    and (
+                           (joint_data.ik_joint_idx == 0 and first_joint_copies > 0)
+                        or (joint_data.ik_joint_idx > 0 and joint_copies > 0)
+                    )
+            ):
+                joint.position += 0.5 * joint_copy_width * iterate_ik.get_joint_rotation_axis_vector(joint_data.ik_setting_idx, joint_data.ik_joint_idx)
+
+            var node_list: Array[Node] = path_map.get(joint, [null, null])
+            if node_list[0]:
+                joint.node_a = node_list[0].get_path()
+            if node_list[1]:
+                joint.node_b = node_list[1].get_path()
+            joint.solver_priority = solver_priority
+            solver_priority += 1
 
         # Store center of mass
         # NOTE: when enabling after being disabled, physics state isn't ready yet,
@@ -595,6 +651,9 @@ func setup_body_joints() -> void:
         # If the main body is intersecting this body, ensure it has a collision
         # exception. This can happen when joint bodies exist fully contained in
         # the main body, causing the next joint to not add the exception by default.
+        if joint_data.parent == main_body:
+            continue
+
         var body_rid: RID = joint_data.body.get_rid()
         var intersects_main_body: bool = false
         for body_shape in range(PhysicsServer3D.body_get_shape_count(body_rid)):
@@ -622,6 +681,28 @@ func setup_body_joints() -> void:
             joint_data.body.add_collision_exception_with(main_body)
             main_body.add_collision_exception_with(joint_data.body)
 
+    # Duplicate joints to improve rigidity
+    for i in range(maxi(first_joint_copies, joint_copies)):
+        for joint_data in loaded_joints:
+            if joint_data.ik_joint_idx == 0 and i >= first_joint_copies:
+                continue
+            if joint_data.ik_joint_idx > 0 and i >= joint_copies:
+                continue
+
+            var joint_step: Vector3 = iterate_ik.get_joint_rotation_axis_vector(joint_data.ik_setting_idx, joint_data.ik_joint_idx)
+
+            if joint_data.ik_joint_idx == 0:
+                joint_step *= joint_copy_width / float(first_joint_copies)
+            else:
+                joint_step *= joint_copy_width / float(joint_copies)
+
+            var pair_joint := _duplicate_joint(joint_data)
+            pair_joint.solver_priority = solver_priority
+            solver_priority += 1
+
+            pair_joint.position += joint_step * (i + 1)
+            joint_data.body.add_child(pair_joint)
+
     joints.clear()
     joints.assign(loaded_joints)
 
@@ -629,6 +710,18 @@ func setup_body_joints() -> void:
     deactivate_bodies()
 
     has_bodies = true
+
+func _duplicate_joint(joint_data: JointData) -> Joint3D:
+    var pair_joint: Shared6DOFJoint = joint_data.joint.duplicate()
+
+    print('Duplicating %s' % joint_data.joint.name)
+
+    # Turn off any motors
+    pair_joint.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, false)
+    pair_joint.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, false)
+    pair_joint.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, false)
+
+    return pair_joint
 
 ## Travels up the scene tree until it finds the first RigidBody3D
 func _find_main_body() -> RigidBody3D:
@@ -675,11 +768,11 @@ func _make_joint_data_from_bone_target(target: ModifierBoneTarget3D, loaded_join
     var target_joints: Array[Generic6DOFJoint3D]
     target_joints.assign(bone_body.find_children('', 'Generic6DOFJoint3D', false))
 
-    if target_joints.size() != 1:
+    if target_joints.size() < 1:
         push_warning(
             (
                   'Attachment "%s" for bone %d is missing a Generic6DOFJoint3D within the RigidBody3D "%s".'
-                + ' There should be exactly 1 Generic6DOFJoint3D.'
+                + ' There should be at least 1 Generic6DOFJoint3D.'
             ) % [
                 target.name, bone_idx, bone_body.name
             ]

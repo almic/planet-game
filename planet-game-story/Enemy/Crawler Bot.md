@@ -37,6 +37,19 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [x] Friction needs to be solved after legs update ground state, and applied locally to the "ground" leg body in physics mode, or the main body in virtual mode, for rotation and linear acceleration, rather than applying friction as a whole to the main body.
 - [ ] Change leg step behavior to be mostly an internal state, and act when unexpectedly removed from the ground. Legs should not pay attention to any step parameters of other legs, only the ground and comfort state. In fact it is probably best to think of steps as roughly asking its neighbors "hey, are you okay if I were to intentionally come off the ground?" then neighbors should say yes or no using simple logic questions about itself and its neighbors.
 
+
+
+
+
+
+# TODO NOW FOR LEG PHYSICS
+Slap slider joints on each child joint of the IK chain, update their Z rotations to match the IK z rotation of the first joint, allow plenty of pitch and length to not interrupt the legs normal function. This effectively adds 3 more joints purely to control and pass Yaw to the main body. Give high priority so they all act before regular joint corrections.
+
+
+
+
+
+
 Goals of a leg
 1. Stay comfortable
 2. Stay on the ground
