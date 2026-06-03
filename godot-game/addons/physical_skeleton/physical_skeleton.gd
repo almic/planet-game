@@ -307,25 +307,6 @@ func _process_modification_with_delta(delta: float) -> void:
 
         joint_data.angle = bone_rotation
 
-        #joint_data.body.global_transform = (
-                #joint_data.body.global_transform.interpolate_with(
-                    #Transform3D(parent_xform.basis * Basis(bone_rotation), parent_xform.origin),
-                    #1.0
-                #)
-        #)
-        #joint_data.body.global_basis = (
-                #joint_data.body.global_basis.slerp(
-                    #parent_xform.basis * Basis(bone_rotation),
-                    #0.0
-                #)
-        #)
-        #joint_data.body.force_update_transform()
-
-        #var body_state := PhysicsServer3D.body_get_direct_state(joint_data.body.get_rid())
-        #var body_state_xform: Transform3D
-        #if body_state:
-            #body_state_xform = body_state.transform
-
         bone_rotation = skeleton.get_bone_rest(joint_data.bone_idx).basis.get_rotation_quaternion() * bone_rotation
         skeleton.set_bone_pose(joint_data.bone_idx, Transform3D(bone_rotation, bone_position))
         #skeleton.set_bone_pose_rotation(joint_data.bone_idx, bone_rotation)
@@ -390,22 +371,6 @@ func deactivate_bodies() -> void:
 func update_motors() -> void:
     if not bodies_active:
         return
-
-    """ Rebuild joint using ideal IK results
-    for joint_data in joints:
-        if joint_data.ik_joint_idx < 1:
-            continue
-
-        var bone_xform: Transform3D = skeleton.global_transform * skeleton.get_bone_global_pose(joint_data.bone_idx)
-        var old_body_xform: Transform3D = joint_data.body.transform
-        joint_data.body.transform = old_body_xform.interpolate_with(bone_xform, 0.5)
-        joint_data.body.force_update_transform()
-        var node_path: NodePath = joint_data.joint.node_a
-        joint_data.joint.node_a = NodePath()
-        joint_data.joint.node_a = node_path
-        joint_data.body.transform = old_body_xform
-        joint_data.body.force_update_transform()
-    """
 
     const ITERATIONS: int = 1
     for i in range(ITERATIONS):
@@ -540,11 +505,6 @@ func setup_body_joints() -> void:
                     joint_data.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, lower_limit)
                     joint_data.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, upper_limit)
 
-                """ Rigid joints attempt
-                # Attach to main body instead
-                joint_data.joint.node_a = joint_data.joint.get_path_to(main_body)
-                """
-
                 loaded_joints.append(joint_data)
 
     # Load any remaining attachments
@@ -576,6 +536,20 @@ func setup_body_joints() -> void:
     if loaded_joints.size() == 0:
         return
 
+    var bone_joint_map: Dictionary[int, Array] = {}
+    for attach in attachments:
+        var body_list: Array[RigidBody3D]
+        body_list.assign(attach.find_children('', 'RigidBody3D', false, false))
+        if body_list.size() != 1:
+            continue
+        var found_joints: Array[Joint3D]
+        found_joints.assign(body_list[0].find_children('', 'Joint3D', false, false))
+        if found_joints.size() == 0:
+            continue
+        bone_joint_map.set(attach.bone, found_joints)
+
+    var joint_priority_map: Dictionary = _calculate_joint_priority(bone_joint_map)
+
     # Save all nodes to obtain exact paths later
     var path_map: Dictionary
     for joint_data in loaded_joints:
@@ -590,20 +564,6 @@ func setup_body_joints() -> void:
                 mapping[1] = joint.get_node(joint.node_b)
             path_map.set(joint, mapping)
 
-        """
-        # Exclude collision from parent physical IK bone, if it exists
-        if joint_data.is_ik_joint and joint_data.ik_joint_idx > 0:
-            var parent_bone_idx: int = iterate_ik.get_joint_bone(joint_data.ik_setting_idx, joint_data.ik_joint_idx - 1)
-            for target in attachments:
-                if target.bone == parent_bone_idx:
-                    var bodies: Array[RigidBody3D]
-                    bodies.assign(target.find_children('', 'RigidBody3D', false))
-                    if bodies.size() > 0:
-                        var body: RigidBody3D = bodies[0]
-                        joint_data.body.add_collision_exception_with(body)
-                        body.add_collision_exception_with(joint_data.body)
-        """
-
     # Reparent all bodies
     var scene_root: Node3D = get_tree().current_scene as Node3D
     for joint_data in loaded_joints:
@@ -614,9 +574,6 @@ func setup_body_joints() -> void:
     var space := main_body_state.get_space_state()
     var query := PhysicsShapeQueryParameters3D.new()
     query.collision_mask = PhysicsServer3D.body_get_collision_layer(main_body_rid)
-
-    # Make use of negative value wrapping to make initial joints have higher priority
-    var solver_priority: int = 1
 
     for joint_data in loaded_joints:
         # Update all joint paths
@@ -640,8 +597,6 @@ func setup_body_joints() -> void:
                 joint.node_a = node_list[0].get_path()
             if node_list[1]:
                 joint.node_b = node_list[1].get_path()
-            joint.solver_priority = solver_priority
-            solver_priority += 1
 
         # Store center of mass
         # NOTE: when enabling after being disabled, physics state isn't ready yet,
@@ -683,6 +638,7 @@ func setup_body_joints() -> void:
 
     # Duplicate joints to improve rigidity
     for i in range(maxi(first_joint_copies, joint_copies)):
+        bone_joint_map.clear()
         for joint_data in loaded_joints:
             if joint_data.ik_joint_idx == 0 and i >= first_joint_copies:
                 continue
@@ -697,11 +653,41 @@ func setup_body_joints() -> void:
                 joint_step *= joint_copy_width / float(joint_copies)
 
             var pair_joint := _duplicate_joint(joint_data)
-            pair_joint.solver_priority = solver_priority
-            solver_priority += 1
+            if not bone_joint_map.has(joint_data.bone_idx):
+                bone_joint_map.set(joint_data.bone_idx, Array())
+            bone_joint_map.get(joint_data.bone_idx).append(pair_joint)
 
             pair_joint.position += joint_step * (i + 1)
             joint_data.body.add_child(pair_joint)
+
+        var block_map: Dictionary = _calculate_joint_priority(bone_joint_map)
+        var max_priority: int = block_map.get(&'priority')
+        # Move all joints up
+        var new_priority_map: Dictionary = {}
+        for p in joint_priority_map:
+            if p is not int:
+                continue
+            new_priority_map.set(p + max_priority, joint_priority_map.get(p))
+        new_priority_map.set(&'priority', max_priority + joint_priority_map.get(&'priority'))
+        joint_priority_map.clear()
+        for k in block_map:
+            if k is not int:
+                continue
+            new_priority_map.set(k, block_map.get(k))
+        joint_priority_map = new_priority_map
+
+    # Reverse priorities so earlier joints solve later, improving chain accuracy
+    var max_priority: int = joint_priority_map.get(&'priority')
+    for priority in joint_priority_map:
+        if priority is not int:
+            continue
+        var joint_list: Array[Joint3D]
+        joint_list.assign(joint_priority_map.get(priority))
+        for joint in joint_list:
+            # NOTE: i cannot demonstrate that this is better than not reversing priority...
+            #       but logically it should as the first iteration will send lower leg
+            #       impulses straight to the main body, rather than lag by 3+ iterations
+            joint.solver_priority = max_priority - priority
 
     joints.clear()
     joints.assign(loaded_joints)
@@ -713,8 +699,6 @@ func setup_body_joints() -> void:
 
 func _duplicate_joint(joint_data: JointData) -> Joint3D:
     var pair_joint: Shared6DOFJoint = joint_data.joint.duplicate()
-
-    print('Duplicating %s' % joint_data.joint.name)
 
     # Turn off any motors
     pair_joint.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, false)
@@ -935,3 +919,54 @@ func _make_joint_data_from_bone_idx(bone_idx: int, loaded_joints: Array[JointDat
             return _make_joint_data_from_bone_target(target, loaded_joints)
 
     return null
+
+func _calculate_joint_priority(bone_joint_map: Dictionary[int, Array]) -> Dictionary:
+    var joint_priority_map: Dictionary
+    var search: PackedInt32Array = [0]
+    var expand: PackedInt32Array = []
+    var next: PackedInt32Array = []
+    var priority: int = 0
+
+    var joint_collection: Array[Array]
+    var max_priority: int = 0
+    while search.size() > 0:
+        for bone_idx in search:
+            if bone_joint_map.has(bone_idx):
+                var found_joints: Array[Joint3D]
+                found_joints.assign(bone_joint_map.get(bone_idx))
+                if found_joints.size() == 0:
+                    expand.append(bone_idx)
+                    continue
+
+                joint_collection.append(found_joints)
+                max_priority = maxi(max_priority, found_joints.size())
+                next.append(bone_idx)
+                continue
+            expand.append(bone_idx)
+
+        if expand.size() > 0:
+            search.clear()
+            for bone_idx in expand:
+                search.append_array(skeleton.get_bone_children(bone_idx))
+            expand.clear()
+            continue
+
+        # Add all joints to this layer
+        for joint_list in joint_collection:
+            var p: int = priority
+            for joint in joint_list:
+                if not joint_priority_map.has(p):
+                    joint_priority_map.set(p, Array())
+                joint_priority_map.get(p).append(joint)
+                p += 1
+        joint_collection.clear()
+        priority += max_priority
+        max_priority = 0
+
+        search.clear()
+        for bone_idx in next:
+            search.append_array(skeleton.get_bone_children(bone_idx))
+        next.clear()
+
+    joint_priority_map.set(&'priority', priority)
+    return joint_priority_map

@@ -105,7 +105,9 @@ var _debug_leg_gravity_vec: int = 0
 
 
 var legs: Array[CrawlerLeg]
+"""
 var leg_distance_constraint_list: Array[DistanceJoint3D]
+"""
 
 var target_position: Vector3 = Vector3.INF
 var target_direction: Vector3 = Vector3.INF
@@ -132,7 +134,9 @@ func _ready() -> void:
     legs.assign(find_children('', 'CrawlerLeg'))
 
     var count: int = legs.size()
+    """
     leg_distance_constraint_list.resize(count)
+    """
     for i in range(count):
         var leg: CrawlerLeg = legs[i]
         leg.body = self
@@ -144,6 +148,7 @@ func _ready() -> void:
         if Engine.is_editor_hint():
             continue
 
+        """
         # Create distance constraint for the leg
         var dc := DistanceJoint3D.new()
         dc.set_param(DistanceJoint3D.PARAM_LIMITS_SPRING_STIFFNESS, 44.847)
@@ -151,6 +156,7 @@ func _ready() -> void:
         dc.set_param(DistanceJoint3D.PARAM_DISTANCE_MAX, 0.0)
         leg_distance_constraint_list[i] = dc
         add_child(dc)
+        """
 
     _update_body_mass()
 
@@ -361,6 +367,7 @@ func _update_legs() -> void:
             ground_position += leg.ground_point
             ground_velocity += leg.ground_velocity
 
+        """
         # Update distance constraint
         if not enable_physical_skeleton:
             continue
@@ -379,6 +386,7 @@ func _update_legs() -> void:
                 var node_b_pos: Vector3 = skeleton.get_bone_rest(leg.target_bone_idx).origin
                 dc.set_point_param(DistanceJoint3D.POINT_PARAM_B, node_b_pos)
                 break
+        """
 
 
 func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:

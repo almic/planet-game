@@ -121,9 +121,12 @@ func _validate_property(property: Dictionary) -> void:
         property.usage &= ~PROPERTY_USAGE_EDITOR
 
 # Update joint when nodes change
-func _set(property: StringName, _value: Variant) -> bool:
+func _set(property: StringName, value: Variant) -> bool:
     if property == &'node_a' or property == &'node_b':
         _update_joint.call_deferred()
+    elif property == &'solver_priority':
+        if distance_joint:
+            distance_joint.solver_priority = value
     return false
 
 func _update_joint() -> void:
@@ -182,12 +185,8 @@ func _update_joint() -> void:
     # Set up distance joint
     if not distance_joint:
         distance_joint = DistanceJoint3D.new()
-        # Ensure distance joint runs after the 6DOF
-        if solver_priority == -1:
-            distance_joint.solver_priority = solver_priority
-        else:
-            distance_joint.solver_priority = solver_priority + 1
-        add_sibling.call_deferred(distance_joint)
+        distance_joint.solver_priority = solver_priority
+        add_child.call_deferred(distance_joint)
 
     distance_joint.node_a = node_a
     distance_joint.node_b = node_b
@@ -223,12 +222,18 @@ func _debug_draw_points() -> void:
             if _debug_markers[i]:
                 _debug_markers[i].queue_free()
                 _debug_markers[i] = null
+        # Search for stale markers that saved previously
+        for marker in find_children('', 'Marker3D', false, true):
+            if marker.get_meta(&'_beam_joint_owned', false):
+                marker.queue_free()
         return
 
     for i in range(3):
         var marker: Marker3D = _debug_markers[i]
         if not marker:
             marker = Marker3D.new()
+            # NOTE: apply a meta value to track between save-and-reloads:
+            marker.set_meta(&'_beam_joint_owned', true)
             marker.gizmo_extents = 0.2
             add_child.call_deferred(marker, false)
             marker.set_owner.call_deferred(owner)
