@@ -1,3 +1,4 @@
+IDEA: Bring player back to SBF and have them recover the [[Researcher]], bring them outside and then shoot them. The player can choose not to, the [[Researcher]] enters a truck and drives away. Then it is hit with a missile. Alternative cutscenes?? probably need the researcher to be more involved in the recovery, communicating info...
 ###### Sequence showing the [[Researcher]] being destroyed once they leave the [[Superdeep Borehole Facility]]
 
 # Sequence

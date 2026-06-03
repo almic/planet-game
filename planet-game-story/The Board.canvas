@@ -12,7 +12,7 @@
 		{"id":"b4149e53dbfcca1f","type":"text","text":"Find abandoned vehicle surrounded by [[Hostile robots]]","x":-820,"y":-960,"width":280,"height":80,"color":"2"},
 		{"id":"e53d45bbfc7dac2b","type":"text","text":"Obtain the [[Ultra Weapon]]","x":80,"y":-1020,"width":250,"height":60,"color":"5"},
 		{"id":"9f73f2b01bf9690c","type":"text","text":"Weapon is in the vehicle, body count confirmed.","x":-220,"y":-960,"width":260,"height":80,"color":"2"},
-		{"id":"6cbe1864039173d1","type":"file","file":"Sequence/Strike Scene.md","subpath":"#Sequence showing the Pirate being destroyed once they leave the Superdeep Borehole Facility","x":720,"y":-1000,"width":360,"height":100,"color":"1"},
+		{"id":"6cbe1864039173d1","type":"file","file":"Sequence/Strike Scene.md","subpath":"#Sequence showing the Researcher being destroyed once they leave the Superdeep Borehole Facility","x":720,"y":-1000,"width":360,"height":100,"color":"1"},
 		{"id":"2eb00cddcb2466c6","type":"text","text":"Special defense robots appear. (Summoned by [[White Metal]])","x":380,"y":-980,"width":280,"height":100,"color":"2"},
 		{"id":"671789418039a203","type":"text","text":"[[Researcher]] sees the vehicle is hit, tries to activate the [[Giant Deadly Robot]] as [[MC]] arrives.","x":-960,"y":-2280,"width":300,"height":100},
 		{"id":"ba2adec0f03c9523","type":"text","text":"See the [[Giant Deadly Robot]].","x":-840,"y":-2420,"width":280,"height":60,"color":"5"},
