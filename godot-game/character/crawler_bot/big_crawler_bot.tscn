@@ -496,6 +496,7 @@ metadata/_edit_lock_ = true
 
 [node name="box_ghost" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontRightFemur" unique_id=1008953879]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14999999999417923, 0)
+visible = false
 mesh = SubResource("BoxMesh_tdgv8")
 metadata/_edit_lock_ = true
 
@@ -530,7 +531,7 @@ mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
 [node name="FR_Tibia_Beam" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/FrontRightTibia/FR_Tibia_Body" unique_id=1923111677]
-transform = Transform3D(-0.0026486745709324855, 0.025567427139558202, -0.9996697113530895, -0.9227376580891755, 0.3852326868212687, 0.012297488727019357, 0.38541979391962533, 0.9224652949772625, 0.022571676483875147, 1.6653345e-16, 0.6000000000000001, 1.6653345e-16)
+transform = Transform3D(-0.00264867457093243, 0.02556742713955823, -0.9996697113530895, -0.9227376580891755, 0.3852326868212685, 0.012297488727019301, 0.38541979391962533, 0.9224652949772625, 0.022571676483875147, 5.551115e-17, 0.5999999999999999, 1.6653345e-16)
 node_a = NodePath("../../../../..")
 node_b = NodePath("..")
 exclude_nodes_from_collision = false
@@ -554,6 +555,7 @@ metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
 
 [node name="box_ghost" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontRightTibia" unique_id=1312985646]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3999999999941792, 0)
+visible = false
 mesh = SubResource("BoxMesh_kegpd")
 metadata/_edit_lock_ = true
 
@@ -594,8 +596,8 @@ node_b = NodePath("..")
 exclude_nodes_from_collision = false
 linear_limit_x/enabled = false
 linear_limit_y/enabled = false
-angular_limit_z/upper_angle = 0.5235987755982988
-angular_limit_z/lower_angle = -1.5707963267948966
+angular_limit_z/upper_angle = 1.5707963267948966
+angular_limit_z/lower_angle = -0.5235987755982988
 script = ExtResource("10_tdgv8")
 body_A_position = Vector3(0, 0.4, 0)
 body_B_position = Vector3(0, 1.5, 0)
@@ -607,6 +609,7 @@ metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
 
 [node name="box_ghost" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontRightTarsus" unique_id=216008797]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
+visible = false
 mesh = SubResource("BoxMesh_8gnh6")
 metadata/_edit_lock_ = true
 
@@ -677,7 +680,7 @@ mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
 [node name="FL_Tibia_Beam" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/FrontLeftTibia/FL_Tibia_Body" unique_id=838614385]
-transform = Transform3D(0.002648674570932652, -0.025567427139558146, -0.9996697113530894, -0.9227376580891756, 0.38523268682126877, -0.012297488727019468, 0.38541979391962544, 0.9224652949772624, -0.02257167648387498, -2.220446e-16, 0.6000000000000001, 1.6653345e-16)
+transform = Transform3D(0.00264867457093243, -0.02556742713955823, -0.9996697113530895, -0.9227376580891755, 0.3852326868212685, -0.012297488727019301, 0.38541979391962533, 0.9224652949772625, -0.022571676483875147, -5.551115e-17, 0.5999999999999999, 1.6653345e-16)
 node_a = NodePath("../../../../..")
 node_b = NodePath("..")
 exclude_nodes_from_collision = false
@@ -686,8 +689,8 @@ linear_limit_y/enabled = false
 linear_limit_z/enabled = false
 angular_limit_y/upper_angle = 0.3490658503988659
 angular_limit_y/lower_angle = -0.6981317007977318
-angular_limit_z/upper_angle = 0.3490658503988659
-angular_limit_z/lower_angle = -0.17453292519943295
+angular_limit_z/upper_angle = 0.17453292519943295
+angular_limit_z/lower_angle = -0.3490658503988659
 script = ExtResource("10_tdgv8")
 body_A_position = Vector3(-0.173, 0.95, -0.673)
 body_B_position = Vector3(0, 0.6, 0)
@@ -742,11 +745,13 @@ node_b = NodePath("..")
 exclude_nodes_from_collision = false
 linear_limit_x/enabled = false
 linear_limit_y/enabled = false
-angular_limit_z/upper_angle = 0.17453292519943295
-angular_limit_z/lower_angle = -1.5707963267948966
+angular_limit_z/upper_angle = 1.5707963267948966
+angular_limit_z/lower_angle = -0.17453292519943295
 script = ExtResource("10_tdgv8")
 body_A_position = Vector3(0, 0.4, 0)
 body_B_position = Vector3(0, 1.5, 0)
+expand_limit = 0.5
+contract_limit = 0.4
 pitch_upper = 0.17453292519943295
 pitch_lower = 1.5707963267948966
 metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
@@ -824,7 +829,7 @@ mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
 [node name="MR_Tibia_Beam" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/MiddleRightTibia/MR_Tibia_Body" unique_id=1763466817]
-transform = Transform3D(0.034973861867411575, 0.08376004825612057, -0.9958720215480559, -0.9227876962457262, 0.38530894989190556, 4.7009068175163994e-08, 0.3837184067868905, 0.9189784468758169, 0.09076848395749337, 1.0408341e-17, 0.5999999999999999, -2.220446e-16)
+transform = Transform3D(0.034973861867411644, 0.08376004825612059, -0.9958720215480558, -0.9227876962457273, 0.3853089498919032, 4.7009068288278455e-08, 0.38371840678689023, 0.9189784468758171, 0.09076848395749337, -3.1225023e-17, 0.6000000000000001, -1.110223e-16)
 node_a = NodePath("../../../../..")
 node_b = NodePath("..")
 exclude_nodes_from_collision = false
@@ -883,14 +888,14 @@ mesh = SubResource("BoxMesh_a3xbf")
 metadata/_edit_lock_ = true
 
 [node name="MR_Tarsus_Beam" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/MiddleRightTarsus/MR_Tarsus_Body" unique_id=1343833513]
-transform = Transform3D(-2.2725499659609673e-09, 8.674316640647279e-08, -1.0000000004910734, -0.9762942531660195, -0.21644807385894027, -2.7300724179815187e-08, -0.21644806098931973, 0.9762941954643977, 8.435196263316276e-08, 9.264423e-23, 1.5000000000000002, 0)
+transform = Transform3D(-2.272549948368384e-09, 8.674316639249693e-08, -1.0000000004910734, -0.9762942531660195, -0.21644807385894027, -2.7300724193965667e-08, -0.21644806098931973, 0.9762941954643977, 8.435196261571033e-08, 9.264423e-23, 1.5000000000000002, 0)
 node_a = NodePath("../../../MiddleRightTibia/MR_Tibia_Body")
 node_b = NodePath("..")
 exclude_nodes_from_collision = false
 linear_limit_x/enabled = false
 linear_limit_y/enabled = false
-angular_limit_z/upper_angle = 0.5235987755982988
-angular_limit_z/lower_angle = -1.5707963267948966
+angular_limit_z/upper_angle = 1.5707963267948966
+angular_limit_z/lower_angle = -0.5235987755982988
 script = ExtResource("10_tdgv8")
 body_A_position = Vector3(0, 0.4, 0)
 body_B_position = Vector3(0, 1.5, 0)
@@ -973,7 +978,7 @@ mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
 [node name="ML_Tibia_Beam" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/MiddleLeftTibia/ML_Tibia_Body" unique_id=1557676059]
-transform = Transform3D(-0.034973802932081896, -0.08375987186933592, -0.9958720978387015, -0.922787535787368, 0.3853091710419317, -4.676047746181525e-08, 0.38371854950787077, 0.9189784091425248, -0.09076830359653884, 2.7755576e-17, 0.6000000000000001, -5.551115e-17)
+transform = Transform3D(-0.034973802932081854, -0.0837598718693359, -0.9958720978387013, -0.9227875357873678, 0.38530917104193124, -4.6760477501583463e-08, 0.38371854950787077, 0.9189784091425246, -0.09076830359653885, 1.3877788e-17, 0.5999999999999999, -1.110223e-16)
 node_a = NodePath("../../../../..")
 node_b = NodePath("..")
 exclude_nodes_from_collision = false
@@ -982,8 +987,8 @@ linear_limit_y/enabled = false
 linear_limit_z/enabled = false
 angular_limit_y/upper_angle = 0.5235987755982988
 angular_limit_y/lower_angle = -0.5235987755982988
-angular_limit_z/upper_angle = 0.3490658503988659
-angular_limit_z/lower_angle = -0.17453292519943295
+angular_limit_z/upper_angle = 0.17453292519943295
+angular_limit_z/lower_angle = -0.3490658503988659
 script = ExtResource("10_tdgv8")
 body_A_position = Vector3(-0.15, 0.95, 0)
 body_B_position = Vector3(0, 0.6, 0)
@@ -1031,18 +1036,20 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
 mesh = SubResource("BoxMesh_a3xbf")
 metadata/_edit_lock_ = true
 
-[node name="FL_Tarsus_Beam" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/MiddleLeftTarsus/ML_Tarsus_Body" unique_id=1750410817]
-transform = Transform3D(1.5768927600272834e-08, -1.3916051325839692e-07, -1.000000238909691, -0.9762942672280265, -0.21644834110968, 2.546993025179284e-08, -0.216448230993156, 0.9762942676172371, -1.3844796371806686e-07, 2.646978e-23, 1.5, 0)
+[node name="ML_Tarsus_Beam" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/MiddleLeftTarsus/ML_Tarsus_Body" unique_id=1750410817]
+transform = Transform3D(1.576892760253751e-08, -1.3916051326019602e-07, -1.000000238909691, -0.9762942672280265, -0.21644834110968, 2.546993024997124e-08, -0.216448230993156, 0.9762942676172371, -1.384479637203135e-07, 2.646978e-23, 1.5, 0)
 node_a = NodePath("../../../MiddleLeftTibia/ML_Tibia_Body")
 node_b = NodePath("..")
 exclude_nodes_from_collision = false
 linear_limit_x/enabled = false
 linear_limit_y/enabled = false
-angular_limit_z/upper_angle = 0.17453292519943295
-angular_limit_z/lower_angle = -1.5707963267948966
+angular_limit_z/upper_angle = 1.5707963267948966
+angular_limit_z/lower_angle = -0.17453292519943295
 script = ExtResource("10_tdgv8")
 body_A_position = Vector3(0, 0.4, 0)
 body_B_position = Vector3(0, 1.5, 0)
+expand_limit = 0.5
+contract_limit = 0.4
 pitch_upper = 0.17453292519943295
 pitch_lower = 1.5707963267948966
 metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
@@ -1120,7 +1127,7 @@ mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
 [node name="BR_Tibia_Beam" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/BackRightTibia/BR_Tibia_Body" unique_id=384566458]
-transform = Transform3D(0.06256577830348142, 0.1182265355124873, -0.9910136889499539, -0.9227374645244574, 0.38523274987947637, -0.012297585906789588, 0.3803168908003748, 0.9152149985765778, 0.13319442456449135, -1.3877788e-16, 0.6000000000000001, -1.110223e-16)
+transform = Transform3D(0.06256577830348081, 0.1182265355124868, -0.9910136889499535, -0.9227374645244569, 0.3852327498794762, -0.012297585906788977, 0.38031689080037484, 0.9152149985765777, 0.13319442456449138, 2.7755576e-16, 0.5999999999999999, -2.220446e-16)
 node_a = NodePath("../../../../..")
 node_b = NodePath("..")
 exclude_nodes_from_collision = false
@@ -1178,15 +1185,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
 mesh = SubResource("BoxMesh_a3xbf")
 metadata/_edit_lock_ = true
 
-[node name="MR_Tarsus_Beam" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/BackRightTarsus/BR_Tarsus_Body" unique_id=1364662273]
-transform = Transform3D(1.0920227940247607e-06, -1.1048640262689702e-06, -1.0000001183260405, -0.9762942943590405, -0.21644838956900725, -8.126377116779437e-07, -0.21644815140864207, 0.9762939435324003, -1.313935532154531e-06, -1.110223e-16, 1.5, 0)
+[node name="BR_Tarsus_Beam" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/BackRightTarsus/BR_Tarsus_Body" unique_id=1364662273]
+transform = Transform3D(1.0920227939137384e-06, -1.104864026213459e-06, -1.0000001183260405, -0.9762942943590405, -0.2164483895690072, -8.126377116224326e-07, -0.21644815140864201, 0.9762939435324003, -1.3139355320435087e-06, -1.110223e-16, 1.5, 0)
 node_a = NodePath("../../../BackRightTibia/BR_Tibia_Body")
 node_b = NodePath("..")
 exclude_nodes_from_collision = false
 linear_limit_x/enabled = false
 linear_limit_y/enabled = false
-angular_limit_z/upper_angle = 0.5235987755982988
-angular_limit_z/lower_angle = -1.5707963267948966
+angular_limit_z/upper_angle = 1.5707963267948966
+angular_limit_z/lower_angle = -0.5235987755982988
 script = ExtResource("10_tdgv8")
 body_A_position = Vector3(0, 0.4, 0)
 body_B_position = Vector3(0, 1.5, 0)
@@ -1268,8 +1275,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3999999999941792, 0)
 mesh = SubResource("BoxMesh_2g2re")
 metadata/_edit_lock_ = true
 
-[node name="FL_Tibia_Beam" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/BackLeftTibia/BL_Tibia_Body" unique_id=394098666]
-transform = Transform3D(-0.06256577830348142, -0.1182265355124873, -0.9910136889499539, -0.9227374645244574, 0.38523274987947637, 0.012297585906789588, 0.3803168908003748, 0.9152149985765778, -0.13319442456449135, 1.3877788e-16, 0.6000000000000001, -1.110223e-16)
+[node name="BL_Tibia_Beam" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/BackLeftTibia/BL_Tibia_Body" unique_id=394098666]
+transform = Transform3D(-0.06256577830348081, -0.1182265355124868, -0.9910136889499535, -0.9227374645244569, 0.3852327498794762, 0.012297585906788977, 0.38031689080037484, 0.9152149985765777, -0.13319442456449138, -2.7755576e-16, 0.5999999999999999, -2.220446e-16)
 node_a = NodePath("../../../../..")
 node_b = NodePath("..")
 exclude_nodes_from_collision = false
@@ -1278,8 +1285,8 @@ linear_limit_y/enabled = false
 linear_limit_z/enabled = false
 angular_limit_y/upper_angle = 0.6981317007977318
 angular_limit_y/lower_angle = -0.3490658503988659
-angular_limit_z/upper_angle = 0.3490658503988659
-angular_limit_z/lower_angle = -0.17453292519943295
+angular_limit_z/upper_angle = 0.17453292519943295
+angular_limit_z/lower_angle = -0.3490658503988659
 script = ExtResource("10_tdgv8")
 body_A_position = Vector3(-0.173, 0.95, 0.673)
 body_B_position = Vector3(0, 0.6, 0)
@@ -1327,20 +1334,22 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
 mesh = SubResource("BoxMesh_a3xbf")
 metadata/_edit_lock_ = true
 
-[node name="FL_Tarsus_Beam" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/BackLeftTarsus/BL_Tarsus_Body" unique_id=1282547572]
-transform = Transform3D(-1.0920227940247607e-06, 1.1048640262689702e-06, -1.0000001183260405, -0.9762942943590405, -0.21644838956900725, 8.126377116779437e-07, -0.21644815140864207, 0.9762939435324003, 1.313935532154531e-06, 1.110223e-16, 1.5, 0)
+[node name="BL_Tarsus_Beam" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/BackLeftTarsus/BL_Tarsus_Body" unique_id=1282547572]
+transform = Transform3D(-1.0920227939137384e-06, 1.104864026213459e-06, -1.0000001183260405, -0.9762942943590405, -0.2164483895690072, 8.126377116224326e-07, -0.21644815140864201, 0.9762939435324003, 1.3139355320435087e-06, 1.110223e-16, 1.5, 0)
 node_a = NodePath("../../../BackLeftTibia/BL_Tibia_Body")
 node_b = NodePath("..")
 exclude_nodes_from_collision = false
 linear_limit_x/enabled = false
 linear_limit_y/enabled = false
-angular_limit_z/upper_angle = 0.17453292519943295
-angular_limit_z/lower_angle = -1.5707963267948966
+angular_limit_z/upper_angle = 0.8726646259971648
+angular_limit_z/lower_angle = -0.7853981633974483
 script = ExtResource("10_tdgv8")
 body_A_position = Vector3(0, 0.4, 0)
 body_B_position = Vector3(0, 1.5, 0)
-pitch_upper = 0.17453292519943295
-pitch_lower = 1.5707963267948966
+expand_limit = 1.0
+contract_limit = 0.2
+pitch_upper = 0.7853981633974483
+pitch_lower = 0.8726646259971648
 metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
 
 [node name="box_ghost" type="MeshInstance3D" parent="big_crawler/Skeleton3D/BackLeftTarsus" unique_id=366722803]

@@ -1,0 +1,125 @@
+[gd_scene format=3 uid="uid://0gpu8utsrl1g"]
+
+[ext_resource type="Material" uid="uid://bnbu1r2kkhug0" path="res://material/dev/grid_green.tres" id="1_lder1"]
+[ext_resource type="Texture2D" uid="uid://c11cqyr7i2l6o" path="res://texture/dev/grid_purple.png" id="2_5d2tq"]
+[ext_resource type="Material" uid="uid://b7tcfnn27e44y" path="res://material/dev/grid_red.tres" id="3_k47xi"]
+[ext_resource type="Material" uid="uid://km833nxxybaa" path="res://material/dev/grid_orange.tres" id="4_ujyfd"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_lder1"]
+material = ExtResource("1_lder1")
+radius = 0.04
+height = 0.08
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_j21v8"]
+material = ExtResource("1_lder1")
+top_radius = 0.01
+bottom_radius = 0.01
+height = 0.465
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kubfa"]
+transparency = 1
+albedo_color = Color(1, 1, 1, 0.5)
+albedo_texture = ExtResource("2_5d2tq")
+uv1_triplanar = true
+uv1_world_triplanar = true
+texture_filter = 2
+
+[sub_resource type="SphereMesh" id="SphereMesh_5d2tq"]
+material = SubResource("StandardMaterial3D_kubfa")
+radius = 0.04
+height = 0.08
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_06ihv"]
+material = SubResource("StandardMaterial3D_kubfa")
+top_radius = 0.01
+bottom_radius = 0.01
+height = 0.465
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_pwai4"]
+material = ExtResource("3_k47xi")
+top_radius = 0.004
+bottom_radius = 0.004
+height = 0.2
+radial_segments = 6
+rings = 0
+
+[sub_resource type="SphereMesh" id="SphereMesh_wudqp"]
+material = ExtResource("4_ujyfd")
+radius = 0.05
+height = 0.1
+
+[node name="Node3D" type="Node3D" unique_id=772816970]
+
+[node name="Marker3D" type="Marker3D" parent="." unique_id=1841505105]
+metadata/_edit_lock_ = true
+
+[node name="Pointer" type="Node3D" parent="." unique_id=1767362761]
+transform = Transform3D(1, 2.7755576e-17, 0, -5.1067236e-33, 6.123233995736767e-17, 1, 2.7755576e-17, -1, 6.123233995736766e-17, 0, 0.7999999999999989, 0.6999999999999993)
+
+[node name="Ball" type="MeshInstance3D" parent="Pointer" unique_id=324567979]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("SphereMesh_lder1")
+
+[node name="Stick" type="MeshInstance3D" parent="Pointer" unique_id=1012469138]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.23249999999825377, 0)
+mesh = SubResource("CylinderMesh_j21v8")
+
+[node name="Pointer2" type="Node3D" parent="Pointer" unique_id=181263209]
+transform = Transform3D(0.9128747949683349, 0.24594870509111322, 0.32583560759303964, -0.40823964617797803, 0.5499719976606452, 0.7286090811111535, 2.4997468798845444e-17, -0.7981478786873801, 0.6024615869471149, 0, 0.5, 0)
+metadata/_edit_group_ = true
+
+[node name="Ball" type="MeshInstance3D" parent="Pointer/Pointer2" unique_id=1802850559]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("SphereMesh_lder1")
+
+[node name="Stick" type="MeshInstance3D" parent="Pointer/Pointer2" unique_id=1668980068]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.23249999999825377, 0)
+mesh = SubResource("CylinderMesh_j21v8")
+
+[node name="Marker3D" type="Marker3D" parent="Pointer/Pointer2" unique_id=1936512788]
+visible = false
+
+[node name="GRest" type="Node3D" parent="Pointer" unique_id=1507989818]
+transform = Transform3D(1, 0, 0, 0, 1.0000000000000004, 0, 0, 0, 1.0000000000000004, 0, 0.5, 0)
+metadata/_edit_group_ = true
+
+[node name="Ball" type="MeshInstance3D" parent="Pointer/GRest" unique_id=1303298410]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("SphereMesh_lder1")
+
+[node name="Stick" type="MeshInstance3D" parent="Pointer/GRest" unique_id=1959589202]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.23249999999825377, 0)
+mesh = SubResource("CylinderMesh_j21v8")
+
+[node name="Pointer3" type="Node3D" parent="Pointer" unique_id=1715637681]
+transform = Transform3D(1, 0, 0, 0, 0.7242019510771583, 0.6895879451208796, 0, -0.6895879451208796, 0.7242019510771583, 0, 0.5, 0)
+metadata/_edit_group_ = true
+
+[node name="Ball" type="MeshInstance3D" parent="Pointer/Pointer3" unique_id=398381839]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("SphereMesh_5d2tq")
+
+[node name="Stick" type="MeshInstance3D" parent="Pointer/Pointer3" unique_id=2135802531]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.23249999999825377, 0)
+mesh = SubResource("CylinderMesh_06ihv")
+
+[node name="Axis" type="Node3D" parent="Pointer" unique_id=1662671132]
+transform = Transform3D(-0.26103525581343995, -0.43103495939507047, -0.8637531238737737, 0.8285288717857293, 0.3591342949110586, -0.42960734029600073, 0.4953791515999425, -0.8277870631980351, 0.26337819606431767, 0, 0.5, 0)
+metadata/_edit_group_ = true
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Pointer/Axis" unique_id=165934855]
+transform = Transform3D(6.123233995736766e-17, -1, 0, 1, 6.123233995736766e-17, 0, 0, 0, 1, 0.10000000000582077, 0, 0)
+mesh = SubResource("CylinderMesh_pwai4")
+
+[node name="Axis2" type="Node3D" parent="Pointer" unique_id=1488220349]
+transform = Transform3D(0.31546649092710055, 0.2510703466745386, 0.9151199779935241, -0.16929748824073654, 0.9637829777771637, -0.20606002092196565, -0.9337126183026119, -0.08992248199260428, 0.346546813078364, 0, 0.6000000000000014, 0)
+visible = false
+metadata/_edit_group_ = true
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Pointer/Axis2" unique_id=669420971]
+transform = Transform3D(1, 0, 0, 0, 6.123233995736766e-17, -1, 0, 1, 6.123233995736766e-17, 0, 0, 0.10000000000582077)
+mesh = SubResource("CylinderMesh_pwai4")
+
+[node name="target" type="MeshInstance3D" parent="." unique_id=1296098226]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.20000000000000284, 0.4000000000000003, 0)
+mesh = SubResource("SphereMesh_wudqp")

@@ -158,19 +158,26 @@ func _update_joint() -> void:
         set_param_z(PARAM_LINEAR_UPPER_LIMIT, 0.0)
 
     # Restrict all rotations
-    set_flag_x(FLAG_ENABLE_ANGULAR_LIMIT, true)
-    set_param_x(PARAM_ANGULAR_LOWER_LIMIT, -roll_lower)
-    set_param_x(PARAM_ANGULAR_UPPER_LIMIT, roll_upper)
-
-    set_flag_y(FLAG_ENABLE_ANGULAR_LIMIT, true)
     # NOTE: I don't understand, but these must be flipped to stay with
     #       the common "positive is counter-clockwise" thing in Godot
+    set_flag_x(FLAG_ENABLE_ANGULAR_LIMIT, true)
+    set_param_x(PARAM_ANGULAR_LOWER_LIMIT, -roll_upper)
+    set_param_x(PARAM_ANGULAR_UPPER_LIMIT, roll_lower)
+
+    set_flag_y(FLAG_ENABLE_ANGULAR_LIMIT, true)
     set_param_y(PARAM_ANGULAR_LOWER_LIMIT, -yaw_upper)
     set_param_y(PARAM_ANGULAR_UPPER_LIMIT, yaw_lower)
 
     set_flag_z(FLAG_ENABLE_ANGULAR_LIMIT, true)
-    set_param_z(PARAM_ANGULAR_LOWER_LIMIT, -pitch_lower)
-    set_param_z(PARAM_ANGULAR_UPPER_LIMIT, pitch_upper)
+    set_param_z(PARAM_ANGULAR_LOWER_LIMIT, -pitch_upper)
+    set_param_z(PARAM_ANGULAR_UPPER_LIMIT, pitch_lower)
+
+    beam_span = beam_displacement.length()
+    _debug_draw_points()
+
+    # Don't run any of the rest
+    if Engine.is_editor_hint():
+        return
 
     # Apply changes
     # Teleport body A into position for accurate rotations
@@ -178,9 +185,6 @@ func _update_joint() -> void:
     body_a.global_position -= beam_displacement
     force_update_joint()
     body_a.global_position = original_position
-
-    beam_span = beam_displacement.length()
-    _debug_draw_points()
 
     # Set up distance joint
     if not distance_joint:
@@ -248,3 +252,12 @@ func _debug_draw_points() -> void:
         else:
             # Body A
             marker.position.x = beam_span
+
+func get_total_applied_force() -> float:
+    var force: float = get_applied_force()
+    var torque: float = get_applied_torque()
+
+    if distance_joint:
+        force += distance_joint.get_applied_force()
+
+    return force + torque

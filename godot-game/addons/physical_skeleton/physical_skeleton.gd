@@ -213,11 +213,18 @@ func _process_modification_with_delta(delta: float) -> void:
             else:
                 error[axis] = 0
 
-        """
-        if error.length() > 0.02:
+        var joint: Joint3D = joint_data.joint
+        var total_force: float = 0
+        if joint is BeamPivotJoint3D:
+            total_force = joint.get_total_applied_force()
+        elif joint is Generic6DOFJoint3D:
+            var linear: float = joint.get_applied_force()
+            var torque: float = joint.get_applied_torque()
+            total_force = linear + torque
+
+        if total_force > 500.0:
+            print('%d : %s: %.2f' % [Engine.get_physics_frames(), joint.name, total_force])
             to_remove.append(joint_data)
-            continue
-        """
 
         #print('error: %s\nangle: %s' % [str(error), str(angle.get_euler())])
 
@@ -294,22 +301,11 @@ func _process_modification_with_delta(delta: float) -> void:
                 next_body = joint_data.parent
 
     for joint_data in joints:
-        # Snap to parent position and axis of rotation
-        var parent_xform: Transform3D = (joint_data.parent.global_transform * joint_data.xform_rel_parent)
-        var bone_position: Vector3 = skeleton.global_transform.affine_inverse() * parent_xform.origin
-        #var bone_position: Vector3 = skeleton.global_transform.affine_inverse() * joint_data.body.transform.origin
-        bone_position = skeleton.get_bone_global_pose(skeleton.get_bone_parent(joint_data.bone_idx)).affine_inverse() * bone_position
-        var bone_rotation: Quaternion
-        if joint_data.is_ik_joint:
-            bone_rotation = _snap_bone_to_rotation_axis(joint_data)
-        else:
-            bone_rotation = joint_data.offset.basis.get_rotation_quaternion()
-
+        var bone_rotation: Quaternion = joint_data.offset.basis.get_rotation_quaternion()
         joint_data.angle = bone_rotation
 
         bone_rotation = skeleton.get_bone_rest(joint_data.bone_idx).basis.get_rotation_quaternion() * bone_rotation
-        skeleton.set_bone_pose(joint_data.bone_idx, Transform3D(bone_rotation, bone_position))
-        #skeleton.set_bone_pose_rotation(joint_data.bone_idx, bone_rotation)
+        skeleton.set_bone_pose_rotation(joint_data.bone_idx, bone_rotation)
 
 func _snap_bone_to_rotation_axis(joint_data: JointData) -> Quaternion:
     var rotation_axis_vector: Vector3 = iterate_ik.get_joint_rotation_axis_vector(joint_data.ik_setting_idx, joint_data.ik_joint_idx)
@@ -496,11 +492,9 @@ func setup_body_joints() -> void:
                 if rotation_axis == ROTATION_AXIS_X:
                     joint_data.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, lower_limit)
                     joint_data.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, upper_limit)
-                    pass
                 elif rotation_axis == ROTATION_AXIS_Z:
                     joint_data.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, lower_limit)
                     joint_data.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, upper_limit)
-                    pass
                 else: # rotation_axis == ROTATION_AXIS_Y
                     joint_data.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, lower_limit)
                     joint_data.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, upper_limit)
