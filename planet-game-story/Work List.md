@@ -1,3 +1,7 @@
+All the things I would like to do.
+
+# FUTURE
+
 - [ ] Create a collision layer named "stairs," and check if the floor layer matches. When it does, treat any normals as "uphill" normals, so that slope effects always slow the player. This prevents stairs behaving like ramps and more like stairs.
 - [ ] Incorporate "inverse effective mass" when applying friction and movement forces to CharacterController, such that it proportionally shares accelerations (linear and angular) to ground and character bodies. This should fix the weird "sticking" to less massive objects from stopping friction, and should nicely apply counter-acting forces to the spinning platform (slows down/ speeds up depending on which way you run). Should also mean you can walk on the large ball and make it move beneath you.
 - [ ] Add general air drag to all rigid bodies which uses collision shape meshes to approximate drag and ideally some lifting forces caused by localized vacuums
