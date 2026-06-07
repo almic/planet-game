@@ -90,23 +90,7 @@ var calc_freq_damping: float = 0.0
 
 
 ## Contains data and object references on a joint
-class JointData:
-    var bone_idx: int = -1
-    var bone_length: float = 0.0
-    var is_ik_joint: bool = false
-    var is_enabled: bool = true
-    var ik_setting_idx: int = -1
-    var ik_joint_idx: int = -1
-    var parent: RigidBody3D
-    var body: RigidBody3D
-    var center_of_mass: Vector3
-    var joint: Generic6DOFJoint3D
-    var attachment: ModifierBoneTarget3D
-    var xform_rel_parent: Transform3D
-    var xform_rel_body: Transform3D
-    var offset: Transform3D
-    var angle: Quaternion
-
+const JointData = preload("uid://m8gpd36535th")
 static var INVALID_JOINT: JointData = JointData.new()
 
 ## Emits when a joint calculates a higher force needed to match the skeleton
@@ -216,6 +200,8 @@ func _process_modification_with_delta(delta: float) -> void:
         bone_rotation = skeleton.get_bone_rest(joint_data.bone_idx).basis.get_rotation_quaternion() * bone_rotation
         skeleton.set_bone_pose_rotation(joint_data.bone_idx, bone_rotation)
 
+        # IDEA: Teleport IK end bone to real location? Maybe this will help IK
+
 func _should_break(joint: Joint3D, displacement: Transform3D) -> bool:
     var total_force: float = 0
     if joint is BeamPivotJoint3D:
@@ -239,6 +225,7 @@ func _break_joints(to_break: Array[JointData]) -> void:
     for joint_data in to_break:
         print('Breaking joint %s on %s' % [joint_data.joint.name, main_body.name])
 
+        # Disable IK behavior on the chain
         if joint_data.is_ik_joint and iterate_ik:
             if joint_data.ik_setting_idx < iterate_ik.setting_count:
                 iterate_ik.set_target_node(joint_data.ik_setting_idx, NodePath(""))
@@ -283,11 +270,11 @@ func _break_joints(to_break: Array[JointData]) -> void:
                 continue
 
             # Already disabled this chain, nothing to do
-            if not joint_data.is_enabled:
+            if not joint_data.is_motor_powered:
                 break
 
             print('Disabling %s' % joint_data.body)
-            joint_data.is_enabled = false
+            joint_data.is_motor_powered = false
 
             var next_body: RigidBody3D = joint_data.parent
             while true:
@@ -303,7 +290,7 @@ func _break_joints(to_break: Array[JointData]) -> void:
                     break
 
                 print('Disabling %s' % joint_data.body)
-                joint_data.is_enabled = false
+                joint_data.is_motor_powered = false
                 next_body = joint_data.parent
 
 func activate_bodies() -> void:
@@ -349,7 +336,7 @@ func update_motors() -> void:
         var impulse: bool = false
         if i % 2 == 0:
             for joint_data in joints:
-                if not joint_data.is_enabled:
+                if not joint_data.is_motor_powered:
                     continue
 
                 var applied_impulse: bool = _solve_joint_motor(joint_data, cached_delta)
@@ -357,7 +344,7 @@ func update_motors() -> void:
         else:
             for joint in range(joints.size() - 1, -1, -1):
                 var joint_data: JointData = joints[joint]
-                if not joint_data.is_enabled:
+                if not joint_data.is_motor_powered:
                     continue
 
                 var applied_impulse: bool = _solve_joint_motor(joint_data, cached_delta)

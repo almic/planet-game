@@ -53,7 +53,7 @@ margin = 0.0
 radius = 0.03
 height = 0.32
 
-[sub_resource type="Resource" id="Resource_f04iu"]
+[sub_resource type="Resource" id="Resource_8gnh6"]
 resource_local_to_scene = true
 resource_name = "FemurJoint"
 script = ExtResource("8_f04iu")
@@ -80,7 +80,7 @@ resource_name = "MidLegShape"
 radius = 0.04
 height = 0.8
 
-[sub_resource type="Resource" id="Resource_kegpd"]
+[sub_resource type="Resource" id="Resource_d33x4"]
 resource_local_to_scene = true
 resource_name = "TibiaJoint"
 script = ExtResource("8_f04iu")
@@ -101,7 +101,7 @@ resource_name = "LongLegShape"
 radius = 0.06
 height = 1.5
 
-[sub_resource type="Resource" id="Resource_tdgv8"]
+[sub_resource type="Resource" id="Resource_6k2hw"]
 resource_local_to_scene = true
 resource_name = "TarsusJoint"
 script = ExtResource("8_f04iu")
@@ -117,8 +117,28 @@ resource_name = "TarsusMesh"
 material = SubResource("StandardMaterial3D_f04iu")
 size = Vector3(0.12, 1.7, 0.06)
 
+[sub_resource type="Resource" id="Resource_f04iu"]
+resource_local_to_scene = true
+resource_name = "FemurJoint"
+script = ExtResource("8_f04iu")
+metadata/_custom_type_script = "uid://r30j5e0iugw1"
+
+[sub_resource type="Resource" id="Resource_kegpd"]
+resource_local_to_scene = true
+resource_name = "TibiaJoint"
+script = ExtResource("8_f04iu")
+metadata/_custom_type_script = "uid://r30j5e0iugw1"
+
+[sub_resource type="Resource" id="Resource_tdgv8"]
+resource_local_to_scene = true
+resource_name = "TarsusJoint"
+script = ExtResource("8_f04iu")
+metadata/_custom_type_script = "uid://r30j5e0iugw1"
+
 [node name="CrawlerBot" type="RigidBody3D" unique_id=461561025 node_paths=PackedStringArray("skeleton", "physical_skeleton", "leg_ik")]
 collision_mask = 51
+axis_lock_linear_x = true
+axis_lock_linear_z = true
 mass = 22.857142857142858
 physics_material_override = ExtResource("1_ro1ip")
 custom_integrator = true
@@ -174,6 +194,7 @@ metadata/_custom_type_script = "uid://ba78jnlpxs7ph"
 active = false
 mutable_bone_axes = false
 max_iterations = 10
+min_distance = 0.0
 angular_delta_limit = 0.01745329251994329
 deterministic = true
 setting_count = 6
@@ -484,9 +505,10 @@ shape = SubResource("CapsuleShape3D_ro1ip")
 visible = false
 node_a = NodePath("../../../../..")
 node_b = NodePath("..")
+angular_motor_z/enabled = true
 angular_drive_z/torque_limit = 50.0
 script = ExtResource("7_omyby")
-resource = SubResource("Resource_f04iu")
+resource = SubResource("Resource_8gnh6")
 metadata/_custom_type_script = "uid://y5avqll8ah8b"
 
 [node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontRightFemur/FR_Femur_Body" unique_id=2099895246]
@@ -496,7 +518,6 @@ metadata/_edit_lock_ = true
 
 [node name="box_ghost" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontRightFemur" unique_id=1008953879]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14999999999417923, 0)
-visible = false
 mesh = SubResource("BoxMesh_tdgv8")
 metadata/_edit_lock_ = true
 
@@ -520,9 +541,10 @@ shape = SubResource("CapsuleShape3D_eqa8u")
 visible = false
 node_a = NodePath("../../../FrontRightFemur/FR_Femur_Body")
 node_b = NodePath("..")
+angular_motor_x/enabled = true
 angular_drive_x/torque_limit = 50.0
 script = ExtResource("7_omyby")
-resource = SubResource("Resource_kegpd")
+resource = SubResource("Resource_d33x4")
 metadata/_custom_type_script = "uid://y5avqll8ah8b"
 
 [node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontRightTibia/FR_Tibia_Body" unique_id=285335069]
@@ -555,7 +577,6 @@ metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
 
 [node name="box_ghost" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontRightTibia" unique_id=1312985646]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3999999999941792, 0)
-visible = false
 mesh = SubResource("BoxMesh_kegpd")
 metadata/_edit_lock_ = true
 
@@ -579,9 +600,10 @@ shape = SubResource("CapsuleShape3D_xefeq")
 visible = false
 node_a = NodePath("../../../FrontRightTibia/FR_Tibia_Body")
 node_b = NodePath("..")
+angular_motor_x/enabled = true
 angular_drive_x/torque_limit = 50.0
 script = ExtResource("7_omyby")
-resource = SubResource("Resource_tdgv8")
+resource = SubResource("Resource_6k2hw")
 metadata/_custom_type_script = "uid://y5avqll8ah8b"
 
 [node name="box" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontRightTarsus/FR_Tarsus_Body" unique_id=841348793]
@@ -609,7 +631,6 @@ metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
 
 [node name="box_ghost" type="MeshInstance3D" parent="big_crawler/Skeleton3D/FrontRightTarsus" unique_id=216008797]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8500000000058208, 0)
-visible = false
 mesh = SubResource("BoxMesh_8gnh6")
 metadata/_edit_lock_ = true
 
@@ -621,6 +642,9 @@ metadata/_edit_lock_ = true
 
 [node name="FL_Femur_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/FrontLeftFemur" unique_id=1486627916]
 collision_mask = 51
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 mass = 0.32257394422408703
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
@@ -657,6 +681,9 @@ metadata/_edit_lock_ = true
 
 [node name="FL_Tibia_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/FrontLeftTibia" unique_id=1662917346]
 collision_mask = 51
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 mass = 0.7599126992908974
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
@@ -716,6 +743,9 @@ metadata/_edit_lock_ = true
 
 [node name="FL_Tarsus_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/FrontLeftTarsus" unique_id=933941462]
 collision_mask = 51
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 mass = 1.7746562136278727
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
@@ -770,6 +800,9 @@ metadata/_edit_lock_ = true
 
 [node name="MR_Femur_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/MiddleRightFemur" unique_id=826818968]
 collision_mask = 51
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 mass = 0.32268982365386556
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
@@ -806,6 +839,9 @@ metadata/_edit_lock_ = true
 
 [node name="MR_Tibia_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/MiddleRightTibia" unique_id=787419652]
 collision_mask = 51
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 mass = 0.7598775334883131
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
@@ -865,6 +901,9 @@ metadata/_edit_lock_ = true
 
 [node name="MR_Tarsus_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/MiddleRightTarsus" unique_id=2006556882]
 collision_mask = 51
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 mass = 1.7745755000006784
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
@@ -919,6 +958,9 @@ metadata/_edit_lock_ = true
 
 [node name="ML_Femur_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/MiddleLeftFemur" unique_id=2071243319]
 collision_mask = 51
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 mass = 0.3226898843358446
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
@@ -955,6 +997,9 @@ metadata/_edit_lock_ = true
 
 [node name="ML_Tibia_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/MiddleLeftTibia" unique_id=993553714]
 collision_mask = 51
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 mass = 0.7598774967526608
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
@@ -1014,6 +1059,9 @@ metadata/_edit_lock_ = true
 
 [node name="ML_Tarsus_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/MiddleLeftTarsus" unique_id=953156931]
 collision_mask = 51
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 mass = 1.774575476054352
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
@@ -1068,6 +1116,9 @@ metadata/_edit_lock_ = true
 
 [node name="BR_Femur_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/BackRightFemur" unique_id=1573651788]
 collision_mask = 51
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 mass = 0.32257386845305075
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
@@ -1104,6 +1155,9 @@ metadata/_edit_lock_ = true
 
 [node name="BR_Tibia_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/BackRightTibia" unique_id=136208609]
 collision_mask = 51
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 mass = 0.7599126784416768
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
@@ -1163,6 +1217,9 @@ metadata/_edit_lock_ = true
 
 [node name="BR_Tarsus_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/BackRightTarsus" unique_id=1837646522]
 collision_mask = 51
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 mass = 1.7746563102481299
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
@@ -1217,6 +1274,9 @@ metadata/_edit_lock_ = true
 
 [node name="BL_Femur_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/BackLeftFemur" unique_id=837444526]
 collision_mask = 51
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 mass = 0.32257386845305075
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
@@ -1253,6 +1313,9 @@ metadata/_edit_lock_ = true
 
 [node name="BL_Tibia_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/BackLeftTibia" unique_id=1343759265]
 collision_mask = 51
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 mass = 0.7599126784416768
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
@@ -1312,6 +1375,9 @@ metadata/_edit_lock_ = true
 
 [node name="BL_Tarsus_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/BackLeftTarsus" unique_id=1236954588]
 collision_mask = 51
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 mass = 1.7746563102481299
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
