@@ -207,6 +207,9 @@ func _process_modification_with_delta(delta: float) -> void:
     _break_joints(to_remove)
 
     for joint_data in joints:
+        if not joint_data.is_ik_joint:
+            continue
+
         var bone_rotation: Quaternion = joint_data.offset.basis.get_rotation_quaternion()
         joint_data.angle = bone_rotation
 
@@ -302,29 +305,6 @@ func _break_joints(to_break: Array[JointData]) -> void:
                 print('Disabling %s' % joint_data.body)
                 joint_data.is_enabled = false
                 next_body = joint_data.parent
-
-func _snap_bone_to_rotation_axis(joint_data: JointData) -> Quaternion:
-    var rotation_axis_vector: Vector3 = iterate_ik.get_joint_rotation_axis_vector(joint_data.ik_setting_idx, joint_data.ik_joint_idx)
-    if rotation_axis_vector.is_zero_approx():
-        return joint_data.offset.basis.get_rotation_quaternion()
-
-    rotation_axis_vector = rotation_axis_vector.normalized()
-
-    # When nearly aligned to the axis of rotation... must give up
-    var local_vector: Vector3 = joint_data.offset.basis.y
-    if is_equal_approx(absf(local_vector.dot(rotation_axis_vector)), 1.0):
-        return joint_data.offset.basis.get_rotation_quaternion()
-
-    local_vector = local_vector.slide(rotation_axis_vector).normalized()
-    var axis: RotationAxis = iterate_ik.get_joint_rotation_axis(joint_data.ik_setting_idx, joint_data.ik_joint_idx)
-    if axis == ROTATION_AXIS_X:
-        return Basis(Vector3.RIGHT, local_vector, Vector3.RIGHT.cross(local_vector)).get_rotation_quaternion()
-    elif axis == ROTATION_AXIS_Z:
-        return Basis(local_vector.cross(Vector3.BACK), local_vector, Vector3.BACK).get_rotation_quaternion()
-    else:
-        # This one is too much, I won't be using it and I don't have anything to prove
-        push_error("I'm sorry Dave, I'm afraid I can't do that.")
-        return joint_data.offset.basis.get_rotation_quaternion()
 
 func activate_bodies() -> void:
     for joint_data in joints:
