@@ -201,36 +201,39 @@ func _process_modification_with_delta(delta: float) -> void:
         var body_diff: Transform3D = joint_parent.affine_inverse() * joint_body
         joint_data.offset = body_diff
 
-        var offsets: PackedVector3Array = joint_data.joint.get_linear_limit()
-        var error: Vector3 = body_diff.origin
-        for axis in range(3):
-            var lower: float = offsets[0][axis]
-            var upper: float = offsets[1][axis]
-            if error[axis] > upper:
-                error[axis] -= upper
-            elif error[axis] < lower:
-                error[axis] -= lower
-            else:
-                error[axis] = 0
-
-        var joint: Joint3D = joint_data.joint
-        var total_force: float = 0
-        if joint is BeamPivotJoint3D:
-            total_force = joint.get_total_applied_force()
-        elif joint is Generic6DOFJoint3D:
-            var linear: float = joint.get_applied_force()
-            var torque: float = joint.get_applied_torque()
-            total_force = linear + torque
-
-        if total_force > 500.0:
-            print('%d : %s: %.2f' % [Engine.get_physics_frames(), joint.name, total_force])
+        if _should_break(joint_data.joint, joint_data.offset):
             to_remove.append(joint_data)
 
-        #print('error: %s\nangle: %s' % [str(error), str(angle.get_euler())])
+    _break_joints(to_remove)
 
+    for joint_data in joints:
+        var bone_rotation: Quaternion = joint_data.offset.basis.get_rotation_quaternion()
+        joint_data.angle = bone_rotation
+
+        bone_rotation = skeleton.get_bone_rest(joint_data.bone_idx).basis.get_rotation_quaternion() * bone_rotation
+        skeleton.set_bone_pose_rotation(joint_data.bone_idx, bone_rotation)
+
+func _should_break(joint: Joint3D, displacement: Transform3D) -> bool:
+    var total_force: float = 0
+    if joint is BeamPivotJoint3D:
+        total_force = joint.get_total_applied_force()
+    elif joint is Generic6DOFJoint3D:
+        var linear: float = joint.get_applied_force()
+        var torque: float = joint.get_applied_torque()
+        total_force = linear + torque
+
+    if total_force > 500.0:
+        print('%d : %s: %.2f' % [Engine.get_physics_frames(), joint.name, total_force])
+        # return true
+
+    #print('error: %s\nangle: %s' % [displacement.origin, displacement.basis.get_euler()])
+
+    return false
+
+func _break_joints(to_break: Array[JointData]) -> void:
     var to_disable: Array[RigidBody3D] = []
 
-    for joint_data in to_remove:
+    for joint_data in to_break:
         print('Breaking joint %s on %s' % [joint_data.joint.name, main_body.name])
 
         if joint_data.is_ik_joint and iterate_ik:
@@ -299,13 +302,6 @@ func _process_modification_with_delta(delta: float) -> void:
                 print('Disabling %s' % joint_data.body)
                 joint_data.is_enabled = false
                 next_body = joint_data.parent
-
-    for joint_data in joints:
-        var bone_rotation: Quaternion = joint_data.offset.basis.get_rotation_quaternion()
-        joint_data.angle = bone_rotation
-
-        bone_rotation = skeleton.get_bone_rest(joint_data.bone_idx).basis.get_rotation_quaternion() * bone_rotation
-        skeleton.set_bone_pose_rotation(joint_data.bone_idx, bone_rotation)
 
 func _snap_bone_to_rotation_axis(joint_data: JointData) -> Quaternion:
     var rotation_axis_vector: Vector3 = iterate_ik.get_joint_rotation_axis_vector(joint_data.ik_setting_idx, joint_data.ik_joint_idx)
