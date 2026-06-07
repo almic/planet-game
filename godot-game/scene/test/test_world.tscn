@@ -344,7 +344,7 @@ process_mode = 1
 metadata/_edit_lock_ = true
 
 [node name="Player" parent="Characters" unique_id=1957397594 instance=ExtResource("1_fbyci")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.5, 0.125, 5)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 12.5, 0.125, 19)
 metadata/_edit_group_ = true
 
 [node name="Camera3D" type="Camera3D" parent="Characters/Player" unique_id=1880891728]
@@ -352,17 +352,14 @@ transform = Transform3D(0, -1, 0, 0, 0, 1, -1, 0, 0, -0.2, 3.3, -4.1)
 size = 6.314
 
 [node name="CrawlerBot" parent="Characters" unique_id=461561025 instance=ExtResource("9_dunqf")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.5, 0.5, -2.5)
-enable_physical_skeleton = false
-debug_enabled = true
-debug_velocity = true
-debug_friction = true
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 11.5, 0, 23.5)
+metadata/_edit_group_ = true
 
 [node name="Camera3D" type="Camera3D" parent="Characters/CrawlerBot" unique_id=1751609405]
 transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 8, 0)
 projection = 1
 fov = 40.0
-size = 5.875
+size = 5.5
 
 [node name="DynamicWorld" type="Node" parent="." unique_id=1049443971]
 process_mode = 1
