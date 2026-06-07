@@ -184,7 +184,7 @@ What I want to happen
 2. PHYSICS TICK
 
 - [ ] Use SpringCast3D (and probably improve it?) for maintaining ground contact and softening impacts on the legs. Right now legs just hover above the ground or rigidly collide and push the entire body off balance from IK. This solves a disconnect between where the leg colliders impact the ground and where IK wants to place them. Also allow disabling grip when the leg needs to change footing position. Make sure to iterate the forces as 6 springs would otherwise probably over-accelerate, iterating would allow damping to equalize the forces as both bodies would incur huge initial acceleration each frame.
-- [ ] Fix walking on the wrong side of surfaces, virtual clipping. One idea is to ray trace along the bones of the chain, and if it intersects anything but the crawler bodies, ignore any ground cast contact. If it hits the main body, consider it a good ground.
+- [ ] Fix walking on the wrong side of surfaces, virtual clipping. One idea is to ray trace along the bones of the chain, starting from the end and going to the root (main body), and if it intersects anything but the crawler bodies, ignore any ground cast contact. If it hits the main body, consider it a good ground.
 
 # Current Plan
 - [x] Update joints array to be in chain-order, so forward iteration is root-to-end and backward iteration is end-to-root. When a joint is destroyed, it should be deleted, and child joints should be "disabled" and removed from iteration list, and parents should be set to "non-functional" and target some "safe" rotation.

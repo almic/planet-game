@@ -14,7 +14,7 @@ Some have transport functions, some are multipurpose, some are for [[The Planet#
 - Group behavior, no decision making based on other's decisions
 
 ## What I want to have
-- An enemy made to be shot by certain weapons
+- An enemy made to be shot by certain weapons (but all weapons are viable)
 - Bipedal Security Bots that use human tools and weapons to fight you. Without a weapon, they charge at you to punch you.
 - As you leave the [[Weapon Facility]] with [[The Sword]], a sword-wielding bi-ped comes out and you fight it with the sword. Or you can just blast it with a gun and then [[White Metal]] sounds sad "Well, don't bring a gun to a sword fight..." (wrong phrase on purpose)
 - Flying drones with several weak-spots which if shot together (like by the [[Security Gun]]) can break it very quickly
