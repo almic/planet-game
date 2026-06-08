@@ -1,0 +1,4 @@
+[gd_resource type="JointLimitationCone3D" format=3 uid="uid://bcym6vtt2jqsf"]
+
+[resource]
+resource_name = "TibiaJointConeLimit"

@@ -42,7 +42,11 @@ var enable_physical_skeleton: bool = true
 
 @export_group('Leg IK')
 
-@export var leg_ik: IterateIK3D
+@export var layout: CrawlerLayout:
+    set = set_layout
+
+@export_custom(PROPERTY_HINT_NODE_TYPE, 'IterateIK3D', PROPERTY_USAGE_STORAGE)
+var leg_ik: IterateIK3D
 
 
 @export_group('Leg Parameters', 'body')
@@ -160,6 +164,9 @@ func _ready() -> void:
 
     _update_body_mass()
 
+    if layout:
+        layout.crawler = self
+
     if Engine.is_editor_hint():
         return
 
@@ -230,6 +237,13 @@ func _ready() -> void:
         leg_ik.deterministic = false
 
     desired_surface_friction = 0.0
+
+func set_layout(new_layout: CrawlerLayout) -> void:
+    if layout:
+        layout.crawler = null
+    layout = new_layout
+    if layout:
+        layout.crawler = self
 
 func _on_leg_pose_updated() -> void:
     for leg in legs:

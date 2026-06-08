@@ -2,81 +2,17 @@
 class_name CrawlerLeg extends Node3D
 
 ## The floor step target raycast
-@export var shape_cast: ShapeCast3D
+@export_custom(PROPERTY_HINT_NODE_TYPE, 'ShapeCast3D', PROPERTY_USAGE_STORAGE)
+var shape_cast: ShapeCast3D
 
 ## The node that IK uses for this leg
-@export var target: Marker3D
-
-
-@export_group('Ground Detection', 'ground')
+@export_custom(PROPERTY_HINT_NODE_TYPE, 'Marker3D', PROPERTY_USAGE_STORAGE)
+var target: Marker3D
 
 @export_custom(PROPERTY_HINT_ENUM, '')
 var ground_bone: StringName
 
-## How far back from the ground bone to raycast
-@export_range(0.05, 0.2, 0.01, 'or_greater')
-var ground_hit_start: float = 0.1
-
-## How far beyond the ground bone to raycast
-@export_range(0.05, 0.2, 0.01, 'or_greater')
-var ground_hit_extra: float = 0.05
-
-
-@export_group('Stepping')
-
-## How far between current and rest position to start moving the leg torwards the move target.
-## Actual steps will be a little higher than double this value while in motion.
-@export_range(0.01, 1.0, 0.01, 'or_greater')
-var step_distance: float = 0.5
-
-## If all paired legs are able to step, use this distance as a minimum for early steps.
-@export_range(0.0, 0.5, 0.01, 'or_greater')
-var early_step_distance: float = 0.15
-
-## When in motion, the angle for the step shape cast, in the direction of motion.
-## This pivots about the rest position of the leg.
-@export_range(0.0, 45.0, 0.1, 'radians_as_degrees')
-var step_cast_angle: float = deg_to_rad(20.0)
-
-## How far between current and rest position the leg should be when at rest.
-## This should be very small so the legs return to a comfortable position.
-@export_range(0.01, 0.5, 0.01, 'or_greater')
-var rest_distance: float = 0.05
-
-## How long this leg must wait before it can step again
-@export_range(0.01, 0.5, 0.01, 'or_greater')
-var step_delay: float = 0.19
-
-## If a paired leg has started moving in this time frame, allow this leg to
-## move early to stay synchronized.
-@export_range(0.0, 0.5, 0.01, 'or_greater')
-var step_pair_window: float = 0.09
-
-## How long a legs cross-pair (the set of legs that move exclusive to this leg)
-## must be grounded before this leg can move.
-@export_range(0.0, 0.5, 0.01, 'or_greater')
-var step_crosspair_wait: float = 0.06
-
-## How much to lift the leg while taking a step, applies on the body's up axis
-@export_range(0.0, 1.0, 0.01, 'or_greater')
-var leg_lift_height: float = 0.3
-
-## How much to swing the leg out while taking a step, 1.0 is 100% swing
-@export_range(0.0, 1.0, 0.01, 'or_greater')
-var leg_swing_amount: float = 0.8
-
-## When in motion, how far in the direction of travel to shift the leg move target
-@export_range(0.0, 1.0, 0.01, 'or_greater')
-var move_offset: float = 0.6
-
-## When in motion, how far in the direction of travel to rotate the leg move target.
-## For front and back legs, the leg only rotates forward or backward, respectively.
-@export_range(0.0, 45.0, 0.1, 'radians_as_degrees')
-var move_spin: float = deg_to_rad(15.0)
-
-## How quickly to interpolate in/out of leg move offsets.
-@export_range(0.01, 2.0, 0.01, 'or_greater')
-var move_interp_rate: float = 1.0
+@export var setting: CrawlerLegSetting
 
 
 @export_group('Debug', 'debug')
@@ -228,7 +164,7 @@ func _ready() -> void:
                 break
 
     shape_cast.enabled = false
-    comfort_distance = rest_distance
+    comfort_distance = setting.rest_distance
 
 func _validate_property(property: Dictionary) -> void:
     if property.name == &'ground_bone':
@@ -278,9 +214,9 @@ func setup(
     var target_position: Vector3 = body.skeleton.get_bone_pose_position(ground_bone_idx)
     var bone_direction: Vector3 = target_position.normalized()
     var shape_size: float = (ground_cast.shape as SphereShape3D).radius
-    var start_position: Vector3 = (bone_direction * (ground_hit_start + shape_size))
+    var start_position: Vector3 = (bone_direction * (setting.ground_hit_start + shape_size))
     ground_cast.position = target_position - start_position
-    ground_cast.target_position = start_position + (bone_direction * (ground_hit_extra - shape_size))
+    ground_cast.target_position = start_position + (bone_direction * (setting.ground_hit_extra - shape_size))
 
     for rid in cast_exceptions:
         shape_cast.add_exception_rid(rid)
@@ -340,7 +276,7 @@ func pre_update(state: PhysicsDirectBodyState3D) -> void:
 
     # Run in pre-update to get ahead of the comfort distances
     if body.is_stepping:
-        comfort_distance = move_toward(comfort_distance, step_distance, cached_step * 2.0)
+        comfort_distance = move_toward(comfort_distance, setting.step_distance, cached_step * 2.0)
 
     var local_rest: Vector3 = step_transform * target_rest_position
     target_global_rest = global_transform * local_rest
@@ -405,7 +341,7 @@ func _update_grounded() -> void:
 func _update_step_transform(body_basis: Basis) -> void:
     var target_transform: Transform3D = Transform3D.IDENTITY
     if body.has_desired_forward:
-        target_transform.origin += body_basis.inverse() * body.desired_direction * move_offset
+        target_transform.origin += body_basis.inverse() * body.desired_direction * setting.move_offset
 
         var is_front: bool = index < 2
         var is_back: bool = index + 2 >= body.legs.size()
@@ -420,14 +356,14 @@ func _update_step_transform(body_basis: Basis) -> void:
         if is_left:
             cos_theta *= -1.0
 
-        target_transform = target_transform.rotated_local(Vector3.UP, move_spin * cos_theta)
+        target_transform = target_transform.rotated_local(Vector3.UP, setting.move_spin * cos_theta)
 
     if step_transform != target_transform:
         # Force at least 2cm/sec of travel each interpolation
         var min_weight: float = minf(2.0 * cached_step / step_transform.origin.distance_squared_to(target_transform.origin), 1.0)
         # TODO: improve interpolation by comparing the body's rel ground velocity to desired direction.
         #       Should interpolate only while it is positive, and reach max rate when at or beyond desired speed
-        step_transform = step_transform.interpolate_with(target_transform, maxf(cached_step * move_interp_rate * body.acceleration, min_weight))
+        step_transform = step_transform.interpolate_with(target_transform, maxf(cached_step * setting.move_interp_rate * body.acceleration, min_weight))
 
         if step_transform.is_equal_approx(target_transform):
             step_transform = target_transform
@@ -436,10 +372,10 @@ func _update_shape_cast(body_basis: Basis) -> void:
 
     # Rotate in direction of motion
     var old_shape_cast_xform: Transform3D = shape_cast.transform
-    if body.has_desired_forward and not is_zero_approx(step_cast_angle):
+    if body.has_desired_forward and not is_zero_approx(setting.step_cast_angle):
         var rot_axis: Vector3 = body_basis.inverse() * body.desired_direction.cross(body_basis.y)
         rot_axis = rot_axis.normalized()
-        var angle: float = step_cast_angle# * (1.0 - absf(state.transform.basis.tdoty(body.desired_direction)))
+        var angle: float = setting.step_cast_angle# * (1.0 - absf(state.transform.basis.tdoty(body.desired_direction)))
         var point: Vector3 = target_rest_position - shape_cast.position
 
         # NOTE: Think of making a "transform sandwich", order the lines as if you are looking at
@@ -487,7 +423,7 @@ func post_update() -> void:
         return
 
     if not body.is_stepping:
-        var t: float = lerpf(rest_distance, step_distance, (body.ground_direction.dot(body.ground_velocity)) / body.max_speed)
+        var t: float = lerpf(setting.rest_distance, setting.step_distance, (body.ground_direction.dot(body.ground_velocity)) / body.max_speed)
         comfort_distance = move_toward(comfort_distance, t, cached_step * 2.0)
 
 func _new_post_update() -> void:
@@ -549,11 +485,11 @@ func _update_target() -> void:
 
     var current_dist: float = (step_goal - step_current).length()
 
-    var step_delta: float = leg_speed * cached_step * clampf(current_dist / step_distance, 1.0, 2.0)
+    var step_delta: float = leg_speed * cached_step * clampf(current_dist / setting.step_distance, 1.0, 2.0)
     var new_step: Vector3 = _calculate_step_vector(step_current, step_goal, step_delta)
 
     current_dist = (step_goal - new_step).length()
-    step_height = step_target.y + minf(leg_lift_height, current_dist)
+    step_height = step_target.y + minf(setting.leg_lift_height, current_dist)
 
     if target.position.y < step_height:
         is_lifting = true
@@ -578,7 +514,7 @@ func _update_target() -> void:
         target.position = new_step
 
 func _calculate_step_vector(current: Vector3, goal: Vector3, step_delta: float) -> Vector3:
-    if is_zero_approx(leg_swing_amount):
+    if is_zero_approx(setting.leg_swing_amount):
         return current.move_toward(goal, step_delta)
 
     var current_length_sqr: float = current.length_squared()
@@ -602,7 +538,7 @@ func _calculate_step_vector(current: Vector3, goal: Vector3, step_delta: float) 
 
     var rotated_step = current.rotated(Vector3.UP, radians) * (new_length / current_length)
 
-    if leg_swing_amount < 1.0:
+    if setting.leg_swing_amount < 1.0:
         var linear_point: Vector2 = Geometry2D.get_closest_point_to_segment(
                 Vector2(rotated_step.x, rotated_step.z),
                 Vector2(current.x, current.z),
@@ -610,7 +546,7 @@ func _calculate_step_vector(current: Vector3, goal: Vector3, step_delta: float) 
         )
         rotated_step = rotated_step.lerp(
                 Vector3(linear_point.x, 0.0, linear_point.y),
-                1.0 - leg_swing_amount
+                1.0 - setting.leg_swing_amount
         )
 
     # Fit to delta
@@ -639,7 +575,7 @@ func _calculate_lift(current: float, delta: float) -> float:
         baseline = target_rest_position.y
 
     if is_lifting:
-        return move_toward(current, baseline + leg_lift_height, delta)
+        return move_toward(current, baseline + setting.leg_lift_height, delta)
     return move_toward(current, baseline, delta)
 
 func can_start_step() -> bool:
@@ -649,7 +585,7 @@ func can_start_step() -> bool:
 
     if is_grounded:
         # Wait for this leg to remain in place before stepping again
-        if time_since_last_step < step_delay:
+        if time_since_last_step < setting.step_delay:
             return false
 
         for leg in get_adjacent():
@@ -662,7 +598,7 @@ func can_start_step() -> bool:
             if not leg.apply_ground_forces:
                 continue
             # And have remained grounded for some time, while applying ground forces
-            if (not leg.apply_ground_forces) or leg.time_since_grounded < step_crosspair_wait:
+            if (not leg.apply_ground_forces) or leg.time_since_grounded < setting.step_crosspair_wait:
                 return false
 
     # We can move and want to move!
@@ -675,20 +611,20 @@ func can_start_step() -> bool:
     if not body.has_desired_forward:
         return false
 
-    if (not is_grounded) or time_since_grounded < step_delay:
+    if (not is_grounded) or time_since_grounded < setting.step_delay:
         return false
 
     allow_step_sync = true
 
     # Allow an early step if all legs are ready to move and this one has enough
     # distance to start the pair
-    if dist_sqr_to_rest < early_step_distance * early_step_distance:
+    if dist_sqr_to_rest < setting.early_step_distance * setting.early_step_distance:
         return false
 
     for leg in get_diagonal():
         if leg.force_lifting:
             continue
-        if (not leg.apply_ground_forces) or leg.time_since_grounded < leg.step_delay:
+        if (not leg.apply_ground_forces) or leg.time_since_grounded < leg.setting.step_delay:
             return false
 
     # None of our diagonals have started to move, start the cycle!
@@ -703,7 +639,7 @@ func should_sync_step() -> bool:
         return false
 
     for leg in get_diagonal():
-        if leg.is_stepping and leg.time_since_start_step < step_pair_window:
+        if leg.is_stepping and leg.time_since_start_step < setting.step_pair_window:
             if debug_enable and debug_step_reason:
                 _debug_step_reason_text = "Stepping with %s!" % leg.name
             return true

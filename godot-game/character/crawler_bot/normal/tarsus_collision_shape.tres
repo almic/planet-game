@@ -1,0 +1,6 @@
+[gd_resource type="CapsuleShape3D" format=3 uid="uid://drn7atwnqby6m"]
+
+[resource]
+resource_name = "TarsusCollisionShape"
+radius = 0.06
+height = 1.5

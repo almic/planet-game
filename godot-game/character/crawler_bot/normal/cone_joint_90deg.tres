@@ -1,0 +1,4 @@
+[gd_resource type="JointLimitationCone3D" format=3 uid="uid://qybo7ewoy7gk"]
+
+[resource]
+resource_name = "90deg"

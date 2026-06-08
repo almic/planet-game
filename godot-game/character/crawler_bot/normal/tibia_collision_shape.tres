@@ -1,0 +1,6 @@
+[gd_resource type="CapsuleShape3D" format=3 uid="uid://biemjf2j15vco"]
+
+[resource]
+resource_name = "TibiaCollisionShape"
+radius = 0.04
+height = 0.8

@@ -1,0 +1,7 @@
+[gd_resource type="CapsuleShape3D" format=3 uid="uid://dunuwguvgydu4"]
+
+[resource]
+resource_name = "FemurCollisionShape"
+margin = 0.0
+radius = 0.03
+height = 0.32

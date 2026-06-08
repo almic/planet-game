@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="CrawlerLegConfig" format=3 uid="uid://nj64xc2n7xxi"]
+
+[ext_resource type="Script" uid="uid://cn17i7esu4bc5" path="res://character/crawler_bot/res/CrawlerLegPart.gd" id="1_0jfcy"]
+[ext_resource type="Resource" uid="uid://d2moeutnew25y" path="res://character/crawler_bot/normal/femur_part.tres" id="2_ph54n"]
+[ext_resource type="Resource" uid="uid://cd7utf738hfx6" path="res://character/crawler_bot/normal/front_leg_setting.tres" id="3_eq4ed"]
+[ext_resource type="Resource" uid="uid://i7rxnr5r8vqw" path="res://character/crawler_bot/normal/tibia_part.tres" id="3_ph54n"]
+[ext_resource type="Script" uid="uid://ch26koy565uy5" path="res://character/crawler_bot/res/CrawlerLegConfig.gd" id="4_i5cmn"]
+[ext_resource type="JointLimitationCone3D" uid="uid://d213qmgc1ylep" path="res://character/crawler_bot/normal/tarsus_joint_cone_limit.tres" id="5_cqgiu"]
+[ext_resource type="PhysicsMaterial" uid="uid://dgom72xev8omg" path="res://material/physic/metal.tres" id="6_2qws0"]
+[ext_resource type="Shape3D" uid="uid://drn7atwnqby6m" path="res://character/crawler_bot/normal/tarsus_collision_shape.tres" id="7_m1sil"]
+
+[sub_resource type="Resource" id="Resource_q8uq1"]
+resource_name = "TarsusPart"
+script = ExtResource("1_0jfcy")
+shape = ExtResource("7_m1sil")
+physics_material = ExtResource("6_2qws0")
+collision_mask = 51
+limitation_resource = ExtResource("5_cqgiu")
+torque_powered = 20.0
+metadata/_custom_type_script = "uid://cn17i7esu4bc5"
+
+[resource]
+resource_name = "FrontRightLegPlan"
+script = ExtResource("4_i5cmn")
+root_bone = &"FrontRightFemur"
+end_bone = &"FrontRightTarsus_leaf"
+part_list = Array[ExtResource("1_0jfcy")]([ExtResource("2_ph54n"), ExtResource("3_ph54n"), SubResource("Resource_q8uq1")])
+leg_setting = ExtResource("3_eq4ed")
+metadata/_custom_type_script = "uid://ch26koy565uy5"

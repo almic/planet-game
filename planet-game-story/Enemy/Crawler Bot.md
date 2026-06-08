@@ -38,6 +38,10 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [ ] Change leg step behavior to be mostly an internal state, and act when unexpectedly removed from the ground. Legs should not pay attention to any step parameters of other legs, only the ground and comfort state. In fact it is probably best to think of steps as roughly asking its neighbors "hey, are you okay if I were to intentionally come off the ground?" then neighbors should say yes or no using simple logic questions about itself and its neighbors.
 
 
+# TODO NOW!!!
+
+- [ ] Fix the use of setting for beam joint, remove exports and only use the setting
+
 # Joint Structure
 
 Things joints do:

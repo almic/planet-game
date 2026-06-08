@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CrawlerLegSetting" format=3 uid="uid://cd7utf738hfx6"]
+
+[ext_resource type="Shape3D" uid="uid://db3u3bwwhmq8v" path="res://character/crawler_bot/normal/leg_cast_shape.tres" id="1_3ptg8"]
+[ext_resource type="Script" uid="uid://2nu0yn2lgo2m" path="res://character/crawler_bot/res/CrawlerLegSetting.gd" id="1_8m8ew"]
+
+[resource]
+resource_name = "FrontLeg"
+script = ExtResource("1_8m8ew")
+ground_cast_shape = ExtResource("1_3ptg8")
+ground_collision_mask = 48
+step_distance = 0.9
+rest_distance = 0.1
+move_offset = 0.5
+metadata/_custom_type_script = "uid://2nu0yn2lgo2m"

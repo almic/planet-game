@@ -1,0 +1,5 @@
+[gd_resource type="JointLimitationCone3D" format=3 uid="uid://btiyh1v4d1d3v"]
+
+[resource]
+resource_name = "FemurJointConeLimit"
+angle = 1.0471975511965976

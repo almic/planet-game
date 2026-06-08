@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CrawlerLegPart" format=3 uid="uid://i7rxnr5r8vqw"]
+
+[ext_resource type="JointLimitationCone3D" uid="uid://bcym6vtt2jqsf" path="res://character/crawler_bot/normal/tibia_joint_cone_limit.tres" id="1_per66"]
+[ext_resource type="Script" uid="uid://cn17i7esu4bc5" path="res://character/crawler_bot/res/CrawlerLegPart.gd" id="1_wj62q"]
+[ext_resource type="PhysicsMaterial" uid="uid://dgom72xev8omg" path="res://material/physic/metal.tres" id="2_53ols"]
+[ext_resource type="Shape3D" uid="uid://biemjf2j15vco" path="res://character/crawler_bot/normal/tibia_collision_shape.tres" id="4_kwqjx"]
+
+[resource]
+resource_name = "TibiaPart"
+script = ExtResource("1_wj62q")
+shape = ExtResource("4_kwqjx")
+physics_material = ExtResource("2_53ols")
+collision_mask = 51
+rotation_axis = 0
+limitation_resource = ExtResource("1_per66")
+limitation_right_axis = 6
+torque_powered = 20.0
+metadata/_custom_type_script = "uid://cn17i7esu4bc5"

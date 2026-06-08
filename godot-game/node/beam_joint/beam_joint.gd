@@ -7,6 +7,9 @@
 class_name BeamPivotJoint3D extends Generic6DOFJoint3D
 
 
+@export var setting: BeamPivotJoint3DSetting:
+    set = set_setting
+
 ## Location of the attachment on Body A
 @export
 var body_A_position: Vector3 = Vector3.ZERO:
@@ -111,9 +114,11 @@ var _debug_markers: Array[Marker3D] = [null, null, null]
 
 var distance_joint: DistanceJoint3D
 
+var _update_joint_queued: bool = false
+
 
 func _ready() -> void:
-    _update_joint()
+    _queue_update_joint()
 
 func _validate_property(property: Dictionary) -> void:
     # Hide linear and angular limits so we maintain full control
@@ -129,7 +134,25 @@ func _set(property: StringName, value: Variant) -> bool:
             distance_joint.solver_priority = value
     return false
 
+func set_setting(new_setting: BeamPivotJoint3DSetting) -> void:
+    if setting and setting.changed.is_connected(on_setting_changed):
+        setting.changed.disconnect(on_setting_changed)
+    setting = new_setting
+    if setting:
+        setting.changed.connect(on_setting_changed)
+
+func on_setting_changed() -> void:
+    _queue_update_joint()
+
+func _queue_update_joint() -> void:
+    if _update_joint_queued:
+        return
+    _update_joint_queued = true
+    _update_joint.call_deferred()
+
 func _update_joint() -> void:
+    _update_joint_queued = false
+
     if not is_inside_tree():
         return
 

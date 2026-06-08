@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CrawlerLayout" format=3 uid="uid://bubhad6rfgqgf"]
+
+[ext_resource type="Script" uid="uid://ch26koy565uy5" path="res://character/crawler_bot/res/CrawlerLegConfig.gd" id="1_yn6aa"]
+[ext_resource type="Resource" uid="uid://nj64xc2n7xxi" path="res://character/crawler_bot/normal/front_right_leg_config.tres" id="2_x1kex"]
+[ext_resource type="Script" uid="uid://b73hmh3wbn5fh" path="res://character/crawler_bot/res/CrawlerLayout.gd" id="5_ybxnw"]
+
+[resource]
+resource_name = "NormalLayout"
+script = ExtResource("5_ybxnw")
+max_iterations = 10
+angular_delta_limit = 1.7453292519943295
+leg_config_list = Array[ExtResource("1_yn6aa")]([ExtResource("2_x1kex")])
+metadata/_custom_type_script = "uid://b73hmh3wbn5fh"

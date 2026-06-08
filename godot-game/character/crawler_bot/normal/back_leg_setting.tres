@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CrawlerLegSetting" format=3 uid="uid://v0relty5uq7m"]
+
+[ext_resource type="Script" uid="uid://2nu0yn2lgo2m" path="res://character/crawler_bot/res/CrawlerLegSetting.gd" id="1_xrlf6"]
+
+[resource]
+resource_name = "BackLeg"
+script = ExtResource("1_xrlf6")
+step_distance = 0.9
+rest_distance = 0.09999999999999999
+move_offset = 0.5
+metadata/_custom_type_script = "uid://2nu0yn2lgo2m"

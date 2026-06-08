@@ -1,0 +1,6 @@
+[gd_resource type="SphereShape3D" format=3 uid="uid://db3u3bwwhmq8v"]
+
+[resource]
+resource_name = "LegCastShape"
+margin = 0.0
+radius = 0.2
