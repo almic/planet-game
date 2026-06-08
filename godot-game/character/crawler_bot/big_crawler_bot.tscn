@@ -164,7 +164,7 @@ shape = SubResource("CapsuleShape3D_3kbc3")
 
 [node name="big_crawler" parent="." unique_id=1739686264 instance=ExtResource("2_2g2re")]
 
-[node name="Skeleton3D" parent="big_crawler" index="0" unique_id=1683770884]
+[node name="Skeleton3D" parent="big_crawler" index="0" unique_id=1916335741]
 modifier_callback_mode_process = 2
 
 [node name="PhysicalSkeleton" type="SkeletonModifier3D" parent="big_crawler/Skeleton3D" index="0" unique_id=165867730]
@@ -493,7 +493,7 @@ metadata/_edit_lock_ = true
 
 [node name="FR_Femur_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/FrontRightFemur" unique_id=1918306092]
 collision_mask = 51
-mass = 0.32257394422408703
+mass = 0.3225739652989347
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -522,14 +522,14 @@ mesh = SubResource("BoxMesh_tdgv8")
 metadata/_edit_lock_ = true
 
 [node name="FrontRightTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="5" unique_id=446306188]
-transform = Transform3D(0.794715224153062, 0.4268199746850275, -0.43156944957791993, 0.02484397317857905, 0.6875392780306439, 0.7257219456884991, 0.6064736176387397, -0.5874642231613844, 0.5357941294707305, 0.36467795573190276, 0.8200000546614017, -0.9153690385853962)
+transform = Transform3D(0.8090154776638161, 0.42681998811594163, -0.40412671008973794, -8.760611149864204e-08, 0.6875392445294749, 0.7261470572916163, 0.5877871345688365, -0.5874642526113246, 0.5562300030915203, 0.36467795573190276, 0.8200000546614017, -0.9153690385853962)
 bone_name = "FrontRightTibia"
 bone = 4
 metadata/_edit_lock_ = true
 
 [node name="FR_Tibia_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/FrontRightTibia" unique_id=968022325]
 collision_mask = 51
-mass = 0.7599126992908974
+mass = 0.7599125622717543
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -581,14 +581,14 @@ mesh = SubResource("BoxMesh_kegpd")
 metadata/_edit_lock_ = true
 
 [node name="FrontRightTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="6" unique_id=145349629]
-transform = Transform3D(0.8090192941296779, 0.37018327269184037, 0.4565651073085169, -4.0150541179978516e-08, -0.7767595138075947, 0.6297970806475847, 0.5877816790702017, -0.5095181685552179, -0.6284135460257938, 0.6753789308733464, 1.3204900882233472, -1.3430101371074394)
+transform = Transform3D(0.8090193856482485, 0.37018321181814895, 0.4565652376111951, 6.870994627066022e-09, -0.7767596358504572, 0.6297970500584035, 0.5877817556792225, -0.5095180276889957, -0.6284137660037259, 0.6753789166644286, 1.3204898589641512, -1.3430101113619606)
 bone_name = "FrontRightTarsus"
 bone = 5
 metadata/_edit_lock_ = true
 
 [node name="FR_Tarsus_Body" type="RigidBody3D" parent="big_crawler/Skeleton3D/FrontRightTarsus" unique_id=2056702276]
 collision_mask = 51
-mass = 1.7746562136278727
+mass = 1.7746563295721682
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -645,7 +645,7 @@ collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
-mass = 0.32257394422408703
+mass = 0.3225739652989347
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -674,7 +674,7 @@ mesh = SubResource("BoxMesh_tdgv8")
 metadata/_edit_lock_ = true
 
 [node name="FrontLeftTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="8" unique_id=1406494824]
-transform = Transform3D(0.794715224153062, -0.4268199746850275, 0.43156944957791993, -0.02484397317857905, 0.6875392780306439, 0.7257219456884991, -0.6064736176387397, -0.5874642231613844, 0.5357941294707305, -0.36467795573190276, 0.8200000546614017, -0.9153690385853962)
+transform = Transform3D(0.8090154776638161, -0.42681998811594163, 0.40412671008973794, 8.760611149864204e-08, 0.6875392445294749, 0.7261470572916163, -0.5877871345688365, -0.5874642526113246, 0.5562300030915203, -0.36467795573190276, 0.8200000546614017, -0.9153690385853962)
 bone_name = "FrontLeftTibia"
 bone = 9
 metadata/_edit_lock_ = true
@@ -684,7 +684,7 @@ collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
-mass = 0.7599126992908974
+mass = 0.7599125622717543
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -736,7 +736,7 @@ mesh = SubResource("BoxMesh_kegpd")
 metadata/_edit_lock_ = true
 
 [node name="FrontLeftTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="9" unique_id=798975725]
-transform = Transform3D(0.8090192941296779, -0.37018327269184037, -0.4565651073085169, 4.0150541179978516e-08, -0.7767595138075947, 0.6297970806475847, -0.5877816790702017, -0.5095181685552179, -0.6284135460257938, -0.6753789308733464, 1.3204900882233472, -1.3430101371074394)
+transform = Transform3D(0.8090193856482485, -0.37018321181814895, -0.4565652376111951, -6.870994627066022e-09, -0.7767596358504572, 0.6297970500584035, -0.5877817556792225, -0.5095180276889957, -0.6284137660037259, -0.6753789166644286, 1.3204898589641512, -1.3430101113619606)
 bone_name = "FrontLeftTarsus"
 bone = 10
 metadata/_edit_lock_ = true
@@ -746,7 +746,7 @@ collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
-mass = 1.7746562136278727
+mass = 1.7746563295721682
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -803,7 +803,7 @@ collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
-mass = 0.32268982365386556
+mass = 0.32268978851812546
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -832,7 +832,7 @@ mesh = SubResource("BoxMesh_tdgv8")
 metadata/_edit_lock_ = true
 
 [node name="MiddleRightTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="11" unique_id=1254913357]
-transform = Transform3D(-0.06240698455253061, 0.7261476476798219, -0.6847005500969836, 0.06591135329633338, 0.6875387076810798, 0.7231501229035868, 0.9958720107452094, 7.868956860108062e-08, -0.09076859166104613, 0.45912887033093175, 0.819999973843162, 8.171669811224349e-08)
+transform = Transform3D(-2.3306157430438033e-07, 0.7261476076066685, -0.6875387500045154, 1.3326762223459422e-07, 0.6875387500045506, 0.7261476076066605, 0.9999999999999639, 7.761045012455628e-08, -2.570108285119591e-07, 0.45912887033093175, 0.819999973843162, 8.171669811224349e-08)
 bone_name = "MiddleRightTibia"
 bone = 14
 metadata/_edit_lock_ = true
@@ -842,7 +842,7 @@ collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
-mass = 0.7598775334883131
+mass = 0.7598775129692472
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -894,7 +894,7 @@ mesh = SubResource("BoxMesh_kegpd")
 metadata/_edit_lock_ = true
 
 [node name="MiddleRightTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="12" unique_id=170592321]
-transform = Transform3D(-1.8062907277544005e-07, 0.6297979623638162, 0.7767588818761673, 7.433077602037041e-08, -0.7767588359073712, 0.6297979995387202, 0.999999999508904, 1.6075290129591302e-07, 9.266508648776706e-08, 0.9877235958513607, 1.3204895179343952, 1.4288011432555514e-07)
+transform = Transform3D(-1.715908321504122e-07, 0.629798108296656, 0.7767587169561511, 6.83449695146887e-08, -0.7767587169561534, 0.6297981082966733, 0.9999999999999829, 1.6115512168260382e-07, 9.024114121749353e-08, 0.9877236102791952, 1.3204895893891364, 1.3821276663002283e-07)
 bone_name = "MiddleRightTarsus"
 bone = 15
 metadata/_edit_lock_ = true
@@ -904,7 +904,7 @@ collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
-mass = 1.7745755000006784
+mass = 1.7745755556554843
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -961,7 +961,7 @@ collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
-mass = 0.3226898843358446
+mass = 0.32268990541728987
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -990,7 +990,7 @@ mesh = SubResource("BoxMesh_tdgv8")
 metadata/_edit_lock_ = true
 
 [node name="MiddleLeftTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="14" unique_id=197094913]
-transform = Transform3D(-0.06240688413539714, -0.726147495077456, 0.6847008540431238, -0.06591119259154564, 0.6875389602773057, 0.7231498539325579, -0.9958719682885596, 7.928849602426526e-08, -0.09076840081010697, -0.4591290561935918, 0.8199999785885815, 8.171672966359552e-08)
+transform = Transform3D(-1.511005541203776e-07, -0.7261474552904613, 0.6875390842595376, -4.670409521403128e-08, 0.6875390022985145, 0.7261473687269516, -0.9999999999999875, 7.761039931383505e-08, -1.3780159580183537e-07, -0.4591290561935918, 0.8199999785885815, 8.171672966359552e-08)
 bone_name = "MiddleLeftTibia"
 bone = 19
 metadata/_edit_lock_ = true
@@ -1000,7 +1000,7 @@ collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
-mass = 0.7598774967526608
+mass = 0.7598776086151187
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -1052,7 +1052,7 @@ mesh = SubResource("BoxMesh_kegpd")
 metadata/_edit_lock_ = true
 
 [node name="MiddleLeftTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="15" unique_id=1909786607]
-transform = Transform3D(-1.4232823260240668e-07, -0.6297980334787954, -0.7767587720807141, -1.0697820976290906e-07, -0.776758686102016, 0.6297979646786893, -0.9999997610903406, 1.6199035478281498e-07, 4.235328298664298e-08, -0.987723800240886, 1.320489829742772, 1.4702605245106404e-07)
+transform = Transform3D(-1.3686696187218492e-07, -0.6297979927459766, -0.7767590104135036, -9.649914244152185e-08, -0.7767588715181803, 0.6297979552071115, -0.9999999999999859, 1.611551115912181e-07, 4.55376845719773e-08, -0.9877238355997565, 1.3204898790910904, 1.3821276852050953e-07)
 bone_name = "MiddleLeftTarsus"
 bone = 20
 metadata/_edit_lock_ = true
@@ -1062,7 +1062,7 @@ collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
-mass = 1.774575476054352
+mass = 1.7745753431104487
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -1119,7 +1119,7 @@ collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
-mass = 0.32257386845305075
+mass = 0.3225738684530492
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -1148,7 +1148,7 @@ mesh = SubResource("BoxMesh_tdgv8")
 metadata/_edit_lock_ = true
 
 [node name="BackRightTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="17" unique_id=1352416718]
-transform = Transform3D(-0.8521704282271652, 0.42682004867933654, -0.3027047475103669, 0.0883391176219852, 0.6875393328061534, 0.7207535086886847, 0.5157534678048362, 0.5874643659440231, -0.6236056684837352, 0.36467799947204615, 0.8200000244055524, 0.9153689627790245)
+transform = Transform3D(-0.8090156525730603, 0.4268200378691947, -0.4041267995213825, 4.1036911071716566e-08, 0.6875392985425396, 0.7261470449520051, 0.5877872005250386, 0.5874644138985474, -0.5562301049492901, 0.36467799947204615, 0.8200000244055524, 0.9153689627790245)
 bone_name = "BackRightTibia"
 bone = 29
 metadata/_edit_lock_ = true
@@ -1158,7 +1158,7 @@ collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
-mass = 0.7599126784416768
+mass = 0.7599124295525888
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -1210,7 +1210,7 @@ mesh = SubResource("BoxMesh_kegpd")
 metadata/_edit_lock_ = true
 
 [node name="BackRightTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="18" unique_id=1959162545]
-transform = Transform3D(-0.8090194229479146, 0.3701833122941833, 0.4565652028568191, -1.9628875660981926e-07, -0.7767594761744988, 0.6297971268862205, 0.5877817083225138, 0.509517984890193, 0.6284139782645826, 0.6753790536416231, 1.320490075099218, 1.3430100721106877)
+transform = Transform3D(-0.8090196148704737, 0.37018331762869217, 0.4565651268225776, -9.73711782101175e-08, -0.7767595726048568, 0.6297970977224407, 0.5877817468789748, 0.5095181859860011, 0.6284138736020713, 0.6753788157819457, 1.3204899754233028, 1.3430099557389998)
 bone_name = "BackRightTarsus"
 bone = 30
 metadata/_edit_lock_ = true
@@ -1220,7 +1220,7 @@ collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
-mass = 1.7746563102481299
+mass = 1.774656559137219
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -1277,7 +1277,7 @@ collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
-mass = 0.32257386845305075
+mass = 0.3225738684530492
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -1306,7 +1306,7 @@ mesh = SubResource("BoxMesh_tdgv8")
 metadata/_edit_lock_ = true
 
 [node name="BackLeftTibia" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="20" unique_id=483154553]
-transform = Transform3D(-0.8521704282271652, -0.42682004867933654, 0.3027047475103669, -0.0883391176219852, 0.6875393328061534, 0.7207535086886847, -0.5157534678048362, 0.5874643659440231, -0.6236056684837352, -0.36467799947204615, 0.8200000244055524, 0.9153689627790245)
+transform = Transform3D(-0.8090156525730603, -0.4268200378691947, 0.4041267995213825, -4.1036911071716566e-08, 0.6875392985425396, 0.7261470449520051, -0.5877872005250386, 0.5874644138985474, -0.5562301049492901, -0.36467799947204615, 0.8200000244055524, 0.9153689627790245)
 bone_name = "BackLeftTibia"
 bone = 24
 metadata/_edit_lock_ = true
@@ -1316,7 +1316,7 @@ collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
-mass = 0.7599126784416768
+mass = 0.7599124295525888
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
@@ -1368,7 +1368,7 @@ mesh = SubResource("BoxMesh_kegpd")
 metadata/_edit_lock_ = true
 
 [node name="BackLeftTarsus" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="21" unique_id=709463790]
-transform = Transform3D(-0.8090194229479146, -0.3701833122941833, -0.4565652028568191, 1.9628875660981926e-07, -0.7767594761744988, 0.6297971268862205, -0.5877817083225138, 0.509517984890193, 0.6284139782645826, -0.6753790536416231, 1.320490075099218, 1.3430100721106877)
+transform = Transform3D(-0.8090196148704737, -0.37018331762869217, -0.4565651268225776, 9.73711782101175e-08, -0.7767595726048568, 0.6297970977224407, -0.5877817468789748, 0.5095181859860011, 0.6284138736020713, -0.6753788157819457, 1.3204899754233028, 1.3430099557389998)
 bone_name = "BackLeftTarsus"
 bone = 25
 metadata/_edit_lock_ = true
@@ -1378,7 +1378,7 @@ collision_mask = 51
 axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
-mass = 1.7746563102481299
+mass = 1.774656559137219
 physics_material_override = ExtResource("1_ro1ip")
 continuous_cd = true
 
