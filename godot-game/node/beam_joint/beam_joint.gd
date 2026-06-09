@@ -7,22 +7,19 @@
 class_name BeamPivotJoint3D extends Generic6DOFJoint3D
 
 
-@export var setting: BeamPivotJoint3DSetting:
-    set = set_setting
-
 ## Location of the attachment on Body A
 @export
 var body_A_position: Vector3 = Vector3.ZERO:
     set(value):
         body_A_position = value
-        _update_joint()
+        _queue_update_joint()
 
 ## Location of the attachment on Body B
 @export
 var body_B_position: Vector3 = Vector3.ZERO:
     set(value):
         body_B_position = value
-        _update_joint()
+        _queue_update_joint()
 
 ## Helper view to see the initial length of the beam given the current locations
 ## of the two bodies and their attachment points
@@ -34,7 +31,7 @@ var beam_span: float
 var expand_limit: float = 0.1:
     set(value):
         expand_limit = value
-        _update_joint()
+        _queue_update_joint()
 
 ## Additional contraction allowed between the two attachment points, will be
 ## effectively limited by the initial beam span length
@@ -42,7 +39,7 @@ var expand_limit: float = 0.1:
 var contract_limit: float = 0.1:
     set(value):
         contract_limit = value
-        _update_joint()
+        _queue_update_joint()
 
 
 @export_group('Pitch', 'pitch')
@@ -53,7 +50,7 @@ var contract_limit: float = 0.1:
 var pitch_upper: float = deg_to_rad(15.0):
     set(value):
         pitch_upper = value
-        _update_joint()
+        _queue_update_joint()
 
 ## Maximum clockwise pitch rotation of the joint on Body B. Should be wide
 ## enough to allow the bodies to rotate through the beam.
@@ -61,7 +58,7 @@ var pitch_upper: float = deg_to_rad(15.0):
 var pitch_lower: float = deg_to_rad(15.0):
     set(value):
         pitch_lower = value
-        _update_joint()
+        _queue_update_joint()
 
 
 @export_group('Yaw', 'yaw')
@@ -72,7 +69,7 @@ var pitch_lower: float = deg_to_rad(15.0):
 var yaw_upper: float = 0.0:
     set(value):
         yaw_upper = value
-        _update_joint()
+        _queue_update_joint()
 
 ## Maximum clockwise yaw rotation of the joint on Body B.  You may consider
 ## opening this if one of the bodies is meant to swing along the other.
@@ -80,7 +77,7 @@ var yaw_upper: float = 0.0:
 var yaw_lower: float = 0.0:
     set(value):
         yaw_lower = value
-        _update_joint()
+        _queue_update_joint()
 
 
 @export_group('Roll', 'roll')
@@ -91,7 +88,7 @@ var yaw_lower: float = 0.0:
 var roll_upper: float = 0.0:
     set(value):
         roll_upper = value
-        _update_joint()
+        _queue_update_joint()
 
 ## Maximum clockwise rotation of the joint on Body B.  You may consider opening
 ## this if one of the bodies is meant to swing along the other.
@@ -99,7 +96,7 @@ var roll_upper: float = 0.0:
 var roll_lower: float = 0.0:
     set(value):
         roll_lower = value
-        _update_joint()
+        _queue_update_joint()
 
 
 @export_group('Debug', 'debug')
@@ -133,16 +130,6 @@ func _set(property: StringName, value: Variant) -> bool:
         if distance_joint:
             distance_joint.solver_priority = value
     return false
-
-func set_setting(new_setting: BeamPivotJoint3DSetting) -> void:
-    if setting and setting.changed.is_connected(on_setting_changed):
-        setting.changed.disconnect(on_setting_changed)
-    setting = new_setting
-    if setting:
-        setting.changed.connect(on_setting_changed)
-
-func on_setting_changed() -> void:
-    _queue_update_joint()
 
 func _queue_update_joint() -> void:
     if _update_joint_queued:

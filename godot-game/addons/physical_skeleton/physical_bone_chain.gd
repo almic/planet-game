@@ -1,57 +1,60 @@
 @tool
-class_name CrawlerLegConfig extends Resource
+class_name PhysicalBoneChain extends Resource
 
 
 const BONE_NOT_FOUND: StringName = &'BONE NOT FOUND'
 
 
-@export_custom(PROPERTY_HINT_ENUM, '')
+## Root bone of the IK chain
+@export_custom(PROPERTY_HINT_ENUM_SUGGESTION, '')
 var root_bone: StringName:
     set(value):
         root_bone = value
         _update_part_list()
+        emit_changed()
 
-@export_custom(PROPERTY_HINT_ENUM, '')
+## End bone of the IK chain
+@export_custom(PROPERTY_HINT_ENUM_SUGGESTION, '')
 var end_bone: StringName:
     set(value):
         end_bone = value
         _update_part_list()
+        emit_changed()
 
-@export var part_list: Array[CrawlerLegPart]:
+## Part definitions for each segment of the chain
+@export var part_list: Array[PhysicalBoneChainPart]:
     set(value):
+        if part_list:
+            for part in part_list:
+                if (not part) or (not part.changed.is_connected(emit_changed)):
+                    continue
+                part.changed.disconnect(emit_changed)
         part_list = value
+        if part_list:
+            for part in part_list:
+                if (not part) or part.changed.is_connected(emit_changed):
+                    continue
+                part.changed.connect(emit_changed)
         _update_part_list()
+        emit_changed()
 
-@export var leg_setting: CrawlerLegSetting
 
-var layout: CrawlerLayout:
-    set(value):
-        layout = value
-        _refresh()
-var layout_index: int = -1
+var skeleton: Skeleton3D
 
 
 func _validate_property(property: Dictionary) -> void:
-    if not layout:
-        return
-
     if property.name.ends_with('_bone'):
-        property.hint_string = layout.get_bone_names()
-
-func _refresh() -> void:
-    _update_part_list()
+        property.hint_string = skeleton.get_concatenated_bone_names()
 
 func _update_part_list() -> void:
-    var skeleton: Skeleton3D = layout.crawler.skeleton
-
     var name_list: Array[StringName]
     var bone_idx: int = skeleton.find_bone(end_bone)
     if bone_idx == -1:
         push_error(
             (
-                'Leg Layout at index %d of %s (%s) has a misconfigured bone chain. ' +
+                'PhysicalBoneChain "%s" (at %s) is misconfigured. ' +
                 'Failed to find bone id for end bone %s.'
-            ) % [layout_index, layout.resource_name, layout.resource_path, end_bone]
+            ) % [resource_name, resource_path, end_bone]
         )
         return
 
@@ -69,16 +72,16 @@ func _update_part_list() -> void:
     if bone_idx == -1:
         push_error(
             (
-                'Leg Layout at index %d of %s (%s) has a misconfigured bone chain. ' +
+                'PhysicalBoneChain "%s" (at %s) is misconfigured. ' +
                 'Failed to find root bone %s as an ancestor of end bone %s.'
-            ) % [layout_index, layout.resource_name, layout.resource_path, root_bone, end_bone]
+            ) % [resource_name, resource_path, root_bone, end_bone]
         )
         return
 
     name_list.reverse()
     var max_names: int = name_list.size()
     for index in range(part_list.size()):
-        var part: CrawlerLegPart = part_list[index]
+        var part: PhysicalBoneChainPart = part_list[index]
         if not part:
             continue
 

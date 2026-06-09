@@ -31,6 +31,8 @@ var rotation_overshoot: float = 0.2
 
 @export var skeleton: Skeleton3D
 
+@export var leg_ik: IterateIK3D
+
 
 @export_group('Physical Skeleton')
 
@@ -40,13 +42,47 @@ var enable_physical_skeleton: bool = true
 @export var physical_skeleton: PhysicalSkeleton
 
 
-@export_group('Leg IK')
+@export_group('IK Parameters', 'ik')
 
-@export var layout: CrawlerLayout:
-    set = set_layout
+## Number of iteration loops used by the IK solver to produce more accurate results.
+@export_range(0, 10, 1, 'or_greater')
+var ik_max_iterations: int = 4:
+    set(value):
+        ik_max_iterations = value
+        _queue_update_ik_settings()
 
-@export_custom(PROPERTY_HINT_NODE_TYPE, 'IterateIK3D', PROPERTY_USAGE_STORAGE)
-var leg_ik: IterateIK3D
+## The target solve distance between the end bone and the target node.
+## Iteration will only run while the distance is greater than this value.
+@export_range(0.0, 1.0, 0.001, 'or_greater')
+var ik_min_distance: float = 0.001:
+    set(value):
+        ik_min_distance = value
+        _queue_update_ik_settings()
+
+## The total angular change allowed per second. This is divided evenly between
+## each iteration relative to the current `Engine.physics_ticks_per_second`,
+## unlike the Godot implementation which applies it per-iteration and doesn't
+## consider frame rate or physics TPS.
+@export_range(0.01, 180.0, 0.01, 'radians_as_degrees', 'suffix:°/s')
+var ik_angular_delta_limit: float = deg_to_rad(30.0):
+    set(value):
+        ik_angular_delta_limit = value
+        _queue_update_ik_settings()
+
+## Generally, enabling this will copy the current skeleton pose and process that.
+## When disabled, it is loaded once on the first run and never again.
+@export var ik_deterministic: bool = true:
+    set(value):
+        ik_deterministic = value
+        _queue_update_ik_settings()
+
+## Generally, this break limitations by treating the incoming rotation as the
+## rest rotation. It should be turned off if the skeleton is modified by
+## animations or other modifiers.
+@export var ik_mutable_bone_axes: bool = false:
+    set(value):
+        ik_mutable_bone_axes = value
+        _queue_update_ik_settings()
 
 
 @export_group('Leg Parameters', 'body')
@@ -130,6 +166,8 @@ var leg_gravity_power: PackedFloat64Array
 var linear_leg_accel: Vector3
 var angular_leg_accel: Vector3
 
+var _is_update_ik_queued: bool = false
+
 
 func _ready() -> void:
     super._ready()
@@ -163,9 +201,6 @@ func _ready() -> void:
         """
 
     _update_body_mass()
-
-    if layout:
-        layout.crawler = self
 
     if Engine.is_editor_hint():
         return
@@ -238,12 +273,22 @@ func _ready() -> void:
 
     desired_surface_friction = 0.0
 
-func set_layout(new_layout: CrawlerLayout) -> void:
-    if layout:
-        layout.crawler = null
-    layout = new_layout
-    if layout:
-        layout.crawler = self
+func _queue_update_ik_settings() -> void:
+    if _is_update_ik_queued:
+        return
+    _is_update_ik_queued = true
+    _update_ik_settings.call_deferred()
+
+func _update_ik_settings() -> void:
+    _is_update_ik_queued = false
+    if not leg_ik:
+        return
+
+    leg_ik.max_iterations = ik_max_iterations
+    leg_ik.min_distance = ik_min_distance
+    leg_ik.angular_delta_limit = ik_angular_delta_limit / (InputManager.PHYSICS_TICKS * ik_max_iterations)
+    leg_ik.deterministic = ik_deterministic
+    leg_ik.mutable_bone_axes = ik_mutable_bone_axes
 
 func _on_leg_pose_updated() -> void:
     for leg in legs:

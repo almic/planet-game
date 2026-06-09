@@ -12,6 +12,14 @@ var target: Marker3D
 @export_custom(PROPERTY_HINT_ENUM, '')
 var ground_bone: StringName
 
+## Physical bone chain layout for this leg
+@export var physical_bone_chain: PhysicalBoneChain:
+    set(value):
+        physical_bone_chain = value
+        if physical_bone_chain and body and body.skeleton:
+            physical_bone_chain.skeleton = body.skeleton
+
+## Shareable general leg parameters
 @export var setting: CrawlerLegSetting
 
 
@@ -167,7 +175,10 @@ func _ready() -> void:
     comfort_distance = setting.rest_distance
 
 func _validate_property(property: Dictionary) -> void:
-    if property.name == &'ground_bone':
+    if property.name == &'physical_bone_chain':
+        if physical_bone_chain:
+            physical_bone_chain.skeleton = body.skeleton
+    elif property.name == &'ground_bone':
         property.hint = PROPERTY_HINT_ENUM
         if body.skeleton:
             property.hint_string = body.skeleton.get_concatenated_bone_names()
