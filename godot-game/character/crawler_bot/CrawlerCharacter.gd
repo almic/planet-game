@@ -175,6 +175,9 @@ var _is_update_ik_queued: bool = false
 func _ready() -> void:
     super._ready()
 
+    if enable_physical_skeleton:
+        physical_skeleton.skeleton = skeleton
+
     # Load legs from children
     legs.assign(find_children('', 'CrawlerLeg'))
 
@@ -187,8 +190,8 @@ func _ready() -> void:
         leg.body = self
         leg.index = i
 
-        # Copy collision mask to casters
-        leg.shape_cast.collision_mask = collision_mask
+        if enable_physical_skeleton:
+            physical_skeleton.load_chain(leg.physical_bone_chain, leg.load_custom_joint)
 
         if Engine.is_editor_hint():
             continue
@@ -204,6 +207,7 @@ func _ready() -> void:
         """
 
     _update_body_mass()
+    _queue_update_ik_settings()
 
     if Engine.is_editor_hint():
         return
@@ -255,7 +259,6 @@ func _ready() -> void:
 
     # Should be off for the editor, on in-game
     leg_ik.active = true
-    physical_skeleton.set_ik_modifier(leg_ik)
 
     if enable_physical_skeleton:
         physical_skeleton.active = true
@@ -264,6 +267,7 @@ func _ready() -> void:
         #       into the working chain state, so as long as the skeleton is
         #       being updated by physics, "deterministic" is what we want from IK
         leg_ik.deterministic = true
+        leg_ik.modification_processed.connect(physical_skeleton.update_motors)
     else:
         # Must run this method, for some reason Skeleton3D respects custom
         # modifiers "active" flag on load, while IterateIK3D definitely still

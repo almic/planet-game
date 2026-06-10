@@ -4,6 +4,10 @@
 class_name PhysicalSkeleton extends SkeletonModifier3D
 
 
+const META_NODE_ROOT: StringName = &'_physical_chain_root'
+const META_CHAIN_RESOURCE_ID: StringName = &'_physical_chain_resource_id'
+
+
 @export_tool_button('Create IK Joint Bodies', 'PhysicalBoneSimulator3D')
 var _btn_create_ik_joint_bodies = editor_create_ik_bodies
 
@@ -108,6 +112,11 @@ var skeleton: Skeleton3D
 ## The main body of the skeleton
 var main_body: RigidBody3D
 
+## Node holding all the chain nodes
+var _chain_node_root: Node
+## Map chain uids to chain nodes
+var _chain_node_map: Dictionary[int, Node]
+
 ## Array of managed JointData
 var joints: Array[JointData]
 
@@ -116,9 +125,7 @@ var initialized: bool = false
 var has_bodies: bool = false
 var bodies_active: bool = false
 
-var iterate_ik: IterateIK3D
 var _cached_attachments: Array[ModifierBoneTarget3D] = []
-var _target_to_settings: Dictionary
 var cached_delta: float
 
 
@@ -143,20 +150,6 @@ func editor_update_frequency_calculator() -> void:
     var omega: float = TAU * calc_freq_frequency
     var effective_mass: float = calc_freq_stiffness / (omega * omega)
     calc_freq_damping = 2.0 * effective_mass * calc_freq_damping_ratio * omega
-
-func set_ik_modifier(ik_modifier: IterateIK3D) -> void:
-    if iterate_ik and iterate_ik.modification_processed.is_connected(update_motors):
-        iterate_ik.modification_processed.disconnect(update_motors)
-
-    _target_to_settings.clear()
-    iterate_ik = ik_modifier
-
-    for i in range(iterate_ik.setting_count):
-        var target_node: Node3D = iterate_ik.get_node(iterate_ik.get_target_node(i))
-        _target_to_settings.set(target_node, i)
-
-    if iterate_ik and (not iterate_ik.modification_processed.is_connected(update_motors)):
-        iterate_ik.modification_processed.connect(update_motors)
 
 func _process_modification_with_delta(delta: float) -> void:
     if not initialized:
@@ -382,6 +375,101 @@ func _solve_joint_motor(joint_data: JointData, delta: float) -> bool:
         joint_data.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.z)
 
     return true
+
+func get_chain_node_root() -> Node:
+    if not _chain_node_root:
+        for node in skeleton.get_children():
+            if node.get_meta(META_NODE_ROOT, false):
+                _chain_node_root = node
+                break
+
+    return _chain_node_root
+
+func load_chain(chain: PhysicalBoneChain, custom_joint_loader: Callable) -> void:
+    if not chain:
+        push_error(
+            (
+                'Attempting to load null PhysicalBoneChain from PhysicalSkeleton %s (at %s)'
+            ) % [name, get_path()]
+        )
+        return
+
+    if not _validate_bone_chain(chain):
+        return
+
+    if not _load_chain_node_map():
+        return
+
+    var chain_node: Node = _chain_node_map.get(chain.unique_id)
+
+func _load_chain_node_map() -> bool:
+    if _chain_node_map.size() != 0:
+        return true
+
+    var chain_root: Node = get_chain_node_root()
+
+    if not chain_root:
+        push_error(
+            (
+                'Skeleton at %s is missing a PhysicalSkeleton generated ChainRoot Node. '
+                + 'You cannot make one yourself, you must run the build chain method at least once '
+                + 'to set up the node.'
+            ) % skeleton.get_path()
+        )
+        return false
+
+    for child in chain_root.get_children():
+        var id: int = child.get_meta(META_CHAIN_RESOURCE_ID, ResourceUID.INVALID_ID)
+        if id == ResourceUID.INVALID_ID:
+            continue
+
+        _chain_node_map.set(id, child)
+
+    return true
+
+func _validate_bone_chain(chain: PhysicalBoneChain) -> bool:
+    if chain.unique_id == -1:
+        push_error(
+            (
+                'PhysicalBoneChain %s (at %s) has not had its unique id generated yet. '
+                + 'You must build the chain at least once.'
+            ) % [chain.resource_name, chain.resource_path]
+        )
+        return false
+
+    if chain.part_list.size() == 0:
+        push_error(
+            (
+                'PhysicalBoneChain %s (at %s) has an empty part_list, nothing to load.'
+            ) % [chain.resource_name, chain.resource_path]
+        )
+        return false
+
+    # Ensure all parts are non-null
+    for index in range(chain.part_list.size()):
+        var part: PhysicalBoneChainPart = chain.part_list[index]
+        if not part:
+            push_error(
+                (
+                    'PhysicalBoneChain %s (at %s) is missing a part at index %d, null found.'
+                ) % [chain.resource_name, chain.resource_path, index]
+            )
+            return false
+
+    var bone_list: PackedInt32Array = chain.get_bone_list(skeleton)
+    if bone_list.size() != chain.part_list.size():
+        push_error(
+            (
+                'PhysicalBoneChain %s (at %s) failed to obtain bone ids for part list. '
+                + 'Needed %d ids, but got %d'
+            ) % [chain.resource_name, chain.resource_path, chain.part_list.size(), bone_list.size()]
+        )
+        return false
+
+    return true
+
+func build_chain(chain: PhysicalBoneChain, custom_joint_builder: Callable) -> void:
+    pass
 
 func setup_body_joints() -> void:
     # Do not modify the tree in the editor

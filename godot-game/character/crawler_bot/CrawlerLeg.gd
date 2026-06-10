@@ -14,15 +14,12 @@ var ground_bone: StringName
 
 ## Physical bone chain layout for this leg
 @export var physical_bone_chain: PhysicalBoneChain:
-    set(value):
-        physical_bone_chain = value
-        if physical_bone_chain and body and body.skeleton:
-            physical_bone_chain.skeleton = body.skeleton
+    set = _set_physical_bone_chain
 
 ## Shareable general leg parameters
 @export var setting: CrawlerLegSetting
 
-
+#region Debug
 @export_group('Debug', 'debug')
 
 @export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
@@ -58,11 +55,12 @@ var _debug_ground_cast_shape: int = 0
 @export var debug_step_reason: bool = false
 var _debug_step_reason_text_id: int = 0
 var _debug_step_reason_text: String
-
+#endregion Debug
 
 var body: CrawlerCharacter = null:
     set(value):
         body = value
+        on_chain_changed()
         notify_property_list_changed()
 var index: int = -1
 var is_left: bool:
@@ -175,10 +173,7 @@ func _ready() -> void:
     comfort_distance = setting.rest_distance
 
 func _validate_property(property: Dictionary) -> void:
-    if property.name == &'physical_bone_chain':
-        if physical_bone_chain:
-            physical_bone_chain.skeleton = body.skeleton
-    elif property.name == &'ground_bone':
+    if property.name == &'ground_bone':
         property.hint = PROPERTY_HINT_ENUM
         if body.skeleton:
             property.hint_string = body.skeleton.get_concatenated_bone_names()
@@ -709,6 +704,45 @@ func get_diagonal() -> Array[CrawlerLeg]:
         result.append(body.legs[idx])
 
     return result
+
+## Callback for loading custom joints related to this leg on a physical skeleton.
+## Returning null will be interpreted as a load error.
+func load_custom_joint(
+        chain: PhysicalBoneChain,
+        part_index: int,
+        rigid_body: RigidBody3D,
+        joint_resource: Resource,
+) -> Joint3D:
+    return null
+
+## Callback for building custom joints. This should set the transform of the
+## joint before returning it, which will be used as a local transform from the
+## bone in global pose space. Returning null will be interpreted as an error.
+func build_custom_joint(
+        chain: PhysicalBoneChain,
+        part_index: int,
+        joint_resource: Resource,
+) -> Joint3D:
+    return null
+
+func _set_physical_bone_chain(new_chain: PhysicalBoneChain) -> void:
+    if physical_bone_chain and physical_bone_chain.changed.is_connected(on_chain_changed):
+        physical_bone_chain.changed.disconnect(on_chain_changed)
+    physical_bone_chain = new_chain
+
+    if not physical_bone_chain:
+        return
+
+    if not physical_bone_chain.changed.is_connected(on_chain_changed):
+        physical_bone_chain.changed.connect(on_chain_changed)
+
+    on_chain_changed()
+
+func on_chain_changed() -> void:
+    if body and body.skeleton:
+        physical_bone_chain.callable_get_bone_name = body.skeleton.get_bone_name
+        physical_bone_chain.callable_get_bone_name_hint = body.skeleton.get_concatenated_bone_names
+        physical_bone_chain.refresh_part_list_bone_names()
 
 func _draw_step_cast() -> void:
     var shape_origin: Vector3 = shape_cast.target_position

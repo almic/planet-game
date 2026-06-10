@@ -11,6 +11,7 @@ script = ExtResource("1_ti4h2")
 shape = ExtResource("4_e0bjp")
 physics_material = ExtResource("2_sp636")
 collision_mask = 51
+ik_enabled = true
 rotation_axis = 2
 limitation_resource = ExtResource("1_4ql4a")
 limitation_right_axis = 1

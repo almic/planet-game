@@ -51,6 +51,9 @@ var bone_name: StringName
 #region IK Settings
 @export_group('IK Settings')
 
+## If this part should create an IK setting
+@export var ik_enabled: bool = false
+
 ## The total rest angle correction per second. This is applied one time just
 ## before starting the iteration loop, and is divided by the current
 ## `Engine.physics_ticks_per_second` so it is consistent with different TPS.
@@ -68,6 +71,7 @@ var rotation_axis: int = 3:
     set(value):
         rotation_axis = value
         setting_changed.emit(&'rotation_axis')
+        _update_joint_setting()
 
 ## Custom axis of rotation. Does not need to be normalized, the limitation will
 ## take a normalized copy for processing.
@@ -82,8 +86,13 @@ var rotation_axis: int = 3:
 ## Limitation resource, provides additional restrictions to limit the IK
 @export var limitation_resource: JointLimitation3D:
     set(value):
+        if limitation_resource and limitation_resource.changed.is_connected(_update_joint_setting):
+            limitation_resource.changed.disconnect(_update_joint_setting)
         limitation_resource = value
+        if limitation_resource and (not limitation_resource.changed.is_connected(_update_joint_setting)):
+            limitation_resource.changed.connect(_update_joint_setting)
         setting_changed.emit(&'limitation_resource')
+        _update_joint_setting()
 
 @export_enum('None', '+X', '-X', '+Y', '-Y', '+Z', '-Z', 'Custom')
 var limitation_right_axis: int = 0:
@@ -103,7 +112,112 @@ var limitation_right_axis: int = 0:
     set(value):
         limitation_rotation_offset = value
         setting_changed.emit(&'limitation_rotation_offset')
+        _update_joint_setting()
 #endregion IK Settings
+
+#region Joint Settings
+@export_group('Joint Settings')
+
+## When enabled, will copy the angle from the IK limitation to the related angle
+## limit on the joint. This will ONLY copy the angles, so any other setting will
+## be retained.
+@export var copy_ik_limitation_angle: bool = false:
+    set(value):
+        copy_ik_limitation_angle = value
+        _update_joint_setting()
+
+@export_subgroup('Linear Limit', 'joint_linear_limit')
+@export var joint_linear_limit_x_enabled: bool = true:
+    set(value):
+        joint_linear_limit_x_enabled = value
+        setting_changed.emit(&'joint_linear_limit_x_enabled')
+@export_range(0.0, 1.0, 0.01, 'or_less', 'or_greater', 'hide_control', 'suffix:m')
+var joint_linear_limit_x_upper: float = 0:
+    set(value):
+        joint_linear_limit_x_upper = value
+        setting_changed.emit(&'joint_linear_limit_x_upper')
+@export_range(0.0, 1.0, 0.01, 'or_less', 'or_greater', 'hide_control', 'suffix:m')
+var joint_linear_limit_x_lower: float = 0:
+    set(value):
+        joint_linear_limit_x_lower = value
+        setting_changed.emit(&'joint_linear_limit_x_lower')
+
+@export var joint_linear_limit_y_enabled: bool = true:
+    set(value):
+        joint_linear_limit_y_enabled = value
+        setting_changed.emit(&'joint_linear_limit_y_enabled')
+@export_range(0.0, 1.0, 0.01, 'or_less', 'or_greater', 'hide_control', 'suffix:m')
+var joint_linear_limit_y_upper: float = 0:
+    set(value):
+        joint_linear_limit_y_upper = value
+        setting_changed.emit(&'joint_linear_limit_y_upper')
+@export_range(0.0, 1.0, 0.01, 'or_less', 'or_greater', 'hide_control', 'suffix:m')
+var joint_linear_limit_y_lower: float = 0:
+    set(value):
+        joint_linear_limit_y_lower = value
+        setting_changed.emit(&'joint_linear_limit_y_lower')
+
+@export var joint_linear_limit_z_enabled: bool = true:
+    set(value):
+        joint_linear_limit_z_enabled = value
+        setting_changed.emit(&'joint_linear_limit_z_enabled')
+@export_range(0.0, 1.0, 0.01, 'or_less', 'or_greater', 'hide_control', 'suffix:m')
+var joint_linear_limit_z_upper: float = 0:
+    set(value):
+        joint_linear_limit_z_upper = value
+        setting_changed.emit(&'joint_linear_limit_z_upper')
+@export_range(0.0, 1.0, 0.01, 'or_less', 'or_greater', 'hide_control', 'suffix:m')
+var joint_linear_limit_z_lower: float = 0:
+    set(value):
+        joint_linear_limit_z_lower = value
+        setting_changed.emit(&'joint_linear_limit_z_lower')
+
+@export_subgroup('Angular Limit', 'joint_angular_limit')
+@export var joint_angular_limit_x_enabled: bool = true:
+    set(value):
+        joint_angular_limit_x_enabled = value
+        setting_changed.emit(&'joint_angular_limit_x_enabled')
+@export_range(-180.0, 180.0, 0.1, 'radians_as_degrees')
+var joint_angular_limit_x_upper: float = 0:
+    set(value):
+        joint_angular_limit_x_upper = value
+        setting_changed.emit(&'joint_angular_limit_x_upper')
+@export_range(-180.0, 180.0, 0.1, 'radians_as_degrees')
+var joint_angular_limit_x_lower: float = 0:
+    set(value):
+        joint_angular_limit_x_lower = value
+        setting_changed.emit(&'joint_angular_limit_x_lower')
+
+@export var joint_angular_limit_y_enabled: bool = true:
+    set(value):
+        joint_angular_limit_y_upper = value
+        setting_changed.emit(&'joint_angular_limit_y_upper')
+@export_range(-180.0, 180.0, 0.1, 'radians_as_degrees')
+var joint_angular_limit_y_upper: float = 0:
+    set(value):
+        joint_angular_limit_y_upper = value
+        setting_changed.emit(&'joint_angular_limit_y_upper')
+@export_range(-180.0, 180.0, 0.1, 'radians_as_degrees')
+var joint_angular_limit_y_lower: float = 0:
+    set(value):
+        joint_angular_limit_y_lower = value
+        setting_changed.emit(&'joint_angular_limit_y_lower')
+
+@export var joint_angular_limit_z_enabled: bool = true:
+    set(value):
+        joint_angular_limit_z_enabled = value
+        setting_changed.emit(&'joint_angular_limit_z_enabled')
+@export_range(-180.0, 180.0, 0.1, 'radians_as_degrees')
+var joint_angular_limit_z_upper: float = 0:
+    set(value):
+        joint_angular_limit_z_upper = value
+        setting_changed.emit(&'joint_angular_limit_z_upper')
+@export_range(-180.0, 180.0, 0.1, 'radians_as_degrees')
+var joint_angular_limit_z_lower: float = 0:
+    set(value):
+        joint_angular_limit_z_lower = value
+        setting_changed.emit(&'joint_angular_limit_z_lower')
+#endregion Joint Settings
 
 #region Motor Settings
 @export_group('Motor Settings')
@@ -138,3 +252,66 @@ var custom_enabled: bool = false
 ## List of custom resources provided to the chain creation callback
 @export var custom_joint_resource_list: Array[Resource]
 #endregion Custom Joints
+
+
+## Updates copied joint setting from IK limitation
+func _update_joint_setting() -> void:
+    if not copy_ik_limitation_angle:
+        return
+
+    if rotation_axis > 2:
+        return
+
+    if not limitation_resource:
+        return
+
+    var limitation_angle: float = TAU
+    var rotation_offset: Vector3 = Vector3.ZERO
+
+    var limitation: JointLimitationCone3D = limitation_resource as JointLimitationCone3D
+    if limitation:
+        limitation_angle = limitation.angle
+        rotation_offset = limitation_rotation_offset.get_euler()
+
+        # Verify rotation offset is normal, should only apply on the axis of rotation
+        for i in range(3):
+            if i == rotation_axis:
+                continue
+            elif absf(rotation_offset[i]) >= 1.74e-3: # about 0.1 degrees
+                var limit_axis_str: String
+                if rotation_axis == 0:
+                    limit_axis_str = 'X'
+                elif rotation_axis == 1:
+                    limit_axis_str = 'Y'
+                else:
+                    limit_axis_str = 'Z'
+
+                var offset_axis_str: String
+                if i == 0:
+                    offset_axis_str = 'X'
+                elif i == 1:
+                    offset_axis_str = 'Y'
+                else:
+                    offset_axis_str = 'Z'
+                push_error(
+                    (
+                        'PhysicalBoneChainPart %s (at %s) has misaligned limitation_rotation_offset. '
+                        + 'Offsets should only be rotated on the axis they restrict, this limit acts '
+                        + 'on the %s axis but contains rotation on the %s axis. Please correct the '
+                        + 'rotation offset so that only axis %s has rotation.'
+                    ) % [resource_name, resource_path, limit_axis_str, offset_axis_str, limit_axis_str]
+                )
+                return
+
+    var lower_limit: float = rotation_offset[rotation_axis] - (limitation_angle * 0.5)
+    var upper_limit: float = rotation_offset[rotation_axis] + (limitation_angle * 0.5)
+    # NOTE: X and Z limits are way more likely than Y, so I check those first
+    if rotation_axis == 0:
+        joint_angular_limit_x_lower = lower_limit
+        joint_angular_limit_x_upper = upper_limit
+    elif rotation_axis == 2:
+        joint_angular_limit_z_lower = lower_limit
+        joint_angular_limit_z_upper = upper_limit
+    else: # rotation_axis == 1
+        joint_angular_limit_y_lower = lower_limit
+        joint_angular_limit_y_upper = upper_limit
