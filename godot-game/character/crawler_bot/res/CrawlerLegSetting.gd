@@ -41,7 +41,7 @@ var step_cast_end: float = -0.5
 ## Collision mask for step targets. This allows the step target to ignore small
 ## dynamic objects, searching for solid ground and effectively pushing into
 ## objects not considered stable ground.
-@export_flags_3d_physics var step_collision_mask: int = 1
+@export_flags_3d_physics var step_cast_collision_mask: int = 1
 
 
 @export_subgroup('Distance')
