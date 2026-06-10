@@ -42,6 +42,7 @@ var enable_physical_skeleton: bool = true
 @export var physical_skeleton: PhysicalSkeleton
 
 
+#region IK Parameters
 @export_group('IK Parameters', 'ik')
 
 ## Number of iteration loops used by the IK solver to produce more accurate results.
@@ -83,8 +84,9 @@ var ik_angular_delta_limit: float = deg_to_rad(30.0):
     set(value):
         ik_mutable_bone_axes = value
         _queue_update_ik_settings()
+#endregion IK Parameters
 
-
+#region Leg Parameters
 @export_group('Leg Parameters', 'body')
 
 ## How many legs are equivalent to the mass of the central body. When greater
@@ -125,8 +127,9 @@ var body_max_leg_force: float = 20.0
 ## The number of grounded legs necessary for jumping
 @export_range(1, 8, 1, 'or_less')
 var body_legs_needed_for_jump: int = 3
+#endregion Leg Parameters
 
-
+#region Debug
 @export_group('Debug', 'debug')
 
 @export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
@@ -142,7 +145,7 @@ var _debug_leg_polyline: int = 0
 
 @export var debug_leg_gravity: bool = false
 var _debug_leg_gravity_vec: int = 0
-
+#endregion Debug
 
 var legs: Array[CrawlerLeg]
 """
