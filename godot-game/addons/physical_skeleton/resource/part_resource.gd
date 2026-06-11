@@ -1,5 +1,5 @@
 @tool
-class_name PhysicalBoneChainPart extends Resource
+class_name PhysicalBonePartResource extends Resource
 
 
 signal setting_changed(name: StringName)

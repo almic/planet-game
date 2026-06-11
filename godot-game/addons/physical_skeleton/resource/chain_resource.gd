@@ -1,5 +1,5 @@
 @tool
-class_name PhysicalBoneChain extends Resource
+class_name PhysicalBoneChainResource extends Resource
 
 
 const BONE_NOT_FOUND: StringName = &'BONE NOT FOUND'
@@ -22,7 +22,7 @@ var end_bone: StringName:
         emit_changed()
 
 ## Part definitions for each segment of the chain
-@export var part_list: Array[PhysicalBoneChainPart]:
+@export var part_list: Array[PhysicalBonePartResource]:
     set(value):
         if part_list:
             for part in part_list:
@@ -115,7 +115,7 @@ func refresh_part_list_bone_names() -> void:
 
     var max_names: int = name_list.size()
     for index in range(part_list.size()):
-        var part: PhysicalBoneChainPart = part_list[index]
+        var part: PhysicalBonePartResource = part_list[index]
         if not part:
             continue
 

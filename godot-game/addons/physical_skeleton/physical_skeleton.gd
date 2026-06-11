@@ -385,7 +385,7 @@ func get_chain_node_root() -> Node:
 
     return _chain_node_root
 
-func load_chain(chain: PhysicalBoneChain, custom_joint_loader: Callable) -> void:
+func load_chain(chain: PhysicalBoneChainResource, custom_joint_loader: Callable) -> void:
     if not chain:
         push_error(
             (
@@ -427,7 +427,7 @@ func _load_chain_node_map() -> bool:
 
     return true
 
-func _validate_bone_chain(chain: PhysicalBoneChain) -> bool:
+func _validate_bone_chain(chain: PhysicalBoneChainResource) -> bool:
     if chain.unique_id == -1:
         push_error(
             (
@@ -447,7 +447,7 @@ func _validate_bone_chain(chain: PhysicalBoneChain) -> bool:
 
     # Ensure all parts are non-null
     for index in range(chain.part_list.size()):
-        var part: PhysicalBoneChainPart = chain.part_list[index]
+        var part: PhysicalBonePartResource = chain.part_list[index]
         if not part:
             push_error(
                 (
@@ -468,7 +468,7 @@ func _validate_bone_chain(chain: PhysicalBoneChain) -> bool:
 
     return true
 
-func build_chain(chain: PhysicalBoneChain, custom_joint_builder: Callable) -> void:
+func build_chain(chain: PhysicalBoneChainResource, custom_joint_builder: Callable) -> void:
     pass
 
 func setup_body_joints() -> void:

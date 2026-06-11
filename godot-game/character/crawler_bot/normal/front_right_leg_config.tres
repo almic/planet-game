@@ -1,9 +1,9 @@
-[gd_resource type="Resource" script_class="PhysicalBoneChain" format=3 uid="uid://nj64xc2n7xxi"]
+[gd_resource type="Resource" script_class="PhysicalBoneChainResource" format=3 uid="uid://nj64xc2n7xxi"]
 
-[ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/physical_bone_chain_part.gd" id="1_0jfcy"]
+[ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="1_0jfcy"]
 [ext_resource type="Resource" uid="uid://d2moeutnew25y" path="res://character/crawler_bot/normal/femur_part.tres" id="2_ph54n"]
 [ext_resource type="Resource" uid="uid://i7rxnr5r8vqw" path="res://character/crawler_bot/normal/tibia_part.tres" id="3_ph54n"]
-[ext_resource type="Script" uid="uid://bumtikmwn5lpl" path="res://addons/physical_skeleton/physical_bone_chain.gd" id="4_i5cmn"]
+[ext_resource type="Script" uid="uid://bumtikmwn5lpl" path="res://addons/physical_skeleton/resource/chain_resource.gd" id="4_i5cmn"]
 [ext_resource type="Resource" uid="uid://da5n6snt7g7mf" path="res://character/crawler_bot/normal/tarsus_part.tres" id="4_q8uq1"]
 
 [resource]

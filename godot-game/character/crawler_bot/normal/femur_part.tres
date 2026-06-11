@@ -1,13 +1,13 @@
-[gd_resource type="Resource" script_class="PhysicalBoneChainPart" format=3 uid="uid://d2moeutnew25y"]
+[gd_resource type="Resource" script_class="PhysicalBonePartResource" format=3 uid="uid://d2moeutnew25y"]
 
 [ext_resource type="JointLimitationCone3D" uid="uid://btiyh1v4d1d3v" path="res://character/crawler_bot/normal/femur_joint_cone_limit.tres" id="1_4ql4a"]
-[ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/physical_bone_chain_part.gd" id="1_ti4h2"]
 [ext_resource type="PhysicsMaterial" uid="uid://dgom72xev8omg" path="res://material/physic/metal.tres" id="2_sp636"]
+[ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="3_sp636"]
 [ext_resource type="Shape3D" uid="uid://dunuwguvgydu4" path="res://character/crawler_bot/normal/femur_collision_shape.tres" id="4_e0bjp"]
 
 [resource]
 resource_name = "FemurPart"
-script = ExtResource("1_ti4h2")
+script = ExtResource("3_sp636")
 shape = ExtResource("4_e0bjp")
 physics_material = ExtResource("2_sp636")
 collision_mask = 51
