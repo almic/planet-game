@@ -128,6 +128,8 @@ var bodies_active: bool = false
 var _cached_attachments: Array[ModifierBoneTarget3D] = []
 var cached_delta: float
 
+var chain_list: Array[PhysicalBoneChain3D]
+
 
 func editor_create_ik_bodies() -> void:
     EditorInterface.get_editor_toaster().push_toast(
@@ -169,122 +171,10 @@ func _process_modification_with_delta(delta: float) -> void:
 
     cached_delta = delta
 
-    var to_remove: Array[JointData]
-    for joint_data in joints:
-
-        var joint_parent: Transform3D = joint_data.parent.global_transform * joint_data.xform_rel_parent
-        var joint_body: Transform3D = joint_data.body.global_transform * joint_data.xform_rel_body
-
-        var body_diff: Transform3D = joint_parent.affine_inverse() * joint_body
-        joint_data.offset = body_diff
-
-        if _should_break(joint_data.joint, joint_data.offset):
-            to_remove.append(joint_data)
-
-    _break_joints(to_remove)
-
-    for joint_data in joints:
-        if not joint_data.is_ik_joint:
+    for chain in chain_list:
+        if not chain.is_valid:
             continue
-
-        var bone_rotation: Quaternion = joint_data.offset.basis.get_rotation_quaternion()
-        joint_data.angle = bone_rotation
-
-        bone_rotation = skeleton.get_bone_rest(joint_data.bone_idx).basis.get_rotation_quaternion() * bone_rotation
-        skeleton.set_bone_pose_rotation(joint_data.bone_idx, bone_rotation)
-
-        # IDEA: Teleport IK end bone to real location? Maybe this will help IK
-
-func _should_break(joint: Joint3D, displacement: Transform3D) -> bool:
-    var total_force: float = 0
-    if joint is BeamPivotJoint3D:
-        total_force = joint.get_total_applied_force()
-    elif joint is Generic6DOFJoint3D:
-        var linear: float = joint.get_applied_force()
-        var torque: float = joint.get_applied_torque()
-        total_force = linear + torque
-
-    if total_force > 500.0:
-        print('%d : %s: %.2f' % [Engine.get_physics_frames(), joint.name, total_force])
-        # return true
-
-    #print('error: %s\nangle: %s' % [displacement.origin, displacement.basis.get_euler()])
-
-    return false
-
-func _break_joints(to_break: Array[JointData]) -> void:
-    var to_disable: Array[RigidBody3D] = []
-
-    for joint_data in to_break:
-        print('Breaking joint %s on %s' % [joint_data.joint.name, main_body.name])
-
-        # Disable IK behavior on the chain
-        if joint_data.is_ik_joint and iterate_ik:
-            if joint_data.ik_setting_idx < iterate_ik.setting_count:
-                iterate_ik.set_target_node(joint_data.ik_setting_idx, NodePath(""))
-
-        var index: int = joints.find(joint_data)
-        joints.remove_at(index)
-        joint_data.joint.queue_free()
-        if joint_data.parent != main_body:
-            to_disable.append(joint_data.parent)
-
-        if index >= joints.size():
-            continue
-
-        var next_parent: RigidBody3D = joint_data.body
-        var child: JointData = joints[index]
-
-        while child.parent == next_parent:
-            print('Removing joint %s' % child.body.name)
-            # "kill" joint motors, set velocity to zero and use a low torque limit
-            # TODO: make max force a parameter
-            const DEAD_TORQUE: float = 10.0
-            if child.joint.get_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
-                child.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, 0)
-                child.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, DEAD_TORQUE)
-            if child.joint.get_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
-                child.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, 0)
-                child.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, DEAD_TORQUE)
-            if child.joint.get_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
-                child.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, 0)
-                child.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, DEAD_TORQUE)
-
-            joints.remove_at(index)
-            if index >= joints.size():
-                break
-            next_parent = child.body
-            child = joints[index]
-
-    for body in to_disable:
-        for i in range(joints.size()):
-            var joint_data: JointData = joints[i]
-            if joint_data.body != body:
-                continue
-
-            # Already disabled this chain, nothing to do
-            if not joint_data.is_motor_powered:
-                break
-
-            print('Disabling %s' % joint_data.body)
-            joint_data.is_motor_powered = false
-
-            var next_body: RigidBody3D = joint_data.parent
-            while true:
-                if next_body == main_body:
-                    break
-
-                i -= 1
-                if i < 0:
-                    break
-
-                joint_data = joints[i]
-                if joint_data.body != next_body:
-                    break
-
-                print('Disabling %s' % joint_data.body)
-                joint_data.is_motor_powered = false
-                next_body = joint_data.parent
+        chain.update()
 
 func activate_bodies() -> void:
     for joint_data in joints:
@@ -320,61 +210,16 @@ func deactivate_bodies() -> void:
 
     bodies_active = false
 
-func update_motors() -> void:
+func update_chains() -> void:
     if not bodies_active:
         return
 
     const ITERATIONS: int = 1
-    for i in range(ITERATIONS):
-        var impulse: bool = false
-        if i % 2 == 0:
-            for joint_data in joints:
-                if not joint_data.is_motor_powered:
-                    continue
-
-                var applied_impulse: bool = _solve_joint_motor(joint_data, cached_delta)
-                impulse = impulse || applied_impulse
-        else:
-            for joint in range(joints.size() - 1, -1, -1):
-                var joint_data: JointData = joints[joint]
-                if not joint_data.is_motor_powered:
-                    continue
-
-                var applied_impulse: bool = _solve_joint_motor(joint_data, cached_delta)
-                impulse = impulse || applied_impulse
-        if not impulse:
-            break
-
-func _solve_joint_motor(joint_data: JointData, delta: float) -> bool:
-
-    var target_rotation: Quaternion = skeleton.get_bone_pose_rotation(joint_data.bone_idx)
-    target_rotation = skeleton.get_bone_rest(joint_data.bone_idx).basis.get_rotation_quaternion().inverse() * target_rotation
-
-    const MAX_VELOCITY: float = 0.5
-
-    var velocities: Vector3 = -(joint_data.angle.inverse() * target_rotation).get_euler()
-    #if velocities.y > deg_to_rad(1.0):
-        #breakpoint
-    for i in range(3):
-        if absf(velocities[i]) < 1.745e-3:
-            velocities[i] = 0.0
+    for chain in chain_list:
+        if (not chain.is_valid) or (not chain.is_powered):
             continue
-
-    velocities = velocities.sign() * (velocities.abs() / delta).minf(MAX_VELOCITY)
-
-    if velocities == Vector3.ZERO:
-        return false
-
-    # TODO: velocity calculation improvements
-
-    if joint_data.joint.get_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
-        joint_data.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.x)
-    if joint_data.joint.get_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
-        joint_data.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.y)
-    if joint_data.joint.get_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
-        joint_data.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.z)
-
-    return true
+        chain.setup_velocity()
+        chain.solve_velocity(ITERATIONS, cached_delta)
 
 func get_chain_node_root() -> Node:
     if not _chain_node_root:
@@ -384,23 +229,6 @@ func get_chain_node_root() -> Node:
                 break
 
     return _chain_node_root
-
-func load_chain(chain: PhysicalBoneChainResource, custom_joint_loader: Callable) -> void:
-    if not chain:
-        push_error(
-            (
-                'Attempting to load null PhysicalBoneChain from PhysicalSkeleton %s (at %s)'
-            ) % [name, get_path()]
-        )
-        return
-
-    if not _validate_bone_chain(chain):
-        return
-
-    if not _load_chain_node_map():
-        return
-
-    var chain_node: Node = _chain_node_map.get(chain.unique_id)
 
 func _load_chain_node_map() -> bool:
     if _chain_node_map.size() != 0:
@@ -424,47 +252,6 @@ func _load_chain_node_map() -> bool:
             continue
 
         _chain_node_map.set(id, child)
-
-    return true
-
-func _validate_bone_chain(chain: PhysicalBoneChainResource) -> bool:
-    if chain.unique_id == -1:
-        push_error(
-            (
-                'PhysicalBoneChain %s (at %s) has not had its unique id generated yet. '
-                + 'You must build the chain at least once.'
-            ) % [chain.resource_name, chain.resource_path]
-        )
-        return false
-
-    if chain.part_list.size() == 0:
-        push_error(
-            (
-                'PhysicalBoneChain %s (at %s) has an empty part_list, nothing to load.'
-            ) % [chain.resource_name, chain.resource_path]
-        )
-        return false
-
-    # Ensure all parts are non-null
-    for index in range(chain.part_list.size()):
-        var part: PhysicalBonePartResource = chain.part_list[index]
-        if not part:
-            push_error(
-                (
-                    'PhysicalBoneChain %s (at %s) is missing a part at index %d, null found.'
-                ) % [chain.resource_name, chain.resource_path, index]
-            )
-            return false
-
-    var bone_list: PackedInt32Array = chain.get_bone_list(skeleton)
-    if bone_list.size() != chain.part_list.size():
-        push_error(
-            (
-                'PhysicalBoneChain %s (at %s) failed to obtain bone ids for part list. '
-                + 'Needed %d ids, but got %d'
-            ) % [chain.resource_name, chain.resource_path, chain.part_list.size(), bone_list.size()]
-        )
-        return false
 
     return true
 

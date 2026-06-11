@@ -13,7 +13,7 @@ var target: Marker3D
 var ground_bone: StringName
 
 ## Physical bone chain layout for this leg
-@export var physical_bone_chain: PhysicalBoneChain:
+@export var physical_bone_chain: PhysicalBoneChainResource:
     set = _set_physical_bone_chain
 
 ## Shareable general leg parameters
@@ -708,7 +708,7 @@ func get_diagonal() -> Array[CrawlerLeg]:
 ## Callback for loading custom joints related to this leg on a physical skeleton.
 ## Returning null will be interpreted as a load error.
 func load_custom_joint(
-        chain: PhysicalBoneChain,
+        chain: PhysicalBoneChainResource,
         part_index: int,
         rigid_body: RigidBody3D,
         joint_resource: Resource,
@@ -719,13 +719,13 @@ func load_custom_joint(
 ## joint before returning it, which will be used as a local transform from the
 ## bone in global pose space. Returning null will be interpreted as an error.
 func build_custom_joint(
-        chain: PhysicalBoneChain,
+        chain: PhysicalBoneChainResource,
         part_index: int,
         joint_resource: Resource,
 ) -> Joint3D:
     return null
 
-func _set_physical_bone_chain(new_chain: PhysicalBoneChain) -> void:
+func _set_physical_bone_chain(new_chain: PhysicalBoneChainResource) -> void:
     if physical_bone_chain and physical_bone_chain.changed.is_connected(on_chain_changed):
         physical_bone_chain.changed.disconnect(on_chain_changed)
     physical_bone_chain = new_chain

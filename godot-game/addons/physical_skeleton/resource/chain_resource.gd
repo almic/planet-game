@@ -75,7 +75,7 @@ func get_bone_list(skeleton: Skeleton3D = null) -> PackedInt32Array:
     if bone_idx == -1:
         push_error(
             (
-                'PhysicalBoneChain "%s" (at %s) is misconfigured. ' +
+                'PhysicalBoneChainResource "%s" (at %s) is misconfigured. ' +
                 'Failed to find bone id for end bone %s.'
             ) % [resource_name, resource_path, end_bone]
         )
@@ -95,7 +95,7 @@ func get_bone_list(skeleton: Skeleton3D = null) -> PackedInt32Array:
     if bone_idx == -1:
         push_error(
             (
-                'PhysicalBoneChain "%s" (at %s) is misconfigured. ' +
+                'PhysicalBoneChainResource "%s" (at %s) is misconfigured. ' +
                 'Failed to find root bone %s as an ancestor of end bone %s.'
             ) % [resource_name, resource_path, root_bone, end_bone]
         )
@@ -129,7 +129,7 @@ func generate_unique_id() -> int:
     if not resource_path:
         push_error(
             (
-                'PhysicalBoneChain named %s has not been saved yet, please ensure '
+                'PhysicalBoneChainResource named %s has not been saved yet, please ensure '
                 + 'it has been saved and has a non-empty resource_path.'
             ) % resource_name
         )
@@ -138,7 +138,7 @@ func generate_unique_id() -> int:
     if (not root_bone) or (not end_bone):
         push_error(
             (
-                'PhysicalBoneChain %s (at %s) is missing a root and/or end bone. '
+                'PhysicalBoneChainResource %s (at %s) is missing a root and/or end bone. '
                 + 'They must have both set before you can build the chain.'
             ) % [resource_name, resource_path]
         )

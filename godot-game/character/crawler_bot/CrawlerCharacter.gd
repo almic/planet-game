@@ -170,6 +170,7 @@ var linear_leg_accel: Vector3
 var angular_leg_accel: Vector3
 
 var _is_update_ik_queued: bool = false
+var _next_chain_ik_setting_index: int = 0
 
 
 func _ready() -> void:
@@ -267,7 +268,7 @@ func _ready() -> void:
         #       into the working chain state, so as long as the skeleton is
         #       being updated by physics, "deterministic" is what we want from IK
         leg_ik.deterministic = true
-        leg_ik.modification_processed.connect(physical_skeleton.update_motors)
+        leg_ik.modification_processed.connect(physical_skeleton.update_chains)
     else:
         # Must run this method, for some reason Skeleton3D respects custom
         # modifiers "active" flag on load, while IterateIK3D definitely still
@@ -416,6 +417,20 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
 func _update_legs() -> void:
     # NOTE: this is called before IK, so virtual cannot copy the pose yet
     if enable_physical_skeleton:
+        for chain in physical_skeleton.chain_list:
+            # NOTE: for now, the only chains are IK enabled, so just initialize everything
+            if not chain.is_ik_initialized:
+                if leg_ik.setting_count < _next_chain_ik_setting_index + 1:
+                    leg_ik.set_setting_count(_next_chain_ik_setting_index + 1)
+                chain.init_ik(leg_ik, _next_chain_ik_setting_index)
+                _next_chain_ik_setting_index += 1
+
+            # Disable IK behavior on the chain and update legs
+            if chain.is_any_part_broken:
+                # NOTE: setting node path to empty effectively disables that ik setting
+                leg_ik.set_target_node(chain.ik_setting_id, NodePath(""))
+                # TODO: tell CrawlerLegs about this so they can change behavior
+
         _on_leg_pose_updated()
 
     for leg in legs:
