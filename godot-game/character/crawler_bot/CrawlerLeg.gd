@@ -708,9 +708,10 @@ func get_diagonal() -> Array[CrawlerLeg]:
 ## Callback for loading custom joints related to this leg on a physical skeleton.
 ## Returning null will be interpreted as a load error.
 func load_custom_joint(
-        chain: PhysicalBoneChainResource,
-        part_index: int,
-        rigid_body: RigidBody3D,
+        chain: PhysicalBoneChain3D,
+        part: PhysicalBonePart3D,
+        main_body: RigidBody3D,
+        parent_body: RigidBody3D,
         joint_resource: Resource,
 ) -> Joint3D:
     return null
@@ -719,8 +720,10 @@ func load_custom_joint(
 ## joint before returning it, which will be used as a local transform from the
 ## bone in global pose space. Returning null will be interpreted as an error.
 func build_custom_joint(
-        chain: PhysicalBoneChainResource,
-        part_index: int,
+        chain: PhysicalBoneChain3D,
+        part: PhysicalBonePart3D,
+        main_body: RigidBody3D,
+        parent_body: RigidBody3D,
         joint_resource: Resource,
 ) -> Joint3D:
     return null

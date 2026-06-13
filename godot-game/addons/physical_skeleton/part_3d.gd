@@ -1,6 +1,9 @@
 class_name PhysicalBonePart3D extends RigidBody3D
 
 
+const META_BREAK_FORCE: StringName = &'_part_break_force'
+
+
 ## The resource assigned to this part
 @export_custom(
     PROPERTY_HINT_NONE,
@@ -26,9 +29,65 @@ var is_powered: bool = false
 ## This part can transfer power, determined by this part's health status
 var is_power_interrupted: bool = true
 
+## Cached center of mass, set before disabling the body, used by chain to assign
+## the correct initial linear velocity when activating the body
+var _cached_com: Vector3
+
 
 func _ready() -> void:
+    # TODO: load resource joints
+
+    # TODO: load custom joints
     pass
+
+func activate() -> void:
+    visible = true
+    process_mode = Node.PROCESS_MODE_INHERIT
+
+func deactivate() -> void:
+    # Save our center of mass for later
+    _cached_com = PhysicsServer3D.body_get_param(get_rid(), PhysicsServer3D.BODY_PARAM_CENTER_OF_MASS)
+    visible = false
+    process_mode = Node.PROCESS_MODE_DISABLED
+
+## Return a read-only reference to the internal joint list managed by this part
+func get_joint_list() -> Array[Joint3D]:
+    return []
+
+## Creates joint nodes from the resource, connecting them to the parent_body if
+## they are configured to do so.
+func build_joints(
+        chain: PhysicalBoneChain3D,
+        main_body: RigidBody3D,
+        parent_body: RigidBody3D,
+        custom_joint_builder: Callable
+) -> bool:
+    # TODO: resource joints
+
+    # Custom joints
+    if (not resource.custom_enabled) or (not custom_joint_builder.is_valid()):
+        return true
+
+    for custom in resource.custom_joint_resource_list:
+        var joint: Joint3D = custom_joint_builder.call(
+            chain, self, main_body, parent_body, custom
+        )
+
+        if not joint:
+            push_error(
+                (
+                    'PhysicalBonePart3D %s has custom joints defined, but the '
+                    + 'builder failed to create a joint for the resource named '
+                    + '%s (at %s). Either remove the custom joint resource, or '
+                    + 'fix the cause of the builder failure.'
+                ) % [name, custom.resource_name, custom.resource_path]
+            )
+            return false
+
+        # TODO: place metadata on joint to remember it as custom
+        # TODO: add to joint list
+
+    return true
 
 func update(skeleton: Skeleton3D, bone_idx: int) -> void:
     var to_remove: Array[JointData]

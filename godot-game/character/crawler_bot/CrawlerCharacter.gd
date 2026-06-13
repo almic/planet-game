@@ -268,12 +268,12 @@ func _ready() -> void:
         #       into the working chain state, so as long as the skeleton is
         #       being updated by physics, "deterministic" is what we want from IK
         leg_ik.deterministic = true
-        leg_ik.modification_processed.connect(physical_skeleton.update_chains)
+        leg_ik.modification_processed.connect(physical_skeleton.on_pose_finalized)
     else:
         # Must run this method, for some reason Skeleton3D respects custom
         # modifiers "active" flag on load, while IterateIK3D definitely still
         # processes once even though it is also disabled
-        physical_skeleton.setup_body_joints.call_deferred()
+        physical_skeleton.setup_body()
         leg_ik.modification_processed.connect(_on_leg_pose_updated)
         # NOTE: ensure this is off when in pure IK mode, see above note for
         #       physics to understand why this might be enabled

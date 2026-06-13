@@ -27,6 +27,16 @@ var part_count: int
 func _ready() -> void:
     validate()
 
+## Returns a mapping of each part's related bone index to the array of joints.
+## The provided arrays are read-only, and must be duplicated before modifying them
+func get_bone_joint_map() -> Dictionary[int, Array]:
+    var bone_joint_map: Dictionary[int, Array]
+
+    for i in range(part_count):
+        bone_joint_map.set(bone_list[i], part_list[i].get_joint_list())
+
+    return bone_joint_map
+
 func update() -> void:
     var power_active: bool = is_powered
 
@@ -47,6 +57,28 @@ func update() -> void:
     # Call entire chain unpowered when the first part is broken
     if is_powered and part_list[0].is_broken:
         is_powered = false
+
+## Activates all rigid body parts of this chain
+func activate(initial_state: PhysicsDirectBodyState3D) -> void:
+    for i in range(part_count):
+        var part: PhysicalBonePart3D = part_list[i]
+        var bone: int = bone_list[i]
+
+        # Teleport to bone
+        part.global_transform = skeleton.global_transform * skeleton.get_bone_global_pose(bone)
+        part.force_update_transform()
+
+        # Copy state velocity
+        var local_position: Vector3 = (part.global_position + part._cached_com) - initial_state.transform.origin
+        part.linear_velocity = initial_state.get_velocity_at_local_position(local_position)
+        part.angular_velocity = initial_state.angular_velocity
+
+        part.activate()
+
+## Disables all rigid body parts of this chain
+func deactivate() -> void:
+    for part in part_list:
+        part.deactivate()
 
 func init_ik(iterate_ik: IterateIK3D, setting_index: int) -> void:
     is_ik_initialized = true

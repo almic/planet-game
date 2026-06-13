@@ -155,7 +155,7 @@ func editor_update_frequency_calculator() -> void:
 
 func _process_modification_with_delta(delta: float) -> void:
     if not initialized:
-        setup_body_joints.call_deferred()
+        setup_body()
         initialized = true
 
     if not has_bodies:
@@ -177,40 +177,25 @@ func _process_modification_with_delta(delta: float) -> void:
         chain.update()
 
 func activate_bodies() -> void:
-    for joint_data in joints:
-        # Make body visible
-        joint_data.body.visible = true
+    # Inherit velocity of main body
+    var main_body_state := PhysicsServer3D.body_get_direct_state(main_body.get_rid())
 
-        # Copy processing state to bodies and joints
-        # TODO: this causes the joint to rebuild, and probably immediately, so
-        #       we may need to be sure to run through joints from root to end
-        joint_data.body.process_mode = main_body.process_mode
-        joint_data.joint.process_mode = main_body.process_mode
-
-        # Teleport to joint attachment node
-        joint_data.body.global_transform = joint_data.attachment.global_transform
-        joint_data.body.force_update_transform()
-
-        # Copy velocity of main body
-        var main_body_state := PhysicsServer3D.body_get_direct_state(main_body.get_rid())
-        var local_position: Vector3 = (joint_data.body.global_position + joint_data.center_of_mass) - main_body_state.transform.origin
-        joint_data.body.linear_velocity = main_body_state.get_velocity_at_local_position(local_position)
-        joint_data.body.angular_velocity = main_body_state.angular_velocity
+    for chain in chain_list:
+        chain.activate(main_body_state)
 
     bodies_active = true
 
 func deactivate_bodies() -> void:
-    for joint_data in joints:
-        # Hide body
-        joint_data.body.visible = false
-
-        # Copy processing state to bodies and joints
-        joint_data.body.process_mode = Node.PROCESS_MODE_DISABLED
-        joint_data.joint.process_mode = Node.PROCESS_MODE_DISABLED
+    for chain in chain_list:
+        chain.deactivate()
 
     bodies_active = false
 
-func update_chains() -> void:
+## Call this when the skeleton pose is ready to be targeted using joint motors.
+## This modifier must have processed early enough to copy the physical joint
+## rotations onto the skeleton pose, and save the initial rotations, so it can
+## correctly target what changed in the pose.
+func on_pose_finalized() -> void:
     if not bodies_active:
         return
 
@@ -230,39 +215,10 @@ func get_chain_node_root() -> Node:
 
     return _chain_node_root
 
-func _load_chain_node_map() -> bool:
-    if _chain_node_map.size() != 0:
-        return true
-
-    var chain_root: Node = get_chain_node_root()
-
-    if not chain_root:
-        push_error(
-            (
-                'Skeleton at %s is missing a PhysicalSkeleton generated ChainRoot Node. '
-                + 'You cannot make one yourself, you must run the build chain method at least once '
-                + 'to set up the node.'
-            ) % skeleton.get_path()
-        )
-        return false
-
-    for child in chain_root.get_children():
-        var id: int = child.get_meta(META_CHAIN_RESOURCE_ID, ResourceUID.INVALID_ID)
-        if id == ResourceUID.INVALID_ID:
-            continue
-
-        _chain_node_map.set(id, child)
-
-    return true
-
 func build_chain(chain: PhysicalBoneChainResource, custom_joint_builder: Callable) -> void:
     pass
 
-func setup_body_joints() -> void:
-    # Do not modify the tree in the editor
-    if Engine.is_editor_hint():
-        return
-
+func setup_body() -> void:
     skeleton = get_skeleton()
     if not skeleton:
         push_error('PhysicalSkeleton could not find a skeleton!')
@@ -273,240 +229,98 @@ func setup_body_joints() -> void:
         push_error('PhysicalSkeleton could not find a primary RigidBody3D!')
         return
 
-    var attachments: Array[ModifierBoneTarget3D] = get_bone_attachments()
-    var loaded_joints: Array[JointData]
-
-    # Start by loading IK paths
-    if iterate_ik:
-        for setting in range(iterate_ik.setting_count):
-            for joint in range(iterate_ik.get_joint_count(setting) - 1):
-                var bone_idx: int = iterate_ik.get_joint_bone(setting, joint)
-                var joint_data: JointData = _make_joint_data_from_bone_idx(bone_idx, loaded_joints)
-
-                # Badly formed joint, we should stop right away.
-                if joint_data == INVALID_JOINT:
-                    return
-
-                if not joint_data:
-                    continue
-
-                joint_data.is_ik_joint = true
-                joint_data.ik_setting_idx = setting
-                joint_data.ik_joint_idx = joint
-
-                var rotation_axis: RotationAxis = iterate_ik.get_joint_rotation_axis(setting, joint)
-                if not (rotation_axis < ROTATION_AXIS_ALL):
-                    push_error(
-                        (
-                            "Physical chains with IK must be limited to 1 axis of rotation! "
-                            + "Setting %d on joint %d has a Rotation Axis of %s"\
-                        ) % [setting, joint, str(rotation_axis)]
-                    )
-                    return
-
-                var limitation: JointLimitationCone3D = iterate_ik.get_joint_limitation(setting, joint) as JointLimitationCone3D
-                var limitation_angle: float = TAU
-                var rotation_offset: Vector3 = Vector3.ZERO
-                if limitation:
-                    limitation_angle = limitation.angle
-                    rotation_offset = iterate_ik.get_joint_limitation_rotation_offset(setting, joint).get_euler()
-
-                    # Verify rotation offset is normal, should only apply on the axis of rotation
-                    for i in range(3):
-                        if i == rotation_axis:
-                            continue
-                        elif absf(rotation_offset[i]) >= 1.74e-3: # about 0.1 degrees
-                            push_error(
-                                (
-                                    "Reading strange rotation offset for setting %d/ joint %d. Has "
-                                    + "offset for axis %d but can only rotate on axis %d. Please "
-                                    + "correct the rotation offset so it only spins axis %d."
-                                ) % [setting, joint, i, rotation_axis, rotation_axis]
-                            )
-                            return
-
-                var lower_limit: float = rotation_offset[rotation_axis] - (limitation_angle * 0.5)
-                var upper_limit: float = rotation_offset[rotation_axis] + (limitation_angle * 0.5)
-                if rotation_axis == ROTATION_AXIS_X:
-                    joint_data.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, lower_limit)
-                    joint_data.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, upper_limit)
-                elif rotation_axis == ROTATION_AXIS_Z:
-                    joint_data.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, lower_limit)
-                    joint_data.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, upper_limit)
-                else: # rotation_axis == ROTATION_AXIS_Y
-                    joint_data.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, lower_limit)
-                    joint_data.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, upper_limit)
-
-                loaded_joints.append(joint_data)
-
-    # Load any remaining attachments
-    for target in attachments:
-        var bone_idx: int = target.bone
-        if bone_idx == -1:
-            continue
-
-        var already_loaded: bool = false
-        for j in loaded_joints:
-            if j.bone_idx == bone_idx:
-                already_loaded = true
-                break
-
-        if already_loaded:
-            continue
-
-        var joint_data: JointData = _make_joint_data_from_bone_target(target, loaded_joints)
-
-        if not joint_data:
-            continue
-
-        # Badly formed joint, we should stop right away.
-        if joint_data == INVALID_JOINT:
-            return
-
-        loaded_joints.append(joint_data)
-
-    if loaded_joints.size() == 0:
+    var chain_root: Node = get_chain_node_root()
+    if not chain_root:
+        push_error(
+            'PhysicalSkeleton could not find the chain root node, it must be built first. '
+            + 'Only PhysicalBoneChain3D created by this PhysicalSkeleton that are in the '
+            + 'chain root node can be loaded. You may organize the nodes however you want, '
+            + 'as long as they exist somewhere in the chain root node.'
+        )
         return
 
+    chain_list.assign(chain_root.find_children('', 'PhysicalBoneChain3D'))
+    if chain_list.size() == 0:
+        push_error(
+            'PhysicalSkeleton found no PhysicalBoneChain3D within the chain root %s. '
+            + 'Only chains within this root node can be loaded, please move the nodes '
+            + 'into this root or rebuild the chain. You can organize them however you '
+            + 'want, as long as they are somewhere in the chain root node.'
+        )
+        return
+
+    # Collect bone joint mappings for priority assignment
     var bone_joint_map: Dictionary[int, Array] = {}
-    for attach in attachments:
-        var body_list: Array[RigidBody3D]
-        body_list.assign(attach.find_children('', 'RigidBody3D', false, false))
-        if body_list.size() != 1:
-            continue
-        var found_joints: Array[Joint3D]
-        found_joints.assign(body_list[0].find_children('', 'Joint3D', false, false))
-        if found_joints.size() == 0:
-            continue
-        bone_joint_map.set(attach.bone, found_joints)
 
-    var joint_priority_map: Dictionary = _calculate_joint_priority(bone_joint_map)
-
-    # Save all nodes to obtain exact paths later
-    var path_map: Dictionary
-    for joint_data in loaded_joints:
-        var nested_joint: Array[Joint3D]
-        nested_joint.assign(joint_data.body.find_children('', 'Joint3D', false, false))
-        for joint in nested_joint:
-            var mapping: Array[Node]
-            mapping.resize(2)
-            if joint.node_a:
-                mapping[0] = joint.get_node(joint.node_a)
-            if joint.node_b:
-                mapping[1] = joint.get_node(joint.node_b)
-            path_map.set(joint, mapping)
-
-    # Reparent all bodies
-    var scene_root: Node3D = get_tree().current_scene as Node3D
-    for joint_data in loaded_joints:
-        joint_data.body.reparent(scene_root)
-
+    # Ensure collision exceptions for parts that initially intersect the main body
     var main_body_rid: RID = main_body.get_rid()
     var main_body_state := PhysicsServer3D.body_get_direct_state(main_body_rid)
     var space := main_body_state.get_space_state()
     var query := PhysicsShapeQueryParameters3D.new()
     query.collision_mask = PhysicsServer3D.body_get_collision_layer(main_body_rid)
 
-    for joint_data in loaded_joints:
-        # Update all joint paths
-        var nested_joint: Array[Joint3D]
-        # NOTE: must have owner set to false, reparenting breaks owners somehow...
-        nested_joint.assign(joint_data.body.find_children('', 'Joint3D', false, false))
-        for joint in nested_joint:
-            # Move joint up axis if copies should be made
-            if (
-                        joint == joint_data.joint
-                    and joint_data.is_ik_joint
-                    and (
-                           (joint_data.ik_joint_idx == 0 and first_joint_copies > 0)
-                        or (joint_data.ik_joint_idx > 0 and joint_copies > 0)
-                    )
-            ):
-                joint.position += 0.5 * joint_copy_width * iterate_ik.get_joint_rotation_axis_vector(joint_data.ik_setting_idx, joint_data.ik_joint_idx)
+    # Process chains
+    for chain in chain_list:
+        var chain_bone_joint_map: Dictionary[int, Array] = chain.get_bone_joint_map()
 
-            var node_list: Array[Node] = path_map.get(joint, [null, null])
-            if node_list[0]:
-                joint.node_a = node_list[0].get_path()
-            if node_list[1]:
-                joint.node_b = node_list[1].get_path()
+        for bone_idx in chain_bone_joint_map:
+            if bone_joint_map.has(bone_idx):
+                push_error(
+                    (
+                        'PhysicalSkeleton found duplicated PhysicalBoneChain3D %s, '
+                        + 'it references the bone %s, which is already managed by '
+                        + 'another chain. Please delete the duplicated node, or '
+                        + 'rebuild the chains.'
+                    ) % [chain.name, skeleton.get_bone_name(bone_idx)]
+                )
+                return
 
-        # Store center of mass
-        # NOTE: when enabling after being disabled, physics state isn't ready yet,
-        #       so we have to cache now before it is disabled.
-        joint_data.center_of_mass = PhysicsServer3D.body_get_param(joint_data.body.get_rid(), PhysicsServer3D.BODY_PARAM_CENTER_OF_MASS)
+        bone_joint_map.assign(chain_bone_joint_map)
 
-        # If the main body is intersecting this body, ensure it has a collision
-        # exception. This can happen when joint bodies exist fully contained in
-        # the main body, causing the next joint to not add the exception by default.
-        if joint_data.parent == main_body:
-            continue
+        # Process parts
+        for part in chain.part_list:
 
-        var body_rid: RID = joint_data.body.get_rid()
-        var intersects_main_body: bool = false
-        for body_shape in range(PhysicsServer3D.body_get_shape_count(body_rid)):
-            var body_shape_rid: RID = PhysicsServer3D.body_get_shape(body_rid, body_shape)
-            var shape_xform: Transform3D = PhysicsServer3D.body_get_shape_transform(body_rid, body_shape)
+            # Check current exceptions, may already include main body
+            var skip: bool = false
+            for excepted in part.get_collision_exceptions():
+                if excepted == main_body:
+                    skip = true
+                    break
+            if skip:
+                continue
 
-            query.shape_rid = body_shape_rid
-            query.transform = joint_data.body.global_transform * shape_xform
+            # If the main body is intersecting this body, ensure it has a collision
+            # exception. This can happen when joint bodies exist fully contained in
+            # the main body, causing the next joint to not add the exception by default.
 
-            var intersections: Array[Dictionary] = space.intersect_shape(query, 8)
-            for hit in intersections:
-                if hit.rid == main_body_rid:
-                    intersects_main_body = true
+            var body_rid: RID = part.get_rid()
+            var intersects_main_body: bool = false
+            for body_shape in range(PhysicsServer3D.body_get_shape_count(body_rid)):
+                var body_shape_rid: RID = PhysicsServer3D.body_get_shape(body_rid, body_shape)
+                var shape_xform: Transform3D = PhysicsServer3D.body_get_shape_transform(body_rid, body_shape)
+
+                query.shape_rid = body_shape_rid
+                query.transform = part.global_transform * shape_xform
+
+                var intersections: Array[Dictionary] = space.intersect_shape(query, 8)
+                for hit in intersections:
+                    if hit.rid == main_body_rid:
+                        intersects_main_body = true
+                        break
+
+                if intersects_main_body:
                     break
 
             if intersects_main_body:
-                break
+                print(
+                    (
+                        'PhysicalBonePart3D %s initially intersects %s, adding exception'
+                    ) % [part.name, main_body.name]
+                )
+                part.add_collision_exception_with(main_body)
+                main_body.add_collision_exception_with(part)
 
-        if intersects_main_body:
-            print(
-                (
-                    'Joint body %s initially intersects %s, adding exception'
-                ) % [joint_data.body.name, main_body.name]
-            )
-            joint_data.body.add_collision_exception_with(main_body)
-            main_body.add_collision_exception_with(joint_data.body)
-
-    # Duplicate joints to improve rigidity
-    for i in range(maxi(first_joint_copies, joint_copies)):
-        bone_joint_map.clear()
-        for joint_data in loaded_joints:
-            if joint_data.ik_joint_idx == 0 and i >= first_joint_copies:
-                continue
-            if joint_data.ik_joint_idx > 0 and i >= joint_copies:
-                continue
-
-            var joint_step: Vector3 = iterate_ik.get_joint_rotation_axis_vector(joint_data.ik_setting_idx, joint_data.ik_joint_idx)
-
-            if joint_data.ik_joint_idx == 0:
-                joint_step *= joint_copy_width / float(first_joint_copies)
-            else:
-                joint_step *= joint_copy_width / float(joint_copies)
-
-            var pair_joint := _duplicate_joint(joint_data)
-            if not bone_joint_map.has(joint_data.bone_idx):
-                bone_joint_map.set(joint_data.bone_idx, Array())
-            bone_joint_map.get(joint_data.bone_idx).append(pair_joint)
-
-            pair_joint.position += joint_step * (i + 1)
-            joint_data.body.add_child(pair_joint)
-
-        var block_map: Dictionary = _calculate_joint_priority(bone_joint_map)
-        var max_priority: int = block_map.get(&'priority')
-        # Move all joints up
-        var new_priority_map: Dictionary = {}
-        for p in joint_priority_map:
-            if p is not int:
-                continue
-            new_priority_map.set(p + max_priority, joint_priority_map.get(p))
-        new_priority_map.set(&'priority', max_priority + joint_priority_map.get(&'priority'))
-        joint_priority_map.clear()
-        for k in block_map:
-            if k is not int:
-                continue
-            new_priority_map.set(k, block_map.get(k))
-        joint_priority_map = new_priority_map
+    var joint_priority_map: Dictionary = _calculate_joint_priority(bone_joint_map)
 
     # Reverse priorities so earlier joints solve later, improving chain accuracy
     var max_priority: int = joint_priority_map.get(&'priority')
@@ -518,13 +332,10 @@ func setup_body_joints() -> void:
         for joint in joint_list:
             # NOTE: i cannot demonstrate that this is better than not reversing priority...
             #       but logically it should as the first iteration will send lower leg
-            #       impulses straight to the main body, rather than lag by 3+ iterations
+            #       impulses straight to the main body, rather than lag by N+ iterations
             joint.solver_priority = max_priority - priority
 
-    joints.clear()
-    joints.assign(loaded_joints)
-
-    # Initially disable joints
+    # Initially disable bodies
     deactivate_bodies()
 
     has_bodies = true
