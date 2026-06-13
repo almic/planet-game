@@ -4,6 +4,18 @@ class_name PhysicalBonePart3D extends RigidBody3D
 const META_BREAK_FORCE: StringName = &'_part_break_force'
 
 
+## Contains data and object references on a joint
+class JointData:
+    var is_breakable: bool = false
+    var is_destroyed: bool = false
+    var joint: Generic6DOFJoint3D
+
+    var parent: RID
+    var xform_rel_parent: Transform3D
+    var xform_rel_body: Transform3D
+    var offset: Transform3D
+
+
 ## The resource assigned to this part
 @export_custom(
     PROPERTY_HINT_NONE,
@@ -28,6 +40,11 @@ var is_motor_broken: bool = false
 var is_powered: bool = false
 ## This part can transfer power, determined by this part's health status
 var is_power_interrupted: bool = true
+
+## List of managed joints
+var joint_list: Array[JointData]
+## The single joint representing the bone this part is connected to
+var bone_joint: JointData
 
 ## Cached center of mass, set before disabling the body, used by chain to assign
 ## the correct initial linear velocity when activating the body
@@ -90,31 +107,38 @@ func build_joints(
     return true
 
 func update(skeleton: Skeleton3D, bone_idx: int) -> void:
-    var to_remove: Array[JointData]
-    for joint_data in joints:
+    if not bone_joint.is_destroyed:
+        _update_joint(bone_joint)
 
-        var joint_parent: Transform3D = joint_data.parent.global_transform * joint_data.xform_rel_parent
-        var joint_body: Transform3D = joint_data.body.global_transform * joint_data.xform_rel_body
+        var bone_rotation: Quaternion = skeleton.get_bone_rest(bone_idx).basis.get_rotation_quaternion() * bone_joint.offset.basis.get_rotation_quaternion()
+        skeleton.set_bone_pose_rotation(bone_idx, bone_rotation)
 
-        var body_diff: Transform3D = joint_parent.affine_inverse() * joint_body
-        joint_data.offset = body_diff
+        if bone_joint.is_breakable and _should_break(bone_joint.joint, bone_joint.offset):
+            print('Breaking joint %s' % [bone_joint.joint.get_path()])
+            is_motor_broken = true
+            bone_joint.is_destroyed = true
+            bone_joint.joint.queue_free()
 
-        if _should_break(joint_data.joint, joint_data.offset):
-            to_remove.append(joint_data)
+    for i in range(1, joint_list.size()):
+        var joint_data: JointData = joint_list[i]
 
-    _break_joints(to_remove)
-
-    for joint_data in joints:
-        if not joint_data.is_ik_joint:
+        if joint_data.is_destroyed or (not joint_data.is_breakable):
             continue
 
-        var bone_rotation: Quaternion = joint_data.offset.basis.get_rotation_quaternion()
-        joint_data.angle = bone_rotation
+        _update_joint(joint_data)
 
-        bone_rotation = skeleton.get_bone_rest(joint_data.bone_idx).basis.get_rotation_quaternion() * bone_rotation
-        skeleton.set_bone_pose_rotation(joint_data.bone_idx, bone_rotation)
+        if _should_break(joint_data.joint, joint_data.offset):
+            print('Breaking joint %s' % [joint_data.joint.get_path()])
+            joint_data.is_destroyed = true
+            joint_data.joint.queue_free()
 
-        # IDEA: Teleport IK end bone to real location? Maybe this will help IK
+func _update_joint(joint_data: JointData) -> void:
+    var parent_state := PhysicsServer3D.body_get_direct_state(joint_data.parent)
+    var joint_parent: Transform3D = parent_state.transform * joint_data.xform_rel_parent
+    var joint_body: Transform3D = global_transform * joint_data.xform_rel_body
+
+    var body_diff: Transform3D = joint_parent.affine_inverse() * joint_body
+    joint_data.offset = body_diff
 
 func _should_break(joint: Joint3D, displacement: Transform3D) -> bool:
     var total_force: float = 0
@@ -125,52 +149,15 @@ func _should_break(joint: Joint3D, displacement: Transform3D) -> bool:
         var torque: float = joint.get_applied_torque()
         total_force = linear + torque
 
-    if total_force > 500.0:
+    var max_force: float = joint.get_meta(META_BREAK_FORCE, 0.0)
+
+    if total_force > max_force:
         print('%d : %s: %.2f' % [Engine.get_physics_frames(), joint.name, total_force])
         # return true
 
     #print('error: %s\nangle: %s' % [displacement.origin, displacement.basis.get_euler()])
 
     return false
-
-func _break_joints(to_break: Array[JointData]) -> void:
-    var to_disable: Array[RigidBody3D] = []
-
-    for joint_data in to_break:
-        print('Breaking joint %s on %s' % [joint_data.joint.name, main_body.name])
-
-        var index: int = joints.find(joint_data)
-        joints.remove_at(index)
-        joint_data.joint.queue_free()
-        if joint_data.parent != main_body:
-            to_disable.append(joint_data.parent)
-
-        if index >= joints.size():
-            continue
-
-        var next_parent: RigidBody3D = joint_data.body
-        var child: JointData = joints[index]
-
-        while child.parent == next_parent:
-            print('Removing joint %s' % child.body.name)
-            # "kill" joint motors, set velocity to zero and use a low torque limit
-            # TODO: make max force a parameter
-            const DEAD_TORQUE: float = 10.0
-            if child.joint.get_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
-                child.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, 0)
-                child.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, DEAD_TORQUE)
-            if child.joint.get_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
-                child.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, 0)
-                child.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, DEAD_TORQUE)
-            if child.joint.get_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
-                child.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, 0)
-                child.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, DEAD_TORQUE)
-
-            joints.remove_at(index)
-            if index >= joints.size():
-                break
-            next_parent = child.body
-            child = joints[index]
 
 func setup_motor_velocity(skeleton: Skeleton3D, bone_idx: int) -> void:
     var target_rotation: Quaternion = skeleton.get_bone_pose_rotation(joint_data.bone_idx)

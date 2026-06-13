@@ -5,11 +5,7 @@ class_name PhysicalSkeleton extends SkeletonModifier3D
 
 
 const META_NODE_ROOT: StringName = &'_physical_chain_root'
-const META_CHAIN_RESOURCE_ID: StringName = &'_physical_chain_resource_id'
 
-
-@export_tool_button('Create IK Joint Bodies', 'PhysicalBoneSimulator3D')
-var _btn_create_ik_joint_bodies = editor_create_ik_bodies
 
 @export_tool_button('Update Joints', 'Generic6DOFJoint3D')
 var _btn_update_joints = editor_update_joints
@@ -93,20 +89,6 @@ var calc_freq_damping_ratio: float = 0.5:
 var calc_freq_damping: float = 0.0
 
 
-## Contains data and object references on a joint
-const JointData = preload("uid://m8gpd36535th")
-static var INVALID_JOINT: JointData = JointData.new()
-
-## Emits when a joint calculates a higher force needed to match the skeleton
-## than its limitations permit
-signal force_exceeded(
-        joint_info: JointData,
-        linear_force: Vector3,
-        angular_force: Vector3,
-        linear_limit: float,
-        angular_limit: float
-)
-
 ## The skeleton driving the joints
 var skeleton: Skeleton3D
 ## The main body of the skeleton
@@ -116,9 +98,6 @@ var main_body: RigidBody3D
 var _chain_node_root: Node
 ## Map chain uids to chain nodes
 var _chain_node_map: Dictionary[int, Node]
-
-## Array of managed JointData
-var joints: Array[JointData]
 
 
 var initialized: bool = false
@@ -130,11 +109,6 @@ var cached_delta: float
 
 var chain_list: Array[PhysicalBoneChain3D]
 
-
-func editor_create_ik_bodies() -> void:
-    EditorInterface.get_editor_toaster().push_toast(
-            'Functionality not implemented! TODO!',EditorToaster.SEVERITY_INFO
-    )
 
 func editor_update_joints() -> void:
     EditorInterface.get_editor_toaster().push_toast(

@@ -51,11 +51,14 @@ func update() -> void:
         if part.is_power_interrupted:
             power_active = false
 
-        if (not is_any_part_broken) and part.is_broken:
+        if (not is_any_part_broken) and part.is_motor_broken:
             is_any_part_broken = true
 
-    # Call entire chain unpowered when the first part is broken
-    if is_powered and part_list[0].is_broken:
+    # TODO: I think this is still a good idea (June 13)
+    # IDEA: Teleport IK end bone to real location? Maybe this will help IK
+
+    # Call entire chain unpowered when the first part is interrupted and destroyed
+    if is_powered and part_list[0].is_power_interrupted and part_list[0].is_motor_broken:
         is_powered = false
 
 ## Activates all rigid body parts of this chain
