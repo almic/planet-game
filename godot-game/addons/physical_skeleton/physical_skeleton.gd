@@ -4,7 +4,8 @@
 class_name PhysicalSkeleton extends SkeletonModifier3D
 
 
-const META_NODE_ROOT: StringName = &'_physical_chain_root'
+const META_CHAIN_ROOT: StringName = &'_physical_chain_root'
+const META_CHAIN_RESOURCE_ID: StringName = &'_physical_chain_resource_id'
 
 
 @export_tool_button('Update Joints', 'Generic6DOFJoint3D')
@@ -94,10 +95,11 @@ var skeleton: Skeleton3D
 ## The main body of the skeleton
 var main_body: RigidBody3D
 
+var _bone_part_map: Dictionary[int, PhysicalBonePart3D]
 ## Node holding all the chain nodes
 var _chain_node_root: Node
 ## Map chain uids to chain nodes
-var _chain_node_map: Dictionary[int, Node]
+var _chain_node_map: Dictionary[int, PhysicalBoneChain3D]
 
 
 var initialized: bool = false
@@ -126,6 +128,66 @@ func editor_update_frequency_calculator() -> void:
     var omega: float = TAU * calc_freq_frequency
     var effective_mass: float = calc_freq_stiffness / (omega * omega)
     calc_freq_damping = 2.0 * effective_mass * calc_freq_damping_ratio * omega
+
+func _ready() -> void:
+    _setup()
+
+func get_nice_path(to: Node = null) -> NodePath:
+    if not to:
+        to = self
+    var root_node: Node = get_tree().edited_scene_root
+    if not root_node:
+        root_node = get_tree().current_scene
+    if not root_node:
+        root_node = get_viewport()
+    if not root_node:
+        root_node = get_window()
+    if root_node:
+        return root_node.get_path_to(to)
+    return to.get_path()
+
+func _setup() -> void:
+    main_body = _find_main_body()
+    if not main_body:
+        push_error('PhysicalSkeleton could not find a primary RigidBody3D!')
+        return
+
+    var chain_root: Node = get_chain_node_root()
+    if not chain_root:
+        push_error(
+            'PhysicalSkeleton could not find the chain root node, it must be built first. '
+            + 'Only PhysicalBoneChain3D created by this PhysicalSkeleton that are in the '
+            + 'chain root node can be loaded. You may organize the nodes however you want, '
+            + 'as long as they exist somewhere in the chain root node.'
+        )
+        return
+
+    chain_list.assign(chain_root.find_children('', 'PhysicalBoneChain3D'))
+    if chain_list.size() == 0:
+        push_error(
+            'PhysicalSkeleton found no PhysicalBoneChain3D within the chain root %s. '
+            + 'Only chains within this root node can be loaded, please move the nodes '
+            + 'into this root or rebuild the chain. You can organize them however you '
+            + 'want, as long as they are somewhere in the chain root node.'
+        )
+        return
+
+    _chain_node_map = {}
+    _bone_part_map = {}
+
+    for chain in chain_list:
+        # HACK: I hate await, but without making gaurantees about the order of
+        #       the chain root relative to this node, we must await them
+        if not chain.is_node_ready():
+            await chain.ready
+        _bone_part_map.merge(chain.get_bone_part_map(), true)
+
+        var id: int = chain.get_meta(META_CHAIN_RESOURCE_ID, ResourceUID.INVALID_ID)
+        if id != ResourceUID.INVALID_ID:
+            _chain_node_map.set(id, chain)
+
+    _chain_node_map.make_read_only()
+    _bone_part_map.make_read_only()
 
 func _process_modification_with_delta(delta: float) -> void:
     if not initialized:
@@ -180,17 +242,132 @@ func on_pose_finalized() -> void:
         chain.setup_velocity()
         chain.solve_velocity(ITERATIONS, cached_delta)
 
+func get_bone_part_map() -> Dictionary[int, PhysicalBonePart3D]:
+    return _bone_part_map
+
 func get_chain_node_root() -> Node:
     if not _chain_node_root:
+        if not skeleton:
+            skeleton = _find_skeleton()
+
+        var skel_children: Array[Node] = skeleton.get_children()
         for node in skeleton.get_children():
-            if node.get_meta(META_NODE_ROOT, false):
+            if node.get_meta(META_CHAIN_ROOT, false):
                 _chain_node_root = node
                 break
 
+        # Scan all nested children
+        if not _chain_node_root:
+            for node in skel_children:
+                for nested in node.find_children('*'):
+                    if node.get_meta(META_CHAIN_ROOT, false):
+                        _chain_node_root = node
+                        break
+                if _chain_node_root:
+                    break
+
     return _chain_node_root
 
-func build_chain(chain: PhysicalBoneChainResource, custom_joint_builder: Callable) -> void:
-    pass
+func build_chain(
+    chain_resource: PhysicalBoneChainResource,
+    custom_joint_builder: Callable
+) -> bool:
+    if not chain_resource:
+        push_error(
+            (
+                'PhysicalSkeleton at %s method `build_chain()` called without a '
+                + 'chain resource. Returning false.'
+            ) % get_nice_path()
+        )
+        return false
+
+    # Generate the custom unique id if needed
+    if chain_resource.unique_id == ResourceUID.INVALID_ID:
+        chain_resource.generate_unique_id()
+
+        # It can fail if the resource isn't saved, or doesn't specify bones
+        if chain_resource.unique_id == ResourceUID.INVALID_ID:
+            push_error(
+                (
+                    'PhysicalSkeleton at %s method `build_chain()` called with an '
+                    + 'invalid chain resource. Errors should be above. Returning false.'
+                ) % get_nice_path()
+            )
+            return false
+
+        # Save resource immediately
+        ResourceSaver.save(chain_resource)
+
+    # Create the root if it doesn't exist yet
+    var chain_root: Node = get_chain_node_root()
+    if not chain_root:
+        chain_root = Node.new()
+        chain_root.name = 'ChainRootNode'
+        chain_root.set_meta(META_CHAIN_ROOT, true)
+        skeleton.add_child(chain_root, true)
+        chain_root.owner = owner
+
+    var chain := PhysicalBoneChain3D.new()
+    chain.set_meta(&'_custom_type_script', ResourceUID.id_to_text(ResourceLoader.get_resource_uid((chain.get_script() as Script).resource_path)))
+    chain.resource = chain_resource
+    chain.set_meta(META_CHAIN_RESOURCE_ID, chain.resource.unique_id)
+    chain.name = chain.resource.resource_name
+
+    chain._skip_ready = true
+    chain_root.add_child(chain, true)
+    chain.owner = chain_root.owner
+
+    # Skeleton is determined by the _ready() method, but since we skip that,
+    # we have to provide it here before calling build_chain()
+    chain.skeleton = skeleton
+    return chain.build_chain(main_body, custom_joint_builder)
+
+func prepare_custom_joints(chain_resource: PhysicalBoneChainResource, custom_joint_callable: Callable) -> bool:
+    if not main_body:
+        push_error(
+            (
+                'PhysicalSkeleton at %s has no main body, unable to load chain resources at this time'
+            ) % get_nice_path()
+        )
+        return false
+
+    if not chain_resource:
+        push_error(
+            (
+                'PhysicalSkeleton at %s method `prepare_custom_joints()` called '
+                + 'without a chain resource. Returning false.'
+            ) % get_nice_path()
+        )
+        return false
+
+    if not custom_joint_callable.is_valid():
+        push_error(
+            (
+                'PhysicalSkeleton at %s method `prepare_custom_joints()` called '
+                + 'without a valid custom joint callable. Returning false.'
+            ) % get_nice_path()
+        )
+        return false
+
+    var chain: PhysicalBoneChain3D = _chain_node_map.get(chain_resource.unique_id)
+    if not chain:
+        push_error(
+            (
+                'PhysicalSkeleton at %s could not find a chain using the resource named %s at %s. '
+                + 'Consider rebuilding the chain.'
+            ) % [get_nice_path(), chain_resource.resource_name, chain_resource.resource_path]
+        )
+        return false
+
+    if not chain.is_valid:
+        push_error(
+            (
+                'PhysicalBoneChain3D at %s is marked invalid, there should be errors above.'
+            ) % [chain.get_nice_path()]
+        )
+        return false
+
+    return chain.prepare_custom_joints(custom_joint_callable)
 
 func setup_body() -> void:
     skeleton = get_skeleton()
@@ -198,29 +375,7 @@ func setup_body() -> void:
         push_error('PhysicalSkeleton could not find a skeleton!')
         return
 
-    main_body = _find_main_body()
-    if not main_body:
-        push_error('PhysicalSkeleton could not find a primary RigidBody3D!')
-        return
-
-    var chain_root: Node = get_chain_node_root()
-    if not chain_root:
-        push_error(
-            'PhysicalSkeleton could not find the chain root node, it must be built first. '
-            + 'Only PhysicalBoneChain3D created by this PhysicalSkeleton that are in the '
-            + 'chain root node can be loaded. You may organize the nodes however you want, '
-            + 'as long as they exist somewhere in the chain root node.'
-        )
-        return
-
-    chain_list.assign(chain_root.find_children('', 'PhysicalBoneChain3D'))
-    if chain_list.size() == 0:
-        push_error(
-            'PhysicalSkeleton found no PhysicalBoneChain3D within the chain root %s. '
-            + 'Only chains within this root node can be loaded, please move the nodes '
-            + 'into this root or rebuild the chain. You can organize them however you '
-            + 'want, as long as they are somewhere in the chain root node.'
-        )
+    if Engine.is_editor_hint():
         return
 
     # Collect bone joint mappings for priority assignment
@@ -253,46 +408,7 @@ func setup_body() -> void:
 
         # Process parts
         for part in chain.part_list:
-
-            # Check current exceptions, may already include main body
-            var skip: bool = false
-            for excepted in part.get_collision_exceptions():
-                if excepted == main_body:
-                    skip = true
-                    break
-            if skip:
-                continue
-
-            # If the main body is intersecting this body, ensure it has a collision
-            # exception. This can happen when joint bodies exist fully contained in
-            # the main body, causing the next joint to not add the exception by default.
-
-            var body_rid: RID = part.get_rid()
-            var intersects_main_body: bool = false
-            for body_shape in range(PhysicsServer3D.body_get_shape_count(body_rid)):
-                var body_shape_rid: RID = PhysicsServer3D.body_get_shape(body_rid, body_shape)
-                var shape_xform: Transform3D = PhysicsServer3D.body_get_shape_transform(body_rid, body_shape)
-
-                query.shape_rid = body_shape_rid
-                query.transform = part.global_transform * shape_xform
-
-                var intersections: Array[Dictionary] = space.intersect_shape(query, 8)
-                for hit in intersections:
-                    if hit.rid == main_body_rid:
-                        intersects_main_body = true
-                        break
-
-                if intersects_main_body:
-                    break
-
-            if intersects_main_body:
-                print(
-                    (
-                        'PhysicalBonePart3D %s initially intersects %s, adding exception'
-                    ) % [part.name, main_body.name]
-                )
-                part.add_collision_exception_with(main_body)
-                main_body.add_collision_exception_with(part)
+            _setup_chain_part(part, space, query)
 
     var joint_priority_map: Dictionary = _calculate_joint_priority(bone_joint_map)
 
@@ -314,15 +430,50 @@ func setup_body() -> void:
 
     has_bodies = true
 
-func _duplicate_joint(joint_data: JointData) -> Joint3D:
-    var pair_joint: Shared6DOFJoint = joint_data.joint.duplicate()
+## Set up part collision exceptions
+func _setup_chain_part(
+        part: PhysicalBonePart3D,
+        space: PhysicsDirectSpaceState3D,
+        query: PhysicsShapeQueryParameters3D
+) -> void:
+    # Check current exceptions, may already include main body
+    for excepted in part.get_collision_exceptions():
+        if excepted == main_body:
+            return
 
-    # Turn off any motors
-    pair_joint.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, false)
-    pair_joint.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, false)
-    pair_joint.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, false)
+    # If the main body is intersecting this body, ensure it has a collision
+    # exception. This can happen when joint bodies exist fully contained in
+    # the main body, causing the next joint to not add the exception by default.
 
-    return pair_joint
+    var main_body_rid: RID = main_body.get_rid()
+    var body_rid: RID = part.get_rid()
+    var intersects_main_body: bool = false
+    for body_shape in range(PhysicsServer3D.body_get_shape_count(body_rid)):
+        var body_shape_rid: RID = PhysicsServer3D.body_get_shape(body_rid, body_shape)
+        var shape_xform: Transform3D = PhysicsServer3D.body_get_shape_transform(body_rid, body_shape)
+
+        query.shape_rid = body_shape_rid
+        query.transform = part.global_transform * shape_xform
+
+        var intersections: Array[Dictionary] = space.intersect_shape(query, 8)
+        for hit in intersections:
+            if hit.rid == main_body_rid:
+                intersects_main_body = true
+                break
+
+        if intersects_main_body:
+            break
+
+    if not intersects_main_body:
+        return
+
+    print(
+        (
+            'PhysicalBonePart3D %s initially intersects %s, adding exception'
+        ) % [part.name, main_body.name]
+    )
+    part.add_collision_exception_with(main_body)
+    main_body.add_collision_exception_with(part)
 
 ## Travels up the scene tree until it finds the first RigidBody3D
 func _find_main_body() -> RigidBody3D:
@@ -333,208 +484,12 @@ func _find_main_body() -> RigidBody3D:
         parent = parent.get_parent()
     return null
 
-func get_bone_attachments(force_reload: bool = false) -> Array[ModifierBoneTarget3D]:
-    if force_reload or _cached_attachments.size() == 0:
-        _cached_attachments.clear()
-        _cached_attachments.assign(skeleton.find_children('', 'ModifierBoneTarget3D', false))
-    return _cached_attachments
-
-func _make_joint_data_from_bone_target(target: ModifierBoneTarget3D, loaded_joints: Array[JointData]) -> JointData:
-    if not target:
-        return INVALID_JOINT
-
-    var bone_idx: int = target.bone
-    if bone_idx == -1:
-        return INVALID_JOINT
-
-    # Expect at most 1 rigid body child
-    var target_bodies: Array[RigidBody3D]
-    target_bodies.assign(target.find_children('', 'RigidBody3D', false))
-
-    if target_bodies.size() == 0:
-        return null
-    elif target_bodies.size() > 1:
-        push_warning(
-            (
-                'Attachment "%s" for bone %d has multiple RigidBody3D children. There should be at most 1.'
-            ) % [
-                target.name, bone_idx
-            ]
-        )
-        return INVALID_JOINT
-
-    var bone_body: RigidBody3D = target_bodies[0]
-
-    # Expect exactly one 6DOF joint
-    var target_joints: Array[Generic6DOFJoint3D]
-    target_joints.assign(bone_body.find_children('', 'Generic6DOFJoint3D', false))
-
-    if target_joints.size() < 1:
-        push_warning(
-            (
-                  'Attachment "%s" for bone %d is missing a Generic6DOFJoint3D within the RigidBody3D "%s".'
-                + ' There should be at least 1 Generic6DOFJoint3D.'
-            ) % [
-                target.name, bone_idx, bone_body.name
-            ]
-        )
-        return INVALID_JOINT
-
-    var bone_joint: Generic6DOFJoint3D = target_joints[0]
-
-    if not bone_joint.node_b:
-        bone_joint.node_b = bone_joint.get_path_to(bone_body)
-    elif bone_joint.get_node(bone_joint.node_b) != bone_body:
-        push_warning(
-            (
-                  'Attachment "%s" for bone %d has the joint\'s Node B assigned to a body other than "%s".'
-                + ' The joint\'s Node B must be the RigidBody3D "%s".'
-            ) % [
-                target.name, bone_idx, bone_body.name, bone_body.name
-            ]
-        )
-        return INVALID_JOINT
-
-    if not bone_joint.node_a:
-        var parent_bone: int = skeleton.get_bone_parent(bone_idx)
-        if bone_idx == -1:
-            bone_joint.node_a = bone_joint.get_path_to(main_body)
-        else:
-            var joint_data: JointData = _make_joint_data_from_bone_idx(bone_idx, loaded_joints)
-
-            if joint_data == INVALID_JOINT:
-                return INVALID_JOINT
-
-            if joint_data:
-                bone_joint.node_a = bone_joint.get_path_to(joint_data.body)
-            else:
-                bone_joint.node_a = bone_joint.get_path_to(main_body)
-    else:
-        var joint_target: Node = bone_joint.get_node(bone_joint.node_a)
-        if joint_target != main_body:
-            # Ensure the target node is a RigidBody3D and has already been loaded, otherwise load it now
-            if joint_target is not RigidBody3D:
-                push_warning(
-                    (
-                        'Attachment "%s" for bone %d has the joint\'s Node A assigned to a node which isn\'t a RigidBody3D.'
-                        + ' The joint\'s Node A must be the main body or another RigidBody3D.'
-                    ) % [
-                        target.name, bone_idx
-                    ]
-                )
-                return INVALID_JOINT
-
-            var joint_target_parent: Node = joint_target.get_parent()
-            if joint_target_parent is ModifierBoneTarget3D:
-                if joint_target_parent.get_skeleton() != skeleton:
-                    var target_skel: Skeleton3D = joint_target_parent.get_skeleton()
-                    var skel_name: String
-                    if not target_skel:
-                        skel_name = "Missing Skeleton"
-                    else:
-                        skel_name = target_skel.name
-
-                    push_warning(
-                        (
-                            'Attachment "%s" for bone %d has the joint\'s Node A assigned to RigidBody3D "%s"'
-                            + ' whose parent ModifierBoneTarget3D is from a different skeleton "%s".'
-                            + ' The joint\'s Node A must be a RigidBody3D attached to a ModifierBoneTarget3D for this skeleton "%s".'
-                        ) % [
-                            target.name, bone_idx, joint_target.name, skel_name, skeleton.name
-                        ]
-                    )
-                    return INVALID_JOINT
-            else:
-                push_warning(
-                    (
-                        'Attachment "%s" for bone %d has the joint\'s Node A assigned to RigidBody3D "%s" whose parent is not a ModifierBoneTarget3D.'
-                        + ' The joint\'s Node A must be a RigidBody3D attached to a ModifierBoneTarget3D.'
-                    ) % [
-                        target.name, bone_idx, joint_target.name
-                    ]
-                )
-                return INVALID_JOINT
-
-            # Test if this target is already loaded
-            var joint_target_loaded: bool = false
-            for joint in loaded_joints:
-                if joint.bone_idx == joint_target_parent.bone:
-                    joint_target_loaded = true
-                    break
-
-            if not joint_target_loaded:
-                # Must load here
-                var joint_target_data: JointData = _make_joint_data_from_bone_target(joint_target_parent, loaded_joints)
-                if joint_target_data == INVALID_JOINT:
-                    return
-                if not joint_target_data:
-                    push_warning(
-                        (
-                            'Attachment "%s" for bone %d has the joint\'s Node A assigned to RigidBody3D "%s",'
-                            + ' but failed when trying to create JointData for it. This should not have happened.'
-                        ) % [
-                            target.name, bone_idx, joint_target.name
-                        ]
-                    )
-                    return INVALID_JOINT
-                loaded_joints.append(joint_target_data)
-
-    var parent: RigidBody3D = bone_joint.get_node(bone_joint.node_a) as RigidBody3D
-
-    # Obtain a length by finding an IK setting with this bone in the chain, using the next bone as the length
-    var length: float = 0.5
-    var found: bool = false
-    for setting in range(iterate_ik.setting_count):
-        for joint in range(iterate_ik.get_joint_count(setting)):
-            if bone_idx == iterate_ik.get_joint_bone(setting, joint):
-                var length_bone: int = iterate_ik.get_joint_bone(setting, joint + 1)
-                length = skeleton.get_bone_pose_position(length_bone).length()
-                found = true
-                break
-        if found:
-            break
-    if not found:
-        push_warning(
-            (
-                'Attachment "%s" for bone %d does not have a setting in the IterateIK3D. Unable '
-                + 'to calculate a bone length, which is needed for motor displacement limits. '
-                + 'Using a default length of %.2f.'
-            ) % [
-                target.name, bone_idx, length
-            ]
-        )
-
-    var joint_data: JointData = JointData.new()
-    joint_data.bone_idx = bone_idx
-    joint_data.bone_length = length
-    joint_data.body = bone_body
-    joint_data.joint = bone_joint
-    joint_data.parent = parent
-    joint_data.attachment = target
-
-    joint_data.xform_rel_body = bone_body.global_transform.affine_inverse() * bone_joint.global_transform
-    joint_data.xform_rel_parent = parent.global_transform.affine_inverse() * bone_joint.global_transform
-
-    return joint_data
-
-## Creates a joint from a bone id, searching for a ModifierBoneTarget3D with the matching bone.
-## This calls _make_joint_data_from_bone_target() when a target is found, which is used to allow
-## arbitrary ordering of targets in the scene when initializing
-func _make_joint_data_from_bone_idx(bone_idx: int, loaded_joints: Array[JointData]) -> JointData:
-    if bone_idx == -1:
-        return INVALID_JOINT
-
-    # Test if loaded joints already has this bone idx
-    for joint in loaded_joints:
-        if joint.bone_idx == bone_idx:
-            return joint
-
-    var attachments: Array[ModifierBoneTarget3D] = get_bone_attachments()
-
-    for target in attachments:
-        if target.bone == bone_idx:
-            return _make_joint_data_from_bone_target(target, loaded_joints)
-
+func _find_skeleton() -> Skeleton3D:
+    var parent: Node = get_parent()
+    while parent:
+        if parent is Skeleton3D:
+            return parent
+        parent = parent.get_parent()
     return null
 
 func _calculate_joint_priority(bone_joint_map: Dictionary[int, Array]) -> Dictionary:

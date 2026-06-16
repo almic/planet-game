@@ -2,6 +2,10 @@
 class_name CrawlerCharacter extends CharacterController
 
 
+@warning_ignore("unused_private_class_variable")
+@export_tool_button('Build Crawler', 'SphereMesh')
+var _btn_build_crawler = editor_build_crawler
+
 ## Whole body mass of the crawler. This is used with 'Leg Mass Ratio' to
 ## disperse the mass between the main body and the individual leg segments.
 @export_range(0.01, 100.0, 0.01, 'or_greater')
@@ -40,7 +44,6 @@ var rotation_overshoot: float = 0.2
 var enable_physical_skeleton: bool = true
 
 @export var physical_skeleton: PhysicalSkeleton
-
 
 #region IK Parameters
 @export_group('IK Parameters', 'ik')
@@ -173,46 +176,49 @@ var _is_update_ik_queued: bool = false
 var _next_chain_ik_setting_index: int = 0
 
 
+func editor_build_crawler() -> void:
+    var dialog: Window
+    if self != get_tree().edited_scene_root:
+        dialog = AcceptDialog.new()
+        dialog.dialog_text = (
+            'You may only build crawlers within their scene file.\nTo build '
+            + 'this crawler, open the scene:\n\n%s'
+        ) % scene_file_path
+    else:
+        dialog = ConfirmationDialog.new()
+        dialog.dialog_text = 'This will create nodes and add them to this scene file, are you sure?'
+        dialog.confirmed.connect(build_crawler)
+
+    EditorInterface.popup_dialog_centered(dialog)
+
+func build_crawler() -> void:
+    if not physical_skeleton:
+        push_error('Missing a physical skeleton. This is needed to build the bone bodies.')
+        return
+
+    _load_legs()
+
+    for leg in legs:
+        if not leg.physical_bone_chain:
+            continue
+
+        # Teleport leg to correct location
+        physical_skeleton.build_chain(leg.physical_bone_chain, leg.build_custom_joint)
+
 func _ready() -> void:
     super._ready()
 
     if enable_physical_skeleton:
         physical_skeleton.skeleton = skeleton
 
-    # Load legs from children
-    legs.assign(find_children('', 'CrawlerLeg'))
-
-    var count: int = legs.size()
-    """
-    leg_distance_constraint_list.resize(count)
-    """
-    for i in range(count):
-        var leg: CrawlerLeg = legs[i]
-        leg.body = self
-        leg.index = i
-
-        if enable_physical_skeleton:
-            physical_skeleton.load_chain(leg.physical_bone_chain, leg.load_custom_joint)
-
-        if Engine.is_editor_hint():
-            continue
-
-        """
-        # Create distance constraint for the leg
-        var dc := DistanceJoint3D.new()
-        dc.set_param(DistanceJoint3D.PARAM_LIMITS_SPRING_STIFFNESS, 44.847)
-        dc.set_param(DistanceJoint3D.PARAM_LIMITS_SPRING_DAMPING, 17.844)
-        dc.set_param(DistanceJoint3D.PARAM_DISTANCE_MAX, 0.0)
-        leg_distance_constraint_list[i] = dc
-        add_child(dc)
-        """
-
+    _load_legs(true)
     _update_body_mass()
     _queue_update_ik_settings()
 
     if Engine.is_editor_hint():
         return
 
+    var count: int = legs.size()
     leg_update_data.resize(count * 3)
     leg_gravity_power.resize(count)
     leg_gravity_power.fill(0.0)
@@ -281,6 +287,66 @@ func _ready() -> void:
 
     desired_surface_friction = 0.0
 
+func get_nice_path(to: Node = null) -> NodePath:
+    if not to:
+        to = self
+    var root_node: Node = get_tree().edited_scene_root
+    if not root_node:
+        root_node = get_tree().current_scene
+    if not root_node:
+        root_node = get_viewport()
+    if not root_node:
+        root_node = get_window()
+    if root_node:
+        return root_node.get_path_to(to)
+    return to.get_path()
+
+func _load_legs(is_initialization: bool = false) -> void:
+    for old_leg in legs:
+        old_leg.index = -1
+        old_leg.body = null
+
+    # Load legs from children
+    legs.assign(find_children('', 'CrawlerLeg'))
+
+    var count: int = legs.size()
+    """
+    leg_distance_constraint_list.resize(count)
+    """
+    for i in range(count):
+        var leg: CrawlerLeg = legs[i]
+        leg.body = self
+        leg.index = i
+
+        if not is_initialization:
+            continue
+
+        if enable_physical_skeleton:
+            if leg.physical_bone_chain:
+                physical_skeleton.prepare_custom_joints(leg.physical_bone_chain, leg.prepare_custom_joint)
+            else:
+                continue
+                push_error(
+                    (
+                        'CrawlerCharacter at %s has a CrawlerLeg at %s which is '
+                        + 'missing a physical bone chain resource. Please give it '
+                        + 'a resource or delete the leg node.'
+                    ) % [get_nice_path(), get_nice_path(leg)]
+                )
+
+        if Engine.is_editor_hint():
+            continue
+
+        """
+        # Create distance constraint for the leg
+        var dc := DistanceJoint3D.new()
+        dc.set_param(DistanceJoint3D.PARAM_LIMITS_SPRING_STIFFNESS, 44.847)
+        dc.set_param(DistanceJoint3D.PARAM_LIMITS_SPRING_DAMPING, 17.844)
+        dc.set_param(DistanceJoint3D.PARAM_DISTANCE_MAX, 0.0)
+        leg_distance_constraint_list[i] = dc
+        add_child(dc)
+        """
+
 func _queue_update_ik_settings() -> void:
     if _is_update_ik_queued:
         return
@@ -330,31 +396,31 @@ func _update_body_mass() -> void:
     mass = body_mass
     _single_leg_mass = leg_mass
 
-    # Now for the hard part, distribute leg_mass to bone bodies in IK chains
-    var rigid_bodies: Array[RigidBody3D]
-    rigid_bodies.assign(find_children('', 'RigidBody3D'))
-    # Map rigid bodies to bone ids
-    var bone_body_map: Dictionary = {}
-    for body in rigid_bodies:
-        var body_parent: ModifierBoneTarget3D = body.get_parent() as ModifierBoneTarget3D
-        if not body_parent:
-            push_error("RigidBody3D %s does not have a parent ModifierBoneTarget3D! Fix!!" % body.name)
-            return
-        bone_body_map.set(body_parent.bone, body)
-
-    for setting in range(leg_ik.setting_count):
+    # Now for the hard part, distribute leg_mass to bone bodies in physical chains
+    var bone_part_map: Dictionary[int, PhysicalBonePart3D] = physical_skeleton.get_bone_part_map()
+    for chain in physical_skeleton.chain_list:
         var bone_total_length: float = 0.0
-        for joint in range(leg_ik.get_joint_count(setting) - 1):
-            var bone_idx: int = leg_ik.get_joint_bone(setting, joint + 1)
+        var end_bone: int = skeleton.find_bone(chain.resource.end_bone)
+        for index in range(chain.part_count):
+            var bone_idx: int
+            if index + 1 < chain.part_count:
+                bone_idx = chain.bone_list[index + 1]
+            else:
+                bone_idx = end_bone
             bone_total_length += skeleton.get_bone_rest(bone_idx).origin.length()
-        for joint in range(leg_ik.get_joint_count(setting) - 1):
-            var bone_for_body: int = leg_ik.get_joint_bone(setting, joint)
-            var bone_for_length: int = leg_ik.get_joint_bone(setting, joint + 1)
-            var body: RigidBody3D = bone_body_map.get(bone_for_body)
+        for index in range(chain.part_count):
+            var bone_for_body: int = chain.bone_list[index]
+            var body: PhysicalBonePart3D = bone_part_map.get(bone_for_body)
             if not body:
                 push_error("Bone %s does not have an associated RigidBody3D! Fix!!" % skeleton.get_bone_name(bone_for_body))
                 return
-            body.mass = leg_mass * (skeleton.get_bone_rest(bone_for_length).origin.length() / bone_total_length)
+            var bone_for_length: int
+            if index + 1 < chain.part_count:
+                bone_for_length = chain.bone_list[index + 1]
+            else:
+                bone_for_length = end_bone
+            var length: float = skeleton.get_bone_rest(bone_for_length).origin.length()
+            body.mass = leg_mass * (length / bone_total_length)
 
 func _update_leg_modes() -> void:
     for leg in legs:
@@ -426,7 +492,7 @@ func _update_legs() -> void:
                 _next_chain_ik_setting_index += 1
 
             # Disable IK behavior on the chain and update legs
-            if chain.is_any_part_broken:
+            if chain.is_any_motor_broken:
                 # NOTE: setting node path to empty effectively disables that ik setting
                 leg_ik.set_target_node(chain.ik_setting_id, NodePath(""))
                 # TODO: tell CrawlerLegs about this so they can change behavior

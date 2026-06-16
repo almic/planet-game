@@ -16,12 +16,6 @@ var bone_name: StringName
 #region Physics
 @export_group('Physics')
 
-## Shape
-@export var shape: Shape3D:
-    set(value):
-        shape = value
-        setting_changed.emit(&'shape')
-
 ## Physics material
 @export var physics_material: PhysicsMaterial:
     set(value):
@@ -34,7 +28,26 @@ var bone_name: StringName
         continuous_cd = value
         setting_changed.emit(&'continuous_cd')
 
-@export_subgroup('Collision', 'collision')
+@export_subgroup('Collision Shape', 'collider')
+## Shape
+@export var collider_shape: Shape3D:
+    set(value):
+        collider_shape = value
+        setting_changed.emit(&'collider_shape')
+
+## Shape translation offset, applied to the CollisionShape3D node
+@export var collider_offset: Vector3:
+    set(value):
+        collider_offset = value
+        setting_changed.emit(&'collider_offset')
+
+## Shape rotation offset, applied to the CollisionShape3D node.
+@export var collider_rotation: Quaternion:
+    set(value):
+        collider_rotation = value
+        setting_changed.emit(&'collider_rotation')
+
+@export_subgroup('Layers', 'collision')
 ## Collision layer
 @export_flags_3d_physics var collision_layer: int = 1:
     set(value):
@@ -47,6 +60,28 @@ var bone_name: StringName
         collision_mask = value
         setting_changed.emit(&'collision_mask')
 #endregion
+
+#region Breakable
+@export_group('Breakable', 'break')
+
+## If this joint can be destroyed by excessive force. To use this on custom
+## joints, you must apply the `PhysicalBonePart3D.META_BREAK_FORCE` meta data to
+## the Joint3D created from the custom builder. This will act as the max break
+## force value, using signals if `break_use_signal` is enabled.
+@export var break_enabled: bool = false
+
+## When enabled, the part will emit a signal when a joint's `break_max_force` is
+## exceeded instead of instantly destroying the joint. Listeners must call the
+## 'break()' method on the part if they wish the part to break during the signal.
+@export var break_use_signal: bool = false
+
+## The force at which the joint breaks, or the minimum force to emit the signal
+## when `break_use_signal` is enabled. For custom Joint3D created from a custom
+## builder, have the builder apply the `PhysicalBonePart3D.META_BREAK_FORCE`
+## meta data to the Joint3D.
+@export_range(1.0, 10000.0, 0.1, 'or_greater', 'suffix:N')
+var break_max_force: float = 5000.0
+#endregion Breakable
 
 #region IK Settings
 @export_group('IK Settings')
@@ -117,6 +152,7 @@ var limitation_right_axis: int = 0:
 
 #region Joint Settings
 @export_group('Joint Settings')
+
 
 ## When enabled, will copy the angle from the IK limitation to the related angle
 ## limit on the joint. This will ONLY copy the angles, so any other setting will

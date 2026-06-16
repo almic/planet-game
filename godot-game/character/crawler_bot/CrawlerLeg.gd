@@ -705,16 +705,13 @@ func get_diagonal() -> Array[CrawlerLeg]:
 
     return result
 
-## Callback for loading custom joints related to this leg on a physical skeleton.
-## Returning null will be interpreted as a load error.
-func load_custom_joint(
-        chain: PhysicalBoneChain3D,
-        part: PhysicalBonePart3D,
-        main_body: RigidBody3D,
-        parent_body: RigidBody3D,
+## Callback for preparing custom joints and their resources, mainly to apply
+## resource changes onto the joint. Return false to signal an error.
+func prepare_custom_joint(
+        joint: Joint3D,
         joint_resource: Resource,
-) -> Joint3D:
-    return null
+) -> bool:
+    return false
 
 ## Callback for building custom joints. This should set the transform of the
 ## joint before returning it, which will be used as a local transform from the
@@ -742,10 +739,12 @@ func _set_physical_bone_chain(new_chain: PhysicalBoneChainResource) -> void:
     on_chain_changed()
 
 func on_chain_changed() -> void:
-    if body and body.skeleton:
-        physical_bone_chain.callable_get_bone_name = body.skeleton.get_bone_name
-        physical_bone_chain.callable_get_bone_name_hint = body.skeleton.get_concatenated_bone_names
-        physical_bone_chain.refresh_part_list_bone_names()
+    if (not physical_bone_chain) or (not body) or (not body.skeleton):
+        return
+
+    physical_bone_chain.callable_get_bone_name = body.skeleton.get_bone_name
+    physical_bone_chain.callable_get_bone_name_hint = body.skeleton.get_concatenated_bone_names
+    physical_bone_chain.refresh_part_list_bone_names()
 
 func _draw_step_cast() -> void:
     var shape_origin: Vector3 = shape_cast.target_position

@@ -1,13 +1,16 @@
 [gd_scene format=3 uid="uid://chfhme16t710h"]
 
 [ext_resource type="Script" uid="uid://bgid78vpr0p3s" path="res://character/crawler_bot/CrawlerCharacter.gd" id="1_3kbc3"]
-[ext_resource type="PhysicsMaterial" uid="uid://dgn55vwvw51v0" path="res://high_friction.tres" id="1_ro1ip"]
+[ext_resource type="PhysicsMaterial" uid="uid://dgn55vwvw51v0" path="res://material/physic/high_friction.tres" id="1_ro1ip"]
 [ext_resource type="PackedScene" uid="uid://bj6jpa4vhoqrd" path="res://character/crawler_bot/big_crawler.glb" id="2_2g2re"]
 [ext_resource type="Texture2D" uid="uid://bs0wm5rj1jdy2" path="res://texture/dev/grid_red.png" id="2_welis"]
 [ext_resource type="Script" uid="uid://bco1liolqoebw" path="res://character/crawler_bot/CrawlerLeg.gd" id="3_cfulw"]
 [ext_resource type="Script" uid="uid://ba78jnlpxs7ph" path="res://addons/physical_skeleton/physical_skeleton.gd" id="3_xefeq"]
 [ext_resource type="Texture2D" uid="uid://c4kyalj0xhphu" path="res://texture/dev/grid_blue.png" id="5_eqa8u"]
+[ext_resource type="Resource" uid="uid://cd7utf738hfx6" path="res://character/crawler_bot/normal/front_leg_setting.tres" id="6_8gnh6"]
+[ext_resource type="Resource" uid="uid://b76dud03hxddv" path="res://character/crawler_bot/normal/middle_leg_setting.tres" id="7_6k2hw"]
 [ext_resource type="Script" uid="uid://y5avqll8ah8b" path="res://node/shared_6dof_joint/shared_6dof_joint.gd" id="7_omyby"]
+[ext_resource type="Resource" uid="uid://v0relty5uq7m" path="res://character/crawler_bot/normal/back_leg_setting.tres" id="8_1207b"]
 [ext_resource type="Script" uid="uid://r30j5e0iugw1" path="res://node/shared_6dof_joint/shared_6dof_resource.gd" id="8_f04iu"]
 [ext_resource type="Script" uid="uid://dfvyp4ujh55gf" path="res://node/beam_joint/beam_joint.gd" id="10_tdgv8"]
 
@@ -135,7 +138,7 @@ resource_name = "TarsusJoint"
 script = ExtResource("8_f04iu")
 metadata/_custom_type_script = "uid://r30j5e0iugw1"
 
-[node name="CrawlerBot" type="RigidBody3D" unique_id=461561025 node_paths=PackedStringArray("skeleton", "physical_skeleton", "leg_ik")]
+[node name="CrawlerBot" type="RigidBody3D" unique_id=461561025 node_paths=PackedStringArray("skeleton", "leg_ik", "physical_skeleton")]
 collision_mask = 51
 axis_lock_linear_x = true
 axis_lock_linear_z = true
@@ -147,8 +150,11 @@ script = ExtResource("1_3kbc3")
 total_mass = 40.0
 max_speed = 2.0
 skeleton = NodePath("big_crawler/Skeleton3D")
-physical_skeleton = NodePath("big_crawler/Skeleton3D/PhysicalSkeleton")
 leg_ik = NodePath("big_crawler/Skeleton3D/LegIKModifier")
+physical_skeleton = NodePath("big_crawler/Skeleton3D/PhysicalSkeleton")
+ik_max_iterations = 10
+ik_min_distance = 0.0
+ik_angular_delta_limit = 1.7453292519943295
 body_leg_mass_ratio = 8.0
 body_height_offset = 0.9
 body_leg_lift_ratio = 0.4
@@ -195,7 +201,7 @@ active = false
 mutable_bone_axes = false
 max_iterations = 10
 min_distance = 0.0
-angular_delta_limit = 0.01745329251994329
+angular_delta_limit = 0.0017453292519943296
 deterministic = true
 setting_count = 6
 settings/0/target_node = NodePath("../LegTargets/FrontLegPair/FL_Leg/FL_Target")
@@ -342,9 +348,7 @@ script = ExtResource("3_cfulw")
 shape_cast = NodePath("FL_Cast")
 target = NodePath("FL_Target")
 ground_bone = &"FrontLeftTarsus_leaf"
-step_distance = 0.9
-rest_distance = 0.1
-move_offset = 0.5
+setting = ExtResource("6_8gnh6")
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="FL_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair/FL_Leg" unique_id=1032610666]
@@ -363,9 +367,7 @@ script = ExtResource("3_cfulw")
 shape_cast = NodePath("FR_Cast")
 target = NodePath("FR_Target")
 ground_bone = &"FrontRightTarsus_leaf"
-step_distance = 0.9
-rest_distance = 0.1
-move_offset = 0.5
+setting = ExtResource("6_8gnh6")
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="FR_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/FrontLegPair/FR_Leg" unique_id=774657337]
@@ -387,10 +389,7 @@ script = ExtResource("3_cfulw")
 shape_cast = NodePath("ML_Cast")
 target = NodePath("ML_Target")
 ground_bone = &"MiddleLeftTarsus_leaf"
-step_distance = 0.9
-rest_distance = 0.1
-move_offset = 0.3
-move_spin = 0.43633232
+setting = ExtResource("7_6k2hw")
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="ML_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/MiddleLegPair/ML_Leg" unique_id=1197310677]
@@ -409,10 +408,7 @@ script = ExtResource("3_cfulw")
 shape_cast = NodePath("MR_Cast")
 target = NodePath("MR_Target")
 ground_bone = &"MiddleRightTarsus_leaf"
-step_distance = 0.9
-rest_distance = 0.1
-move_offset = 0.3
-move_spin = 0.43633232
+setting = ExtResource("7_6k2hw")
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="MR_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/MiddleLegPair/MR_Leg" unique_id=747800772]
@@ -434,9 +430,7 @@ script = ExtResource("3_cfulw")
 shape_cast = NodePath("BL_Cast")
 target = NodePath("BL_Target")
 ground_bone = &"BackLeftTarsus_leaf"
-step_distance = 0.9
-rest_distance = 0.1
-move_offset = 0.5
+setting = ExtResource("8_1207b")
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="BL_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair/BL_Leg" unique_id=1668808495]
@@ -455,9 +449,7 @@ script = ExtResource("3_cfulw")
 shape_cast = NodePath("BR_Cast")
 target = NodePath("BR_Target")
 ground_bone = &"BackRightTarsus_leaf"
-step_distance = 0.9
-rest_distance = 0.1
-move_offset = 0.5
+setting = ExtResource("8_1207b")
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="BR_Cast" type="ShapeCast3D" parent="big_crawler/Skeleton3D/LegTargets/BackLegPair/BR_Leg" unique_id=381680649]

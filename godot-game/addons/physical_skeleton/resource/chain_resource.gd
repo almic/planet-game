@@ -40,11 +40,11 @@ var end_bone: StringName:
 ## Custom unique identifier for this chain, generated the first time this chain
 ## is built in a scene. This is the hash of resource path and the bone names.
 @export_custom(
-    PROPERTY_HINT_NONE,
-    '',
+    PROPERTY_HINT_RANGE,
+    '-1,0,or_less,or_greater,hide_control',
     PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_READ_ONLY
 )
-var unique_id: int = -1
+var unique_id: int = ResourceUID.INVALID_ID
 
 
 var callable_get_bone_name: Callable
@@ -125,7 +125,7 @@ func refresh_part_list_bone_names() -> void:
 
         part.bone_name = name_list[index]
 
-func generate_unique_id() -> int:
+func generate_unique_id() -> void:
     if not resource_path:
         push_error(
             (
@@ -133,7 +133,7 @@ func generate_unique_id() -> int:
                 + 'it has been saved and has a non-empty resource_path.'
             ) % resource_name
         )
-        return -1
+        return
 
     if (not root_bone) or (not end_bone):
         push_error(
@@ -142,8 +142,7 @@ func generate_unique_id() -> int:
                 + 'They must have both set before you can build the chain.'
             ) % [resource_name, resource_path]
         )
-        return -1
+        return
 
-    var hex: String = (resource_path + root_bone + end_bone).md5_text()
-    unique_id = hex.substr(0, 16).hex_to_int() | 0x7FFFFFFFFFFFFFFF
-    return unique_id
+    var hex: String = (resource_path + root_bone + end_bone).md5_text().to_upper()
+    unique_id = hex.substr(0, 14).hex_to_int() & 0x1F_FFFF_FFFF_FFFF

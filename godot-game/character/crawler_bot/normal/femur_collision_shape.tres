@@ -3,5 +3,5 @@
 [resource]
 resource_name = "FemurCollisionShape"
 margin = 0.0
-radius = 0.03
-height = 0.32
+radius = 0.04
+height = 0.31

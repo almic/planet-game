@@ -1,3 +1,4 @@
+@tool
 class_name PhysicalBoneChain3D extends Node
 
 
@@ -7,6 +8,8 @@ class_name PhysicalBoneChain3D extends Node
     PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_READ_ONLY
 )
 var resource: PhysicalBoneChainResource
+## Set by PhysicalSkeleton when creating new chains, to skip the ready method
+var _skip_ready: bool = false
 
 var is_valid: bool = false
 var is_ik_enabled: bool = false
@@ -14,8 +17,10 @@ var is_ik_initialized: bool = false
 
 var skeleton: Skeleton3D
 
-var is_powered: bool = true
-var is_any_part_broken: bool = false
+## This chain is using power for motors
+var is_using_power: bool = false
+## This chain has at least one broken motor
+var is_any_motor_broken: bool = false
 
 var ik_setting_id: int = -1
 
@@ -25,7 +30,23 @@ var part_count: int
 
 
 func _ready() -> void:
-    validate()
+    if _skip_ready:
+        return
+    reload_chain()
+
+func get_nice_path(to: Node = null) -> NodePath:
+    if not to:
+        to = self
+    var root_node: Node = get_tree().edited_scene_root
+    if not root_node:
+        root_node = get_tree().current_scene
+    if not root_node:
+        root_node = get_viewport()
+    if not root_node:
+        root_node = get_window()
+    if root_node:
+        return root_node.get_path_to(to)
+    return to.get_path()
 
 ## Returns a mapping of each part's related bone index to the array of joints.
 ## The provided arrays are read-only, and must be duplicated before modifying them
@@ -37,29 +58,87 @@ func get_bone_joint_map() -> Dictionary[int, Array]:
 
     return bone_joint_map
 
+func get_bone_part_map() -> Dictionary[int, PhysicalBonePart3D]:
+    var result: Dictionary[int, PhysicalBonePart3D]
+    for i in range(part_count):
+        result.set(bone_list[i], part_list[i])
+
+    return result
+
+func build_chain(main_body: RigidBody3D, custom_joint_builder: Callable) -> bool:
+    # TODO: clear chain, make clean method?
+
+    if not skeleton:
+        # TODO: error
+        return false
+
+    var build_bone_list: PackedInt32Array = resource.get_bone_list(skeleton)
+
+    var parent_body: RigidBody3D = main_body
+    for index in range(resource.part_list.size()):
+        var part := PhysicalBonePart3D.new()
+        part.set_meta(&'_custom_type_script', ResourceUID.id_to_text(ResourceLoader.get_resource_uid((part.get_script() as Script).resource_path)))
+        part.resource = resource.part_list[index]
+        part.name = part.resource.resource_name
+        part.part_index = index
+        part.transform = skeleton.get_bone_global_pose(build_bone_list[index])
+
+        part._skip_ready = true
+        add_child(part, true)
+        part.owner = owner
+
+        var success: bool = part.build_part(
+                self, main_body, parent_body, custom_joint_builder
+        )
+
+        if not success:
+            # TODO: error
+            push_error('failed to build part %s')
+            return false
+
+        parent_body = part
+
+    return false
+
+func prepare_custom_joints(custom_joint_callable: Callable) -> bool:
+    for part in part_list:
+        if not part.is_valid:
+            push_error(
+                (
+                    'PhysicalBoneChain3D at %s has an invalid part at %s. There should be errors above.'
+                ) % [get_nice_path(), part.get_nice_path()]
+            )
+            return false
+
+        if not part.resource.custom_enabled:
+            continue
+
+        if not part.prepare_custom_joints(custom_joint_callable):
+            return false
+
+    return true
+
 func update() -> void:
-    var power_active: bool = is_powered
+    var power_active: bool = true
+    is_using_power = false
 
     for index in range(part_count):
         var part: PhysicalBonePart3D = part_list[index]
+        part.is_powered = power_active
+
         part.update(skeleton, bone_list[index])
 
-        # Turn off part power when interrupted
-        if part.is_powered and (not power_active):
-            part.is_powered = false
+        if (not is_using_power) and part.is_powered and part.is_using_power:
+            is_using_power = true
 
         if part.is_power_interrupted:
             power_active = false
 
-        if (not is_any_part_broken) and part.is_motor_broken:
-            is_any_part_broken = true
+        if (not is_any_motor_broken) and part.is_motor_broken:
+            is_any_motor_broken = true
 
     # TODO: I think this is still a good idea (June 13)
     # IDEA: Teleport IK end bone to real location? Maybe this will help IK
-
-    # Call entire chain unpowered when the first part is interrupted and destroyed
-    if is_powered and part_list[0].is_power_interrupted and part_list[0].is_motor_broken:
-        is_powered = false
 
 ## Activates all rigid body parts of this chain
 func activate(initial_state: PhysicsDirectBodyState3D) -> void:
@@ -134,7 +213,7 @@ func solve_velocity(iteration_count: int, delta: float) -> void:
         if not had_impulse:
             break
 
-func validate() -> void:
+func reload_chain() -> void:
     is_valid = false
     is_ik_enabled = false
     skeleton = null
@@ -156,7 +235,7 @@ func validate() -> void:
                 'PhysicalBoneChain3D %s must have a Skeleton3D as a direct ancestor when added to '
                 + 'the scene tree. You must use the build method from a PhysicalSkeleton to create '
                 + 'these nodes.'
-            ) % get_path()
+            ) % get_nice_path()
         )
         return
 
@@ -165,7 +244,7 @@ func validate() -> void:
             (
                 'PhysicalBoneChain3D %s does not have a resource assigned to it. '
                 + 'You must use the build method from a PhysicalSkeleton to create these nodes.'
-            ) % get_path()
+            ) % get_nice_path()
         )
         return
 
@@ -174,7 +253,7 @@ func validate() -> void:
             (
                 'PhysicalBoneChain3D %s internal resource named %s at %s has not had its unique id generated yet. '
                 + 'You must use the build method from a PhysicalSkeleton to create these nodes.'
-            ) % [get_path(), resource.resource_name, resource.resource_path]
+            ) % [get_nice_path(), resource.resource_name, resource.resource_path]
         )
         return
 
@@ -184,7 +263,7 @@ func validate() -> void:
             (
                 'PhysicalBoneChain3D %s (resource named %s at %s) has an empty part list, this '
                 + 'should be avoided by removing the chain or giving it parts.'
-            ) % [get_path(), resource.resource_name, resource.resource_path]
+            ) % [get_nice_path(), resource.resource_name, resource.resource_path]
         )
         return
 
@@ -195,7 +274,7 @@ func validate() -> void:
             push_error(
                 (
                     'PhysicalBoneChain3D %s (resource named %s at %s) is missing a part at index %d, null found.'
-                ) % [get_path(), resource.resource_name, resource.resource_path, index]
+                ) % [get_nice_path(), resource.resource_name, resource.resource_path, index]
             )
             return
 
@@ -205,7 +284,7 @@ func validate() -> void:
             (
                 'PhysicalBoneChain3D %s (resource named %s at %s) failed to obtain bone ids for part list. '
                 + 'Needed %d ids, but got %d'
-            ) % [get_path(), resource.resource_name, resource.resource_path, new_part_count, new_bone_list.size()]
+            ) % [get_nice_path(), resource.resource_name, resource.resource_path, new_part_count, new_bone_list.size()]
         )
         return
 
@@ -215,13 +294,22 @@ func validate() -> void:
     var indexed_part_list: Array[PhysicalBonePart3D]
     indexed_part_list.resize(new_part_count)
     for part in children_part_list:
+        if not part.is_valid:
+            push_error(
+                (
+                    'PhysicalBoneChain3D %s found a misconfigured child PhysicalBonePart3D %s. '
+                    + 'There should be additional errors above.'
+                ) % [get_nice_path(), part.get_nice_path()]
+            )
+            return
+
         if part.part_index == -1:
             push_error(
                 (
                     'PhysicalBoneChain3D %s found a misconfigured child PhysicalBonePart3D %s, missing '
                     + 'a part index. '
                     + 'You must use the build method from a PhysicalSkeleton to create these nodes.'
-                ) % [get_path(), part.get_path()]
+                ) % [get_nice_path(), part.get_nice_path()]
             )
             return
 
@@ -232,7 +320,7 @@ func validate() -> void:
                     + 'is greater than the size of the resource part list. '
                     + 'You should rebuild from a PhysicalSkeleton, or add the missing part to the '
                     + 'resource named %s at %s.'
-                ) % [get_path(), part.get_path(), resource.resource_name, resource.resource_path]
+                ) % [get_nice_path(), part.get_nice_path(), resource.resource_name, resource.resource_path]
             )
             return
 
@@ -244,7 +332,7 @@ func validate() -> void:
                     + 'You should rebuild from a PhysicalSkeleton, delete the extra PhysicalBonePart3D, '
                     + 'or add the missing part to the resource named %s at %s.'
                 ) % [
-                    get_path(), part.get_path(), indexed_part_list[part.part_index].get_path(),
+                    get_nice_path(), part.get_nice_path(), indexed_part_list[part.part_index].get_nice_path(),
                     resource.resource_name, resource.resource_path
                 ]
             )
@@ -256,7 +344,7 @@ func validate() -> void:
                     'PhysicalBoneChain3D %s found child PhysicalBonePart3D %s which is missing a '
                     + 'resource.'
                     + 'You must use the build method from a PhysicalSkeleton to create these nodes.'
-                ) % [get_path(), part.get_path()]
+                ) % [get_nice_path(), part.get_nice_path()]
             )
             return
 
@@ -266,7 +354,7 @@ func validate() -> void:
                     'PhysicalBoneChain3D %s found misconfigured child PhysicalBonePart3D %s, the '
                     + 'internal resource does not match the chain resource definition named %s at %s. '
                     + 'You should rebuild from a PhysicalSkeleton to fix the node.'
-                ) % [get_path(), part.get_path(), resource.resource_name, resource.resource_path]
+                ) % [get_nice_path(), part.get_nice_path(), resource.resource_name, resource.resource_path]
             )
             return
 
@@ -274,7 +362,7 @@ func validate() -> void:
 
     # Check for ik enabled parts
     for index in range(new_part_count):
-        if part_list[index].resource.ik_enabled:
+        if indexed_part_list[index].resource.ik_enabled:
             is_ik_enabled = true
             break
 
