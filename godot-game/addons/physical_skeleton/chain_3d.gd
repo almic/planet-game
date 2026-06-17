@@ -37,6 +37,16 @@ func _ready() -> void:
 func get_nice_path(to: Node = null) -> NodePath:
     if not to:
         to = self
+
+    if not to.is_inside_tree():
+        print_stack()
+        push_error(
+            (
+                'get_nice_path() called with node not in the scene tree: "%s" %s'
+            ) % [to.name, to]
+        )
+        return NodePath("")
+
     var root_node: Node = get_tree().edited_scene_root
     if not root_node:
         root_node = get_tree().current_scene
@@ -70,6 +80,7 @@ func build_chain(main_body: RigidBody3D, custom_joint_builder: Callable) -> bool
 
     if not skeleton:
         # TODO: error
+        push_error('missing skeleton')
         return false
 
     var build_bone_list: PackedInt32Array = resource.get_bone_list(skeleton)
@@ -81,7 +92,8 @@ func build_chain(main_body: RigidBody3D, custom_joint_builder: Callable) -> bool
         part.resource = resource.part_list[index]
         part.name = part.resource.resource_name
         part.part_index = index
-        part.transform = skeleton.get_bone_global_pose(build_bone_list[index])
+        part.transform = skeleton.get_bone_global_pose(build_bone_list[index]).orthonormalized()
+        part.scale = Vector3.ONE # BUG: orthonormalization doesn't fix scale??
 
         part._skip_ready = true
         add_child(part, true)
@@ -98,7 +110,7 @@ func build_chain(main_body: RigidBody3D, custom_joint_builder: Callable) -> bool
 
         parent_body = part
 
-    return false
+    return true
 
 func prepare_custom_joints(custom_joint_callable: Callable) -> bool:
     for part in part_list:

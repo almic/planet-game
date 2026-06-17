@@ -3,4 +3,4 @@
 [resource]
 resource_name = "TibiaCollisionShape"
 radius = 0.04
-height = 0.8
+height = 0.73

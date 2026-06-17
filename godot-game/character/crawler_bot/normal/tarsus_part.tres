@@ -2,14 +2,21 @@
 
 [ext_resource type="JointLimitationCone3D" uid="uid://d213qmgc1ylep" path="res://character/crawler_bot/normal/tarsus_joint_cone_limit.tres" id="1_65ewy"]
 [ext_resource type="Shape3D" uid="uid://drn7atwnqby6m" path="res://character/crawler_bot/normal/tarsus_collision_shape.tres" id="1_dwj6o"]
+[ext_resource type="Material" uid="uid://b40dbxkqwa5td" path="res://character/crawler_bot/normal/ghost_material.tres" id="1_qpwkv"]
 [ext_resource type="PhysicsMaterial" uid="uid://dgom72xev8omg" path="res://material/physic/metal.tres" id="2_dwj6o"]
 [ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="3_65ewy"]
+[ext_resource type="BoxMesh" uid="uid://bg5sh58i7q6tc" path="res://character/crawler_bot/normal/tarsus_box_mesh.tres" id="4_yhue1"]
 
 [resource]
 resource_name = "TarsusPart"
 script = ExtResource("3_65ewy")
+mesh = ExtResource("4_yhue1")
+mesh_offset = Vector3(0, 0.85, 0)
+bone_enable_mesh = true
+bone_material_override = ExtResource("1_qpwkv")
 physics_material = ExtResource("2_dwj6o")
 collider_shape = ExtResource("1_dwj6o")
+collider_offset = Vector3(0, 0.75, 0)
 collision_mask = 51
 break_enabled = true
 break_use_signal = true

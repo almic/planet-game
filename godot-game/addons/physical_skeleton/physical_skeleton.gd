@@ -4,6 +4,7 @@
 class_name PhysicalSkeleton extends SkeletonModifier3D
 
 
+const META_OWNED: StringName = &'_physical_skeleton_owned'
 const META_CHAIN_ROOT: StringName = &'_physical_chain_root'
 const META_CHAIN_RESOURCE_ID: StringName = &'_physical_chain_resource_id'
 
@@ -110,6 +111,7 @@ var _cached_attachments: Array[ModifierBoneTarget3D] = []
 var cached_delta: float
 
 var chain_list: Array[PhysicalBoneChain3D]
+var _setup_queued: bool = false
 
 
 func editor_update_joints() -> void:
@@ -135,6 +137,16 @@ func _ready() -> void:
 func get_nice_path(to: Node = null) -> NodePath:
     if not to:
         to = self
+
+    if not to.is_inside_tree():
+        print_stack()
+        push_error(
+            (
+                'get_nice_path() called with node not in the scene tree: "%s" %s'
+            ) % [to.name, to]
+        )
+        return NodePath("")
+
     var root_node: Node = get_tree().edited_scene_root
     if not root_node:
         root_node = get_tree().current_scene
@@ -146,7 +158,15 @@ func get_nice_path(to: Node = null) -> NodePath:
         return root_node.get_path_to(to)
     return to.get_path()
 
+func queue_setup() -> void:
+    if _setup_queued:
+        return
+    _setup_queued = true
+    _setup.call_deferred()
+
 func _setup() -> void:
+    _setup_queued = false
+
     main_body = _find_main_body()
     if not main_body:
         push_error('PhysicalSkeleton could not find a primary RigidBody3D!')
@@ -165,10 +185,13 @@ func _setup() -> void:
     chain_list.assign(chain_root.find_children('', 'PhysicalBoneChain3D'))
     if chain_list.size() == 0:
         push_error(
-            'PhysicalSkeleton found no PhysicalBoneChain3D within the chain root %s. '
-            + 'Only chains within this root node can be loaded, please move the nodes '
-            + 'into this root or rebuild the chain. You can organize them however you '
-            + 'want, as long as they are somewhere in the chain root node.'
+            (
+                'PhysicalSkeleton found no PhysicalBoneChain3D within the chain '
+                + 'root %s. Only chains within this root node can be loaded, '
+                + 'please move the nodes into this root or rebuild the chain. '
+                + 'You can organize them however you  want, as long as they are '
+                + 'somewhere in the chain root node.'
+            ) % get_nice_path(chain_root)
         )
         return
 
@@ -246,32 +269,36 @@ func get_bone_part_map() -> Dictionary[int, PhysicalBonePart3D]:
     return _bone_part_map
 
 func get_chain_node_root() -> Node:
-    if not _chain_node_root:
-        if not skeleton:
-            skeleton = _find_skeleton()
+    if _chain_node_root:
+        # Check that it is still in the scene tree
+        if not _chain_node_root.is_inside_tree():
+            _chain_node_root.queue_free()
+            _chain_node_root = null
+        else:
+            return _chain_node_root
 
-        var skel_children: Array[Node] = skeleton.get_children()
-        for node in skeleton.get_children():
+    if not skeleton:
+        skeleton = _find_skeleton()
+
+    var skel_children: Array[Node] = skeleton.get_children()
+    for node in skeleton.get_children():
+        if node.get_meta(META_CHAIN_ROOT, false):
+            _chain_node_root = node
+            return _chain_node_root
+
+    # Scan all nested children
+    for node in skel_children:
+        for nested in node.find_children('*'):
             if node.get_meta(META_CHAIN_ROOT, false):
                 _chain_node_root = node
-                break
+                return _chain_node_root
 
-        # Scan all nested children
-        if not _chain_node_root:
-            for node in skel_children:
-                for nested in node.find_children('*'):
-                    if node.get_meta(META_CHAIN_ROOT, false):
-                        _chain_node_root = node
-                        break
-                if _chain_node_root:
-                    break
-
-    return _chain_node_root
+    return null
 
 func build_chain(
     chain_resource: PhysicalBoneChainResource,
     custom_joint_builder: Callable
-) -> bool:
+) -> PhysicalBoneChain3D:
     if not chain_resource:
         push_error(
             (
@@ -279,7 +306,7 @@ func build_chain(
                 + 'chain resource. Returning false.'
             ) % get_nice_path()
         )
-        return false
+        return null
 
     # Generate the custom unique id if needed
     if chain_resource.unique_id == ResourceUID.INVALID_ID:
@@ -293,7 +320,7 @@ func build_chain(
                     + 'invalid chain resource. Errors should be above. Returning false.'
                 ) % get_nice_path()
             )
-            return false
+            return null
 
         # Save resource immediately
         ResourceSaver.save(chain_resource)
@@ -306,6 +333,7 @@ func build_chain(
         chain_root.set_meta(META_CHAIN_ROOT, true)
         skeleton.add_child(chain_root, true)
         chain_root.owner = owner
+        queue_setup()
 
     var chain := PhysicalBoneChain3D.new()
     chain.set_meta(&'_custom_type_script', ResourceUID.id_to_text(ResourceLoader.get_resource_uid((chain.get_script() as Script).resource_path)))
@@ -320,7 +348,13 @@ func build_chain(
     # Skeleton is determined by the _ready() method, but since we skip that,
     # we have to provide it here before calling build_chain()
     chain.skeleton = skeleton
-    return chain.build_chain(main_body, custom_joint_builder)
+    var success: bool = chain.build_chain(main_body, custom_joint_builder)
+    if not success:
+        chain_root.remove_child(chain)
+        return null
+
+    queue_setup()
+    return chain
 
 func prepare_custom_joints(chain_resource: PhysicalBoneChainResource, custom_joint_callable: Callable) -> bool:
     if not main_body:
@@ -407,6 +441,7 @@ func setup_body() -> void:
         bone_joint_map.assign(chain_bone_joint_map)
 
         # Process parts
+
         for part in chain.part_list:
             _setup_chain_part(part, space, query)
 

@@ -157,79 +157,73 @@ var step_height: float = 0.0
 var use_new_leg_mode: bool = false
 
 
-func _ready() -> void:
-    if not shape_cast:
-        for child in find_children('', 'ShapeCast3D', false):
-            shape_cast = child as ShapeCast3D
-            if shape_cast:
-                break
-    if not target:
-        for child in find_children('', 'Marker3D', false):
-            target = child as Marker3D
-            if target:
-                break
-
-    shape_cast.enabled = false
-    comfort_distance = setting.rest_distance
-
 func _validate_property(property: Dictionary) -> void:
     if property.name == &'ground_bone':
         property.hint = PROPERTY_HINT_ENUM
         if body.skeleton:
             property.hint_string = body.skeleton.get_concatenated_bone_names()
 
-func setup(
-        ground_nodes: Dictionary[int, Node3D],
-        ik_target_bone: int,
-        cast_exceptions: Array[RID]
-) -> void:
+func setup(cast_exceptions: Array[RID]) -> void:
     if has_initialized:
         return
+
+    # Teleport to root bone position, is a method to share with CrawlerCharacter
+    # build tool
+    apply_position()
 
     cached_adjacent = get_adjacent()
     cached_diagonal = get_diagonal()
 
+    comfort_distance = setting.rest_distance
     target_rest_position = global_transform.inverse() * target.global_position
     attachment_point = (body.global_transform.inverse() * global_transform).origin
     target_last_global_position = target.global_position
 
-    target_bone_idx = ik_target_bone
+    target_bone_idx = -1
+    if physical_bone_chain:
+        target_bone_idx = body.skeleton.find_bone(physical_bone_chain.end_bone)
+
     if target_bone_idx == -1:
         push_error(
             'Unable to find end bone targetting node "%s" for leg %s!' % [target.name, name]
         )
         return
 
+    shape_cast = ShapeCast3D.new()
+    shape_cast.enabled = false # Manually update the cast
+    add_child(shape_cast, false, Node.INTERNAL_MODE_FRONT)
+
+    target = Marker3D.new()
+    add_child(target, false, Node.INTERNAL_MODE_FRONT)
+
     ground_bone_idx = body.skeleton.find_bone(ground_bone)
 
     var ground_node_bone: int = body.skeleton.get_bone_parent(ground_bone_idx)
-    var ground_cast_node: Node3D = ground_nodes.get(ground_node_bone)
-    if not ground_cast_node:
-        push_error(
-            'Missing ground node for bone "%s" for leg %s!' % [ground_node_bone, name]
-        )
-        return
 
     ground_cast = ShapeCast3D.new()
     ground_cast.enabled = false
-    ground_cast.collision_mask = shape_cast.collision_mask
-    # NOTE: Ground cast should share the step cast shape resource (NOT a copy!) so they remain synchronized
-    ground_cast.shape = shape_cast.shape
-    ground_cast_node.add_child(ground_cast, false, Node.INTERNAL_MODE_FRONT)
-
-    var target_position: Vector3 = body.skeleton.get_bone_pose_position(ground_bone_idx)
-    var bone_direction: Vector3 = target_position.normalized()
-    var shape_size: float = (ground_cast.shape as SphereShape3D).radius
-    var start_position: Vector3 = (bone_direction * (setting.ground_hit_start + shape_size))
-    ground_cast.position = target_position - start_position
-    ground_cast.target_position = start_position + (bone_direction * (setting.ground_hit_extra - shape_size))
+    add_child(ground_cast, false, Node.INTERNAL_MODE_FRONT)
 
     for rid in cast_exceptions:
         shape_cast.add_exception_rid(rid)
         ground_cast.add_exception_rid(rid)
 
+    setting_modified()
+
     has_initialized = true
 
+func apply_position() -> void:
+    if not physical_bone_chain:
+        return
+
+    var bone_xform: Transform3D = body.skeleton.global_transform * body.skeleton.get_bone_global_pose(body.skeleton.find_bone(physical_bone_chain.root_bone))
+    global_position = bone_xform.origin
+
+    # Point +Z in the bone +Y direction
+    global_basis = Basis(-bone_xform.basis.x, bone_xform.basis.z, bone_xform.basis.y).orthonormalized()
+
+    # Stupid thing
+    scale = Vector3.ONE
 
 func pose_updated() -> void:
     if use_new_leg_mode:
@@ -745,6 +739,19 @@ func on_chain_changed() -> void:
     physical_bone_chain.callable_get_bone_name = body.skeleton.get_bone_name
     physical_bone_chain.callable_get_bone_name_hint = body.skeleton.get_concatenated_bone_names
     physical_bone_chain.refresh_part_list_bone_names()
+
+func setting_modified() -> void:
+    ground_cast.collision_mask = shape_cast.collision_mask
+    # NOTE: Ground cast should share the step cast shape resource (NOT a copy!) so they remain synchronized
+    ground_cast.shape = shape_cast.shape
+
+    var target_position: Vector3 = body.skeleton.get_bone_pose_position(ground_bone_idx)
+    var bone_direction: Vector3 = target_position.normalized()
+    var shape_size: float = (ground_cast.shape as SphereShape3D).radius
+    var start_position: Vector3 = (bone_direction * (setting.ground_hit_start + shape_size))
+    ground_cast.position = target_position - start_position
+    ground_cast.target_position = start_position + (bone_direction * (setting.ground_hit_extra - shape_size))
+
 
 func _draw_step_cast() -> void:
     var shape_origin: Vector3 = shape_cast.target_position

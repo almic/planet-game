@@ -6,6 +6,7 @@ class_name CrawlerCharacter extends CharacterController
 @export_tool_button('Build Crawler', 'SphereMesh')
 var _btn_build_crawler = editor_build_crawler
 
+
 ## Whole body mass of the crawler. This is used with 'Leg Mass Ratio' to
 ## disperse the mass between the main body and the individual leg segments.
 @export_range(0.01, 100.0, 0.01, 'or_greater')
@@ -202,8 +203,17 @@ func build_crawler() -> void:
         if not leg.physical_bone_chain:
             continue
 
-        # Teleport leg to correct location
-        physical_skeleton.build_chain(leg.physical_bone_chain, leg.build_custom_joint)
+        leg.apply_position()
+
+        var chain: PhysicalBoneChain3D = physical_skeleton.build_chain(
+                leg.physical_bone_chain, leg.build_custom_joint
+        )
+
+        if chain.is_ik_enabled:
+            if _next_chain_ik_setting_index >= leg_ik.setting_count:
+                leg_ik.set_setting_count(_next_chain_ik_setting_index + 1)
+            chain.init_ik(leg_ik, _next_chain_ik_setting_index)
+            _next_chain_ik_setting_index += 1
 
 func _ready() -> void:
     super._ready()
@@ -256,11 +266,7 @@ func _ready() -> void:
 
     # Initialize legs
     for leg in legs:
-        leg.setup(
-                ground_targets,
-                target_bones.get(leg_ik.get_path_to(leg.target)),
-                child_bodies
-        )
+        leg.setup(child_bodies)
 
     _update_leg_modes()
 
@@ -290,6 +296,16 @@ func _ready() -> void:
 func get_nice_path(to: Node = null) -> NodePath:
     if not to:
         to = self
+
+    if not to.is_inside_tree():
+        print_stack()
+        push_error(
+            (
+                'get_nice_path() called with node not in the scene tree: "%s" %s'
+            ) % [to.name, to]
+        )
+        return NodePath("")
+
     var root_node: Node = get_tree().edited_scene_root
     if not root_node:
         root_node = get_tree().current_scene
@@ -484,15 +500,12 @@ func _update_legs() -> void:
     # NOTE: this is called before IK, so virtual cannot copy the pose yet
     if enable_physical_skeleton:
         for chain in physical_skeleton.chain_list:
-            # NOTE: for now, the only chains are IK enabled, so just initialize everything
-            if not chain.is_ik_initialized:
-                if leg_ik.setting_count < _next_chain_ik_setting_index + 1:
-                    leg_ik.set_setting_count(_next_chain_ik_setting_index + 1)
-                chain.init_ik(leg_ik, _next_chain_ik_setting_index)
-                _next_chain_ik_setting_index += 1
+            if not chain.is_ik_enabled:
+                continue
 
             # Disable IK behavior on the chain and update legs
             if chain.is_any_motor_broken:
+                chain.is_ik_enabled = false # mark disabled to skip in the future
                 # NOTE: setting node path to empty effectively disables that ik setting
                 leg_ik.set_target_node(chain.ik_setting_id, NodePath(""))
                 # TODO: tell CrawlerLegs about this so they can change behavior

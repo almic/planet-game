@@ -1,15 +1,22 @@
 [gd_resource type="Resource" script_class="PhysicalBonePartResource" format=3 uid="uid://i7rxnr5r8vqw"]
 
 [ext_resource type="Shape3D" uid="uid://biemjf2j15vco" path="res://character/crawler_bot/normal/tibia_collision_shape.tres" id="1_53ols"]
+[ext_resource type="Material" uid="uid://b40dbxkqwa5td" path="res://character/crawler_bot/normal/ghost_material.tres" id="1_ornn2"]
 [ext_resource type="JointLimitationCone3D" uid="uid://bcym6vtt2jqsf" path="res://character/crawler_bot/normal/tibia_joint_cone_limit.tres" id="1_per66"]
 [ext_resource type="PhysicsMaterial" uid="uid://dgom72xev8omg" path="res://material/physic/metal.tres" id="2_53ols"]
 [ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="3_53ols"]
+[ext_resource type="BoxMesh" uid="uid://btoiao1l4fp0n" path="res://character/crawler_bot/normal/tibia_box_mesh.tres" id="4_8qtpb"]
 
 [resource]
 resource_name = "TibiaPart"
 script = ExtResource("3_53ols")
+mesh = ExtResource("4_8qtpb")
+mesh_offset = Vector3(0, 0.365, 0)
+bone_enable_mesh = true
+bone_material_override = ExtResource("1_ornn2")
 physics_material = ExtResource("2_53ols")
 collider_shape = ExtResource("1_53ols")
+collider_offset = Vector3(0, 0.365, 0)
 collision_mask = 51
 rotation_axis = 0
 limitation_resource = ExtResource("1_per66")

@@ -13,6 +13,49 @@ signal setting_changed(name: StringName)
 )
 var bone_name: StringName
 
+#region Visual
+@export_group('Visual')
+
+## Mesh for a MeshInstance3D node
+@export var mesh: Mesh:
+    set(value):
+        mesh = value
+        setting_changed.emit(&'mesh')
+
+## Translation offset for the mesh, applied to the MeshInstance3D node
+@export var mesh_offset: Vector3:
+    set(value):
+        mesh_offset = value
+        setting_changed.emit(&'mesh_offset')
+
+## Rotation offset for the mesh, applied to the MeshInstance3D node
+@export var mesh_rotation: Quaternion:
+    set(value):
+        mesh_rotation = value
+        setting_changed.emit(&'mesh_rotation')
+
+@export_subgroup('Bone Mesh', 'bone')
+## If this part should create a new MeshInstance3D node to track the exact bone
+## poses of the skeleton. Disabling will remove the created node.
+@export var bone_enable_mesh: bool = false:
+    set(value):
+        bone_enable_mesh = value
+        setting_changed.emit(&'bone_enable_mesh')
+
+## Mesh override for the bone mesh. By default, the same mesh will be used.
+@export var bone_mesh_override: Mesh = null:
+    set(value):
+        bone_mesh_override = value
+        setting_changed.emit(&'bone_mesh_override')
+
+## Material override for the bone mesh. Applied as the 'surface_material_override/0'
+## to the bone MeshInstance3D
+@export var bone_material_override: Material = null:
+    set(value):
+        bone_material_override = value
+        setting_changed.emit(&'bone_material_override')
+#endregion
+
 #region Physics
 @export_group('Physics')
 

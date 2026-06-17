@@ -2,8 +2,9 @@
 class_name PhysicalBonePart3D extends RigidBody3D
 
 
-const META_BONE_JOINT: StringName = &'_part_bone_joint'
 const META_CUSTOM_INDEX: StringName = &'_part_custom_index'
+const META_BONE_JOINT: StringName = &'_part_bone_joint'
+const META_BONE_MESH: StringName = &'_part_bone_mesh'
 const META_BREAK_FORCE: StringName = &'_part_break_force'
 
 
@@ -62,6 +63,11 @@ var bone_joint_data: JointData
 var bone_joint: Generic6DOFJoint3D
 ## The collision shape of this part
 var collider: CollisionShape3D
+## The mesh of the part
+var mesh_inst: MeshInstance3D
+## The mesh which takes on the position of the bone for this part, it's location
+## is handled by the PhysicalBoneChain3D
+var mesh_bone_inst: MeshInstance3D
 
 ## Cached center of mass, set before disabling the body, used by chain to assign
 ## the correct initial linear velocity when activating the body
@@ -77,9 +83,27 @@ func _ready() -> void:
     if is_valid:
         connect_resource()
 
+func _enter_tree() -> void:
+    connect_resource()
+
+func _exit_tree() -> void:
+    # I think remaining connected has the effect of retaining them in memory,
+    # and still receiving signals. I wish signal connections were weak refs.
+    disconnect_resource()
+
 func get_nice_path(to: Node = null) -> NodePath:
     if not to:
         to = self
+
+    if not to.is_inside_tree():
+        print_stack()
+        push_error(
+            (
+                'get_nice_path() called with node not in the scene tree: "%s" %s'
+            ) % [to.name, to]
+        )
+        return NodePath("")
+
     var root_node: Node = get_tree().edited_scene_root
     if not root_node:
         root_node = get_tree().current_scene
@@ -112,13 +136,24 @@ func build_part(
         custom_joint_builder: Callable
 ) -> bool:
 
+    var mesh_node := MeshInstance3D.new()
+    mesh_node.name = 'PartMesh'
+    mesh_node.set_meta(PhysicalSkeleton.META_OWNED, true)
+    add_child(mesh_node, true)
+    mesh_node.owner = owner
+
+    if resource.bone_enable_mesh:
+        var bone_mesh_node = _build_mesh_bone_inst()
+        add_child(bone_mesh_node, true)
+
     var collision_shape := CollisionShape3D.new()
+    collision_shape.set_meta(PhysicalSkeleton.META_OWNED, true)
     add_child(collision_shape, true)
     collision_shape.owner = owner
 
-    # TODO: bone joint
     var main_joint := Generic6DOFJoint3D.new()
     main_joint.name = 'BoneJoint'
+    main_joint.set_meta(PhysicalSkeleton.META_OWNED, true)
     main_joint.set_meta(META_BONE_JOINT, true)
     add_child(main_joint, true)
     main_joint.owner = owner
@@ -185,6 +220,7 @@ func build_part(
                 return false
 
             joint.set_meta(META_CUSTOM_INDEX, index)
+            joint.set_meta(PhysicalSkeleton.META_OWNED, true)
             add_child(joint, true)
             joint.owner = owner
 
@@ -195,6 +231,13 @@ func build_part(
     resource_modified()
 
     return true
+
+func _build_mesh_bone_inst() -> MeshInstance3D:
+    var bone_mesh_node = MeshInstance3D.new()
+    bone_mesh_node.name = 'BoneMesh'
+    bone_mesh_node.set_meta(PhysicalSkeleton.META_OWNED, true)
+    bone_mesh_node.set_meta(META_BONE_MESH, true)
+    return bone_mesh_node
 
 func prepare_custom_joints(custom_joint_callable: Callable) -> bool:
     if not custom_joint_callable.is_valid():
@@ -398,9 +441,15 @@ func solve_motor_velocity(delta: float) -> bool:
 
 func reload_part() -> void:
     is_valid = false
+
     bone_joint = null
     bone_joint_data = null
+
     collider = null
+
+    mesh_inst = null
+    mesh_bone_inst = null
+
     joint_list = []
     joint_data_list = []
 
@@ -412,6 +461,9 @@ func reload_part() -> void:
     var loaded_joint_list: Array[Joint3D]
 
     for joint in joint_node_list:
+        if not joint.has_meta(PhysicalSkeleton.META_OWNED):
+            continue
+
         if joint.has_meta(META_BONE_JOINT):
             if loaded_bone_joint_data:
                 push_error(
@@ -463,21 +515,62 @@ func reload_part() -> void:
         loaded_joint_list.append(joint)
 
     var loaded_collider: CollisionShape3D
-    for child in find_children('', 'CollisionShape3D', false):
-        if loaded_collider:
-            # TODO: error here
-            return
+    var loaded_mesh_inst: MeshInstance3D
+    var loaded_mesh_bone_inst: MeshInstance3D
 
-        loaded_collider = child
+    var search_list: Array[Node] = get_children(true)
+    var next_search: Array[Node] = []
+    while search_list.size() > 0 or next_search.size() > 0:
+        var child: Node = search_list.pop_back()
+        if not child:
+            search_list = next_search
+            next_search = []
+            continue
+
+        next_search.append_array(child.get_children())
+
+        if not child.has_meta(PhysicalSkeleton.META_OWNED):
+            continue
+
+        if child is CollisionShape3D:
+            if loaded_collider:
+                # TODO: error here
+                push_error('collider')
+                return
+
+            loaded_collider = child
+            continue
+
+        if child is MeshInstance3D:
+            if child.has_meta(META_BONE_MESH):
+                if loaded_mesh_bone_inst:
+                    # TODO: error here
+                    push_error('bone mesh')
+                    return
+                loaded_mesh_bone_inst = child
+                continue
+            # Must be the normal mesh
+            if loaded_mesh_inst:
+                # TODO: error here
+                push_error('mesh inst')
+                return
+            loaded_mesh_inst = child
+            continue
 
     is_valid = true
+
     bone_joint_data = loaded_bone_joint_data
     bone_joint = bone_joint_data.joint
+
     collider = loaded_collider
+
     joint_list = loaded_joint_list
     joint_list.make_read_only()
     joint_data_list = loaded_joint_data_list
     joint_data_list.make_read_only()
+
+    mesh_inst = loaded_mesh_inst
+    mesh_bone_inst = loaded_mesh_bone_inst
 
 func _configure_joint(joint: Joint3D) -> JointData:
 
@@ -503,15 +596,42 @@ func _configure_joint(joint: Joint3D) -> JointData:
     return joint_data
 
 func connect_resource() -> void:
-    if resource.setting_changed.is_connected(resource_modified):
+    if (not resource) or resource.setting_changed.is_connected(resource_modified):
         return
     resource.setting_changed.connect(resource_modified)
+
+func disconnect_resource() -> void:
+    if (not resource) or (not resource.setting_changed.is_connected(resource_modified)):
+        return
+    resource.setting_changed.disconnect(resource_modified)
 
 func resource_modified(setting: StringName = &'') -> void:
     physics_material_override = resource.physics_material
     continuous_cd = resource.continuous_cd
     collision_layer = resource.collision_layer
     collision_mask = resource.collision_mask
+
+    mesh_inst.mesh = resource.mesh
+    mesh_inst.position = resource.mesh_offset
+    mesh_inst.basis = resource.mesh_rotation
+
+    if resource.bone_enable_mesh:
+        if not mesh_bone_inst:
+            mesh_bone_inst = _build_mesh_bone_inst()
+            add_child(mesh_bone_inst, false, Node.INTERNAL_MODE_BACK)
+
+        mesh_bone_inst.mesh = resource.bone_mesh_override
+        if not mesh_bone_inst.mesh:
+            mesh_bone_inst.mesh = resource.mesh
+
+        mesh_bone_inst.material_override = resource.bone_material_override
+
+        mesh_bone_inst.position = resource.mesh_offset
+        mesh_bone_inst.basis = resource.mesh_rotation
+    elif mesh_bone_inst:
+        # Remove the mesh node completely
+        mesh_bone_inst.queue_free()
+        mesh_bone_inst = null
 
     if resource.break_enabled:
         bone_joint.set_meta(META_BREAK_FORCE, resource.break_max_force)
