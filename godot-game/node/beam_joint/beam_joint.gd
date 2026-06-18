@@ -7,96 +7,17 @@
 class_name BeamPivotJoint3D extends Generic6DOFJoint3D
 
 
-## Location of the attachment on Body A
-@export
-var body_A_position: Vector3 = Vector3.ZERO:
-    set(value):
-        body_A_position = value
-        _queue_update_joint()
+@export var setting: BeamPivotJoint3DSetting:
+    set = set_setting
 
-## Location of the attachment on Body B
-@export
-var body_B_position: Vector3 = Vector3.ZERO:
-    set(value):
-        body_B_position = value
-        _queue_update_joint()
+## Additional offset from Body A, applied on top of the setting. Useful to share
+## settings but construct joints with unique offsets.
+@export var body_A_offset: Vector3
 
 ## Helper view to see the initial length of the beam given the current locations
 ## of the two bodies and their attachment points
 @export_custom(PROPERTY_HINT_NONE, '', PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY)
 var beam_span: float
-
-## Additional expansion allowed between the two attachment points
-@export_range(0.0, 1.0, 0.01, 'or_greater')
-var expand_limit: float = 0.1:
-    set(value):
-        expand_limit = value
-        _queue_update_joint()
-
-## Additional contraction allowed between the two attachment points, will be
-## effectively limited by the initial beam span length
-@export_range(0.0, 1.0, 0.01, 'or_greater')
-var contract_limit: float = 0.1:
-    set(value):
-        contract_limit = value
-        _queue_update_joint()
-
-
-@export_group('Pitch', 'pitch')
-
-## Maximum counter-clockwise pitch rotation of the joint on Body B. Should be
-## wide enough to allow the bodies to rotate through the beam.
-@export_range(0.0, 180.0, 0.1, 'radians_as_degrees')
-var pitch_upper: float = deg_to_rad(15.0):
-    set(value):
-        pitch_upper = value
-        _queue_update_joint()
-
-## Maximum clockwise pitch rotation of the joint on Body B. Should be wide
-## enough to allow the bodies to rotate through the beam.
-@export_range(0.0, 180.0, 0.1, 'radians_as_degrees')
-var pitch_lower: float = deg_to_rad(15.0):
-    set(value):
-        pitch_lower = value
-        _queue_update_joint()
-
-
-@export_group('Yaw', 'yaw')
-
-## Maximum counter-clockwise yaw rotation of the joint on Body B. You may
-## consider opening this if one of the bodies is meant to swing along the other.
-@export_range(0.0, 180.0, 0.1, 'radians_as_degrees')
-var yaw_upper: float = 0.0:
-    set(value):
-        yaw_upper = value
-        _queue_update_joint()
-
-## Maximum clockwise yaw rotation of the joint on Body B.  You may consider
-## opening this if one of the bodies is meant to swing along the other.
-@export_range(0.0, 180.0, 0.1, 'radians_as_degrees')
-var yaw_lower: float = 0.0:
-    set(value):
-        yaw_lower = value
-        _queue_update_joint()
-
-
-@export_group('Roll', 'roll')
-
-## Maximum counter-clockwise roll rotation of the joint on Body B. You probably
-## do not want this to be open at all.
-@export_range(0.0, 180.0, 0.1, 'radians_as_degrees')
-var roll_upper: float = 0.0:
-    set(value):
-        roll_upper = value
-        _queue_update_joint()
-
-## Maximum clockwise rotation of the joint on Body B.  You may consider opening
-## this if one of the bodies is meant to swing along the other.
-@export_range(0.0, 180.0, 0.1, 'radians_as_degrees')
-var roll_lower: float = 0.0:
-    set(value):
-        roll_lower = value
-        _queue_update_joint()
 
 
 @export_group('Debug', 'debug')
@@ -117,6 +38,12 @@ var _update_joint_queued: bool = false
 func _ready() -> void:
     _queue_update_joint()
 
+func _enter_tree() -> void:
+    connect_resource()
+
+func _exit_tree() -> void:
+    disconnect_resource()
+
 func _validate_property(property: Dictionary) -> void:
     # Hide linear and angular limits so we maintain full control
     if property.name.begins_with('angular_limit_') or property.name.begins_with('linear_limit_'):
@@ -125,11 +52,27 @@ func _validate_property(property: Dictionary) -> void:
 # Update joint when nodes change
 func _set(property: StringName, value: Variant) -> bool:
     if property == &'node_a' or property == &'node_b':
-        _update_joint.call_deferred()
+        _queue_update_joint()
     elif property == &'solver_priority':
         if distance_joint:
             distance_joint.solver_priority = value
     return false
+
+func set_setting(new_setting: BeamPivotJoint3DSetting) -> void:
+    disconnect_resource()
+    setting = new_setting
+    connect_resource()
+
+func connect_resource() -> void:
+    if setting and not setting.changed.is_connected(on_setting_changed):
+        setting.changed.connect(on_setting_changed)
+
+func disconnect_resource() -> void:
+    if setting and setting.changed.is_connected(on_setting_changed):
+        setting.changed.disconnect(on_setting_changed)
+
+func on_setting_changed() -> void:
+    _queue_update_joint()
 
 func _queue_update_joint() -> void:
     if _update_joint_queued:
@@ -150,8 +93,8 @@ func _update_joint() -> void:
         push_error('Missing a body node, both nodes must be set for BeamJoint3D')
         return
 
-    global_position = body_b.global_transform * body_B_position
-    var beam_displacement: Vector3 = (body_a.global_transform * body_A_position) - global_position
+    global_position = body_b.global_transform * setting.body_B_position
+    var beam_displacement: Vector3 = (body_a.global_transform * (setting.body_A_position + body_A_offset)) - global_position
     global_basis = _calculate_orientation(beam_displacement)
 
     # Allow free movement on joint XY plane, distance constraint will
@@ -160,7 +103,7 @@ func _update_joint() -> void:
     set_flag_y(FLAG_ENABLE_LINEAR_LIMIT, false)
 
     # Restrict joint Z translations if no yaw is enabled
-    if yaw_lower > 0.0 or yaw_upper > 0.0:
+    if setting.yaw_lower > 0.0 or setting.yaw_upper > 0.0:
         set_flag_z(FLAG_ENABLE_LINEAR_LIMIT, false)
     else:
         set_flag_z(FLAG_ENABLE_LINEAR_LIMIT, true)
@@ -171,16 +114,16 @@ func _update_joint() -> void:
     # NOTE: I don't understand, but these must be flipped to stay with
     #       the common "positive is counter-clockwise" thing in Godot
     set_flag_x(FLAG_ENABLE_ANGULAR_LIMIT, true)
-    set_param_x(PARAM_ANGULAR_LOWER_LIMIT, -roll_upper)
-    set_param_x(PARAM_ANGULAR_UPPER_LIMIT, roll_lower)
+    set_param_x(PARAM_ANGULAR_LOWER_LIMIT, -setting.roll_upper)
+    set_param_x(PARAM_ANGULAR_UPPER_LIMIT, setting.roll_lower)
 
     set_flag_y(FLAG_ENABLE_ANGULAR_LIMIT, true)
-    set_param_y(PARAM_ANGULAR_LOWER_LIMIT, -yaw_upper)
-    set_param_y(PARAM_ANGULAR_UPPER_LIMIT, yaw_lower)
+    set_param_y(PARAM_ANGULAR_LOWER_LIMIT, -setting.yaw_upper)
+    set_param_y(PARAM_ANGULAR_UPPER_LIMIT, setting.yaw_lower)
 
     set_flag_z(FLAG_ENABLE_ANGULAR_LIMIT, true)
-    set_param_z(PARAM_ANGULAR_LOWER_LIMIT, -pitch_upper)
-    set_param_z(PARAM_ANGULAR_UPPER_LIMIT, pitch_lower)
+    set_param_z(PARAM_ANGULAR_LOWER_LIMIT, -setting.pitch_upper)
+    set_param_z(PARAM_ANGULAR_UPPER_LIMIT, setting.pitch_lower)
 
     beam_span = beam_displacement.length()
     _debug_draw_points()
@@ -204,10 +147,10 @@ func _update_joint() -> void:
 
     distance_joint.node_a = node_a
     distance_joint.node_b = node_b
-    distance_joint.set_param(DistanceJoint3D.PARAM_DISTANCE_MAX, beam_span + expand_limit)
-    distance_joint.set_param(DistanceJoint3D.PARAM_DISTANCE_MIN, maxf(beam_span - contract_limit, 0.0))
-    distance_joint.set_point_param(DistanceJoint3D.POINT_PARAM_A, body_A_position)
-    distance_joint.set_point_param(DistanceJoint3D.POINT_PARAM_B, body_B_position)
+    distance_joint.set_param(DistanceJoint3D.PARAM_DISTANCE_MAX, beam_span + setting.expand_limit)
+    distance_joint.set_param(DistanceJoint3D.PARAM_DISTANCE_MIN, maxf(beam_span - setting.contract_limit, 0.0))
+    distance_joint.set_point_param(DistanceJoint3D.POINT_PARAM_A, setting.body_A_position + body_A_offset)
+    distance_joint.set_point_param(DistanceJoint3D.POINT_PARAM_B, setting.body_B_position)
 
 func _calculate_orientation(axis: Vector3) -> Basis:
     var forward: Vector3 = axis

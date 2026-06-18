@@ -135,6 +135,9 @@ func _ready() -> void:
     _setup()
 
 func get_nice_path(to: Node = null) -> NodePath:
+    if not is_inside_tree():
+        return NodePath("")
+
     if not to:
         to = self
 
@@ -167,6 +170,14 @@ func queue_setup() -> void:
 func _setup() -> void:
     _setup_queued = false
 
+    main_body = null
+    _chain_node_root = null
+    chain_list.clear()
+
+    # The originals are read-only, so we have to set them to new value
+    _chain_node_map = {}
+    _bone_part_map = {}
+
     main_body = _find_main_body()
     if not main_body:
         push_error('PhysicalSkeleton could not find a primary RigidBody3D!')
@@ -189,14 +200,11 @@ func _setup() -> void:
                 'PhysicalSkeleton found no PhysicalBoneChain3D within the chain '
                 + 'root %s. Only chains within this root node can be loaded, '
                 + 'please move the nodes into this root or rebuild the chain. '
-                + 'You can organize them however you  want, as long as they are '
+                + 'You can organize them however you want, as long as they are '
                 + 'somewhere in the chain root node.'
             ) % get_nice_path(chain_root)
         )
         return
-
-    _chain_node_map = {}
-    _bone_part_map = {}
 
     for chain in chain_list:
         # HACK: I hate await, but without making gaurantees about the order of
@@ -295,6 +303,10 @@ func get_chain_node_root() -> Node:
 
     return null
 
+## Finds a chain by its resource
+func get_chain_node(chain_resource: PhysicalBoneChainResource) -> PhysicalBoneChain3D:
+    return _chain_node_map.get(chain_resource.get_unique_id())
+
 func build_chain(
     chain_resource: PhysicalBoneChainResource,
     custom_joint_builder: Callable
@@ -308,37 +320,34 @@ func build_chain(
         )
         return null
 
-    # Generate the custom unique id if needed
-    if chain_resource.unique_id == ResourceUID.INVALID_ID:
-        chain_resource.generate_unique_id()
-
-        # It can fail if the resource isn't saved, or doesn't specify bones
-        if chain_resource.unique_id == ResourceUID.INVALID_ID:
-            push_error(
-                (
-                    'PhysicalSkeleton at %s method `build_chain()` called with an '
-                    + 'invalid chain resource. Errors should be above. Returning false.'
-                ) % get_nice_path()
-            )
-            return null
-
-        # Save resource immediately
-        ResourceSaver.save(chain_resource)
+    # Generate the custom unique id every build, copies can be made and bones
+    # or paths can change
+    if chain_resource.get_unique_id() == ResourceUID.INVALID_ID:
+        push_error(
+            (
+                'PhysicalSkeleton at %s method `build_chain()` called with an '
+                + 'unsaved chain resource. Make sure to save chain resources '
+                + 'before using them in builds. Returning false.'
+            ) % get_nice_path()
+        )
+        return null
 
     # Create the root if it doesn't exist yet
     var chain_root: Node = get_chain_node_root()
     if not chain_root:
         chain_root = Node.new()
         chain_root.name = 'ChainRootNode'
+        chain_root.set_meta(PhysicalSkeleton.META_OWNED, true)
         chain_root.set_meta(META_CHAIN_ROOT, true)
         skeleton.add_child(chain_root, true)
         chain_root.owner = owner
         queue_setup()
 
     var chain := PhysicalBoneChain3D.new()
+    chain.set_meta(PhysicalSkeleton.META_OWNED, true)
     chain.set_meta(&'_custom_type_script', ResourceUID.id_to_text(ResourceLoader.get_resource_uid((chain.get_script() as Script).resource_path)))
     chain.resource = chain_resource
-    chain.set_meta(META_CHAIN_RESOURCE_ID, chain.resource.unique_id)
+    chain.set_meta(META_CHAIN_RESOURCE_ID, chain.resource.get_unique_id())
     chain.name = chain.resource.resource_name
 
     chain._skip_ready = true
@@ -355,6 +364,40 @@ func build_chain(
 
     queue_setup()
     return chain
+
+## Removes a chain node and all its children. Returns `true` if the chain was
+## deleted, or if no chain has the given resource. Returning `false` always
+## means a chain node existed and it failed to delete it. By default, this will
+## scan all children a chain contains, and will abort anything if any "unowned"
+## nodes are found, including internal children created by scripts.
+## Set 'remove_unowned_nodes' to skip this check.
+func remove_chain(
+        chain_resource: PhysicalBoneChainResource,
+        remove_unowned_nodes: bool = false
+) -> bool:
+    var chain: PhysicalBoneChain3D = get_chain_node(chain_resource)
+    if not chain:
+        return true
+
+    # Check for any unowned nodes
+    if not remove_unowned_nodes:
+        var search_list: Array[Node] = [chain]
+        while search_list.size() > 0:
+            var node: Node = search_list.pop_back()
+            for index in range(node.get_child_count(true)):
+                var child: Node = node.get_child(index, true)
+                if not child.has_meta(META_OWNED):
+                    return false
+                if child.get_child_count(true) > 0:
+                    search_list.append(child)
+
+    var chain_parent: Node = chain.get_parent()
+    if chain_parent:
+        chain_parent.remove_child(chain)
+    chain.queue_free()
+    queue_setup()
+
+    return true
 
 func prepare_custom_joints(chain_resource: PhysicalBoneChainResource, custom_joint_callable: Callable) -> bool:
     if not main_body:
@@ -383,7 +426,7 @@ func prepare_custom_joints(chain_resource: PhysicalBoneChainResource, custom_joi
         )
         return false
 
-    var chain: PhysicalBoneChain3D = _chain_node_map.get(chain_resource.unique_id)
+    var chain: PhysicalBoneChain3D = _chain_node_map.get(chain_resource.get_unique_id())
     if not chain:
         push_error(
             (

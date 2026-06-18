@@ -37,14 +37,9 @@ var end_bone: StringName:
                 part.changed.connect(emit_changed)
         emit_changed()
 
-## Custom unique identifier for this chain, generated the first time this chain
-## is built in a scene. This is the hash of resource path and the bone names.
-@export_custom(
-    PROPERTY_HINT_RANGE,
-    '-1,0,or_less,or_greater,hide_control',
-    PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_READ_ONLY
-)
-var unique_id: int = ResourceUID.INVALID_ID
+
+var _cached_unique_id: int = ResourceUID.INVALID_ID
+var _last_resource_path: String = ''
 
 
 var callable_get_bone_name: Callable
@@ -125,24 +120,8 @@ func refresh_part_list_bone_names() -> void:
 
         part.bone_name = name_list[index]
 
-func generate_unique_id() -> void:
-    if not resource_path:
-        push_error(
-            (
-                'PhysicalBoneChainResource named %s has not been saved yet, please ensure '
-                + 'it has been saved and has a non-empty resource_path.'
-            ) % resource_name
-        )
-        return
-
-    if (not root_bone) or (not end_bone):
-        push_error(
-            (
-                'PhysicalBoneChainResource %s (at %s) is missing a root and/or end bone. '
-                + 'They must have both set before you can build the chain.'
-            ) % [resource_name, resource_path]
-        )
-        return
-
-    var hex: String = (resource_path + root_bone + end_bone).md5_text().to_upper()
-    unique_id = hex.substr(0, 14).hex_to_int() & 0x1F_FFFF_FFFF_FFFF
+func get_unique_id() -> int:
+    if _cached_unique_id == ResourceUID.INVALID_ID or _last_resource_path != resource_path:
+        _cached_unique_id = ResourceLoader.get_resource_uid(resource_path)
+        _last_resource_path = resource_path
+    return _cached_unique_id

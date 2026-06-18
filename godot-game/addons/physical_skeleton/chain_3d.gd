@@ -35,6 +35,9 @@ func _ready() -> void:
     reload_chain()
 
 func get_nice_path(to: Node = null) -> NodePath:
+    if not is_inside_tree():
+        return NodePath("")
+
     if not to:
         to = self
 
@@ -76,8 +79,6 @@ func get_bone_part_map() -> Dictionary[int, PhysicalBonePart3D]:
     return result
 
 func build_chain(main_body: RigidBody3D, custom_joint_builder: Callable) -> bool:
-    # TODO: clear chain, make clean method?
-
     if not skeleton:
         # TODO: error
         push_error('missing skeleton')
@@ -88,6 +89,7 @@ func build_chain(main_body: RigidBody3D, custom_joint_builder: Callable) -> bool
     var parent_body: RigidBody3D = main_body
     for index in range(resource.part_list.size()):
         var part := PhysicalBonePart3D.new()
+        part.set_meta(PhysicalSkeleton.META_OWNED, true)
         part.set_meta(&'_custom_type_script', ResourceUID.id_to_text(ResourceLoader.get_resource_uid((part.get_script() as Script).resource_path)))
         part.resource = resource.part_list[index]
         part.name = part.resource.resource_name
@@ -104,8 +106,12 @@ func build_chain(main_body: RigidBody3D, custom_joint_builder: Callable) -> bool
         )
 
         if not success:
-            # TODO: error
-            push_error('failed to build part %s')
+            push_error(
+                (
+                    'PhysicalBoneChain3D "%s" failed to build part "%s". Errors '
+                    + 'should be above.'
+                ) % [name, part.name]
+            )
             return false
 
         parent_body = part
@@ -260,11 +266,11 @@ func reload_chain() -> void:
         )
         return
 
-    if resource.unique_id == -1:
+    if resource.get_unique_id() == -1:
         push_error(
             (
-                'PhysicalBoneChain3D %s internal resource named %s at %s has not had its unique id generated yet. '
-                + 'You must use the build method from a PhysicalSkeleton to create these nodes.'
+                'PhysicalBoneChain3D %s resource named %s at %s has not had its unique id generated yet. '
+                + 'You must save the resource before it can be used.'
             ) % [get_nice_path(), resource.resource_name, resource.resource_path]
         )
         return

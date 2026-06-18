@@ -60,7 +60,8 @@ var _debug_step_reason_text: String
 var body: CrawlerCharacter = null:
     set(value):
         body = value
-        on_chain_changed()
+        if physical_bone_chain:
+            update_chain_setting()
         notify_property_list_changed()
 var index: int = -1
 var is_left: bool:
@@ -705,35 +706,48 @@ func prepare_custom_joint(
         joint: Joint3D,
         joint_resource: Resource,
 ) -> bool:
-    return false
+    return true
 
 ## Callback for building custom joints. This should set the transform of the
 ## joint before returning it, which will be used as a local transform from the
 ## bone in global pose space. Returning null will be interpreted as an error.
 func build_custom_joint(
-        chain: PhysicalBoneChain3D,
+        _chain: PhysicalBoneChain3D,
         part: PhysicalBonePart3D,
         main_body: RigidBody3D,
         parent_body: RigidBody3D,
         joint_resource: Resource,
 ) -> Joint3D:
-    return null
+    # For now, this is the only custom joint type we make
+    var beam_res := joint_resource as BeamPivotJoint3DSetting
+    if not beam_res:
+        return null
+
+    var beam_joint := BeamPivotJoint3D.new()
+    beam_joint.set_meta(&'_custom_type_script', ResourceUID.id_to_text(ResourceLoader.get_resource_uid((beam_joint.get_script() as Script).resource_path)))
+    beam_joint.setting = beam_res
+    beam_joint.name = beam_joint.setting.resource_name
+
+    if beam_res.attach_to_main_body:
+        beam_joint.node_a = main_body.get_path()
+        beam_joint.body_A_offset = main_body.global_transform.affine_inverse() * global_position
+    else:
+        beam_joint.node_a = parent_body.get_path()
+
+    beam_joint.node_b = part.get_path()
+
+    return beam_joint
 
 func _set_physical_bone_chain(new_chain: PhysicalBoneChainResource) -> void:
-    if physical_bone_chain and physical_bone_chain.changed.is_connected(on_chain_changed):
-        physical_bone_chain.changed.disconnect(on_chain_changed)
     physical_bone_chain = new_chain
 
     if not physical_bone_chain:
         return
 
-    if not physical_bone_chain.changed.is_connected(on_chain_changed):
-        physical_bone_chain.changed.connect(on_chain_changed)
+    update_chain_setting()
 
-    on_chain_changed()
-
-func on_chain_changed() -> void:
-    if (not physical_bone_chain) or (not body) or (not body.skeleton):
+func update_chain_setting() -> void:
+    if (not body) or (not body.skeleton):
         return
 
     physical_bone_chain.callable_get_bone_name = body.skeleton.get_bone_name

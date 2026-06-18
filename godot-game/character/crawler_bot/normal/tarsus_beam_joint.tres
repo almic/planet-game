@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BeamPivotJoint3DSetting" format=3 uid="uid://xbem30drgjxp"]
+
+[ext_resource type="Script" uid="uid://bgui7td28pcg7" path="res://node/beam_joint/beam_joint_setting.gd" id="1_1pksf"]
+
+[resource]
+resource_name = "TarsusBeamJoint"
+script = ExtResource("1_1pksf")
+body_A_position = Vector3(0, 0.365, 0)
+body_B_position = Vector3(0, 1.3599999999999999, 0)
+metadata/_custom_type_script = "uid://bgui7td28pcg7"

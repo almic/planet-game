@@ -5,6 +5,7 @@
 [ext_resource type="Material" uid="uid://b40dbxkqwa5td" path="res://character/crawler_bot/normal/ghost_material.tres" id="1_qpwkv"]
 [ext_resource type="PhysicsMaterial" uid="uid://dgom72xev8omg" path="res://material/physic/metal.tres" id="2_dwj6o"]
 [ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="3_65ewy"]
+[ext_resource type="Resource" uid="uid://xbem30drgjxp" path="res://character/crawler_bot/normal/tarsus_beam_joint.tres" id="3_yhue1"]
 [ext_resource type="BoxMesh" uid="uid://bg5sh58i7q6tc" path="res://character/crawler_bot/normal/tarsus_box_mesh.tres" id="4_yhue1"]
 
 [resource]
@@ -27,4 +28,6 @@ copy_ik_limitation_angle = true
 joint_angular_limit_x_upper = 1.0471975511965976
 joint_angular_limit_x_lower = -1.0471975511965976
 torque_powered = 20.0
+custom_enabled = true
+custom_joint_resource_list = Array[Resource]([ExtResource("3_yhue1")])
 metadata/_custom_type_script = "uid://beoy3te8b6dll"

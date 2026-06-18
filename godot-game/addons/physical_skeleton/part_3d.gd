@@ -92,6 +92,9 @@ func _exit_tree() -> void:
     disconnect_resource()
 
 func get_nice_path(to: Node = null) -> NodePath:
+    if not is_inside_tree():
+        return NodePath("")
+
     if not to:
         to = self
 
@@ -219,10 +222,14 @@ func build_part(
                 )
                 return false
 
-            joint.set_meta(META_CUSTOM_INDEX, index)
             joint.set_meta(PhysicalSkeleton.META_OWNED, true)
+            joint.set_meta(META_CUSTOM_INDEX, index)
             add_child(joint, true)
             joint.owner = owner
+
+            # Make joint paths relative
+            joint.node_a = joint.get_path_to(joint.get_node_or_null(joint.node_a))
+            joint.node_b = joint.get_path_to(joint.get_node_or_null(joint.node_b))
 
     # Reload the part data, possibly causing errors
     reload_part()
@@ -497,6 +504,7 @@ func reload_part() -> void:
             loaded_bone_joint_data = data
             loaded_joint_data_list.insert(0, loaded_bone_joint_data)
             loaded_joint_list.insert(0, joint)
+            continue
         elif not joint.has_meta(META_CUSTOM_INDEX):
             push_error(
                 (

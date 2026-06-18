@@ -325,8 +325,7 @@ var torque_unpowered: float = 10.0:
 #region Custom Joints
 @export_group('Custom Joints', 'custom')
 
-@export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
-var custom_enabled: bool = false
+@export var custom_enabled: bool = false
 
 ## List of custom resources provided to the chain creation callback
 @export var custom_joint_resource_list: Array[Resource]

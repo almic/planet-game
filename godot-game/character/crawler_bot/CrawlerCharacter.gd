@@ -3,8 +3,8 @@ class_name CrawlerCharacter extends CharacterController
 
 
 @warning_ignore("unused_private_class_variable")
-@export_tool_button('Build Crawler', 'SphereMesh')
-var _btn_build_crawler = editor_build_crawler
+@export_tool_button('Rebuild Crawler', 'SphereMesh')
+var _btn_rebuild_crawler = editor_rebuild_crawler
 
 
 ## Whole body mass of the crawler. This is used with 'Leg Mass Ratio' to
@@ -177,7 +177,7 @@ var _is_update_ik_queued: bool = false
 var _next_chain_ik_setting_index: int = 0
 
 
-func editor_build_crawler() -> void:
+func editor_rebuild_crawler() -> void:
     var dialog: Window
     if self != get_tree().edited_scene_root:
         dialog = AcceptDialog.new()
@@ -187,12 +187,17 @@ func editor_build_crawler() -> void:
         ) % scene_file_path
     else:
         dialog = ConfirmationDialog.new()
-        dialog.dialog_text = 'This will create nodes and add them to this scene file, are you sure?'
-        dialog.confirmed.connect(build_crawler)
+        dialog.dialog_text = (
+            'This will delete existing chain nodes and create new ones, adding '
+            + 'them to this scene file.\nAre you sure?'
+        )
+        dialog.confirmed.connect(rebuild_crawler.bind(false, true))
 
     EditorInterface.popup_dialog_centered(dialog)
 
-func build_crawler() -> void:
+## Clears and builds the crawler body.
+## Enable editor mode to use popups for issues.
+func rebuild_crawler(remove_unowned_nodes: bool = false, editor_mode: bool = false) -> void:
     if not physical_skeleton:
         push_error('Missing a physical skeleton. This is needed to build the bone bodies.')
         return
@@ -205,9 +210,90 @@ func build_crawler() -> void:
 
         leg.apply_position()
 
+        var success: bool = physical_skeleton.remove_chain(leg.physical_bone_chain, remove_unowned_nodes)
+
+        if not success:
+            if (not editor_mode) or remove_unowned_nodes:
+                push_error(
+                    (
+                        'Failed to remove the chain for leg %s using resource named '
+                        + '%s at %s. Errors should be above.'
+                    ) % [
+                        leg.name, leg.physical_bone_chain.resource_name, leg.physical_bone_chain.resource_path
+                    ]
+                )
+                return
+
+            # Scan for the "unowned" children
+            var bad_chain := physical_skeleton.get_chain_node(leg.physical_bone_chain)
+            if not bad_chain:
+                # ?? what? ok i guess?
+                pass
+            else:
+                var unowned_children: Array[Node]
+
+                for child in bad_chain.find_children('*', '', true, false):
+                    if child.has_meta(PhysicalSkeleton.META_OWNED):
+                        continue
+                    unowned_children.append(child)
+
+                if unowned_children.size() == 0:
+                    push_error(
+                        (
+                            'Failed to remove the chain for leg %s using resource named '
+                            + '%s at %s. Could not find unowned nodes preventing removal. '
+                            + 'Errors should be above.'
+                        ) % [
+                            leg.name, leg.physical_bone_chain.resource_name, leg.physical_bone_chain.resource_path
+                        ]
+                    )
+                    return
+
+                var dialog := ConfirmationDialog.new()
+                dialog.dialog_text = (
+                    'Unable to remove the chain for leg %s using the resource '
+                    + 'named %s at %s. Found nodes not created by the chain, '
+                    + 'likely preventing removal.\nWould you like to retry and '
+                    + 'DELETE THESE NODES:\n%s'
+                ) % [
+                    leg.name,
+                    leg.physical_bone_chain.resource_name,
+                    leg.physical_bone_chain.resource_path,
+                    '\n'.join(unowned_children.map(
+                        func (node): return '- %s at %s' % [node.name, get_nice_path(node)]
+                    ))
+                ]
+
+                var any_action: Signal = Signal()
+                dialog.canceled.connect(any_action.emit.bind(false))
+                dialog.confirmed.connect(any_action.emit.bind(true))
+                var confirmed: bool = await any_action
+
+                if not confirmed:
+                    return
+
+                success = physical_skeleton.remove_chain(leg.physical_bone_chain, true)
+                if not success:
+                    EditorInterface.get_editor_toaster().push_toast(
+                        'Failed to remove chain for leg %s, console should contain errors.' % leg.name,
+                        EditorToaster.SEVERITY_ERROR
+                    )
+                    return
+
         var chain: PhysicalBoneChain3D = physical_skeleton.build_chain(
                 leg.physical_bone_chain, leg.build_custom_joint
         )
+
+        if not chain:
+            push_error(
+                (
+                    'Failed to build the chain for leg %s using resource named '
+                    + '%s at %s. Errors should be above.'
+                ) % [
+                    leg.name, leg.physical_bone_chain.resource_name, leg.physical_bone_chain.resource_path
+                ]
+            )
+            return
 
         if chain.is_ik_enabled:
             if _next_chain_ik_setting_index >= leg_ik.setting_count:
@@ -294,6 +380,9 @@ func _ready() -> void:
     desired_surface_friction = 0.0
 
 func get_nice_path(to: Node = null) -> NodePath:
+    if not is_inside_tree():
+        return NodePath("")
+
     if not to:
         to = self
 
