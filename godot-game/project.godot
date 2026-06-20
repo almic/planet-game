@@ -25,6 +25,7 @@ config/icon="res://icon.svg"
 GUIDE="*uid://p2jwrgjcbexr"
 InputManager="*uid://c2hqe7e4hjota"
 DebugDraw="*uid://u02lrj3l02mx"
+Signals="*uid://ilojjwhfo6i5"
 
 [display]
 
@@ -33,7 +34,7 @@ window/size/viewport_height=540
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/csg_extra/plugin.cfg", "res://addons/debug_draw/plugin.cfg", "res://addons/guide/plugin.cfg", "res://addons/physical_skeleton/plugin.cfg")
+enabled=PackedStringArray("res://addons/await_any_all_signal/plugin.cfg", "res://addons/csg_extra/plugin.cfg", "res://addons/debug_draw/plugin.cfg", "res://addons/guide/plugin.cfg", "res://addons/physical_skeleton/plugin.cfg")
 
 [filesystem]
 

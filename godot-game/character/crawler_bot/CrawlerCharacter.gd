@@ -252,7 +252,7 @@ func rebuild_crawler(remove_unowned_nodes: bool = false, editor_mode: bool = fal
                 var dialog := ConfirmationDialog.new()
                 dialog.dialog_text = (
                     'Unable to remove the chain for leg %s using the resource '
-                    + 'named %s at %s. Found nodes not created by the chain, '
+                    + 'named %s at %s.\nFound nodes NOT created by the chain, '
                     + 'likely preventing removal.\nWould you like to retry and '
                     + 'DELETE THESE NODES:\n%s'
                 ) % [
@@ -264,11 +264,8 @@ func rebuild_crawler(remove_unowned_nodes: bool = false, editor_mode: bool = fal
                     ))
                 ]
 
-                var any_action: Signal = Signal()
-                dialog.canceled.connect(any_action.emit.bind(false))
-                dialog.confirmed.connect(any_action.emit.bind(true))
-                var confirmed: bool = await any_action
-
+                EditorInterface.popup_dialog_centered(dialog)
+                var confirmed: bool = bool(await Signals.any([dialog.canceled, dialog.confirmed]))
                 if not confirmed:
                     return
 

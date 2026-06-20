@@ -190,16 +190,20 @@ func setup(cast_exceptions: Array[RID]) -> void:
         )
         return
 
-    shape_cast = ShapeCast3D.new()
-    shape_cast.enabled = false # Manually update the cast
-    add_child(shape_cast, false, Node.INTERNAL_MODE_FRONT)
+    ground_bone_idx = body.skeleton.find_bone(ground_bone)
+    if ground_bone_idx == -1:
+        push_error(
+            'Unable to find ground bone "%s" for leg %s!' % [ground_bone, name]
+        )
+        return
 
     target = Marker3D.new()
     add_child(target, false, Node.INTERNAL_MODE_FRONT)
+    target.global_position = body.skeleton.global_transform * body.skeleton.get_bone_global_rest(target_bone_idx).origin
 
-    ground_bone_idx = body.skeleton.find_bone(ground_bone)
-
-    var ground_node_bone: int = body.skeleton.get_bone_parent(ground_bone_idx)
+    shape_cast = ShapeCast3D.new()
+    shape_cast.enabled = false # Manually update the cast
+    add_child(shape_cast, false, Node.INTERNAL_MODE_FRONT)
 
     ground_cast = ShapeCast3D.new()
     ground_cast.enabled = false
@@ -219,12 +223,7 @@ func apply_position() -> void:
 
     var bone_xform: Transform3D = body.skeleton.global_transform * body.skeleton.get_bone_global_pose(body.skeleton.find_bone(physical_bone_chain.root_bone))
     global_position = bone_xform.origin
-
-    # Point +Z in the bone +Y direction
-    global_basis = Basis(-bone_xform.basis.x, bone_xform.basis.z, bone_xform.basis.y).orthonormalized()
-
-    # Stupid thing
-    scale = Vector3.ONE
+    global_basis = Basis.IDENTITY
 
 func pose_updated() -> void:
     if use_new_leg_mode:
@@ -244,9 +243,6 @@ func pose_updated() -> void:
               body.skeleton.global_transform
             * body.skeleton.get_bone_global_pose(target_bone_idx).origin
     )
-
-    if debug_enable and debug_ground_cast:
-        _draw_ground_cast()
 
 func _new_pose_updated() -> void:
     pass
@@ -305,7 +301,19 @@ func _new_pre_update(state: PhysicsDirectBodyState3D) -> void:
 
 func _update_grounded() -> void:
     var has_ground: bool = false
+
+    var target_position: Vector3 = body.skeleton.global_transform * body.skeleton.get_bone_global_pose(ground_bone_idx).origin
+    var bone_direction: Vector3 = body.skeleton.global_transform * body.skeleton.get_bone_pose(ground_bone_idx).origin.normalized()
+    var shape_size: float = (ground_cast.shape as SphereShape3D).radius
+    var start_position: Vector3 = (bone_direction * (setting.ground_hit_start + shape_size))
+    ground_cast.global_position = target_position - start_position
+    ground_cast.target_position = start_position + (bone_direction * (setting.ground_hit_extra - shape_size))
+
     ground_cast.force_shapecast_update()
+
+    if debug_enable and debug_ground_cast:
+        _draw_ground_cast()
+
     if ground_cast.is_colliding():
         ground_point = ground_cast.get_collision_point(0)
         ground_normal = ground_cast.get_collision_normal(0)
@@ -703,8 +711,8 @@ func get_diagonal() -> Array[CrawlerLeg]:
 ## Callback for preparing custom joints and their resources, mainly to apply
 ## resource changes onto the joint. Return false to signal an error.
 func prepare_custom_joint(
-        joint: Joint3D,
-        joint_resource: Resource,
+        _joint: Joint3D,
+        _joint_resource: Resource,
 ) -> bool:
     return true
 
@@ -755,17 +763,14 @@ func update_chain_setting() -> void:
     physical_bone_chain.refresh_part_list_bone_names()
 
 func setting_modified() -> void:
-    ground_cast.collision_mask = shape_cast.collision_mask
-    # NOTE: Ground cast should share the step cast shape resource (NOT a copy!) so they remain synchronized
-    ground_cast.shape = shape_cast.shape
+    ground_cast.collision_mask = setting.ground_collision_mask
+    ground_cast.shape = setting.ground_cast_shape
 
-    var target_position: Vector3 = body.skeleton.get_bone_pose_position(ground_bone_idx)
-    var bone_direction: Vector3 = target_position.normalized()
-    var shape_size: float = (ground_cast.shape as SphereShape3D).radius
-    var start_position: Vector3 = (bone_direction * (setting.ground_hit_start + shape_size))
-    ground_cast.position = target_position - start_position
-    ground_cast.target_position = start_position + (bone_direction * (setting.ground_hit_extra - shape_size))
-
+    shape_cast.collision_mask = setting.step_cast_collision_mask
+    shape_cast.shape = setting.step_cast_shape
+    shape_cast.target_position = Vector3.UP * (setting.step_cast_end - setting.step_cast_start)
+    shape_cast.global_position = body.skeleton.global_transform * body.skeleton.get_bone_global_rest(target_bone_idx).origin
+    shape_cast.position += Vector3.UP * setting.step_cast_start
 
 func _draw_step_cast() -> void:
     var shape_origin: Vector3 = shape_cast.target_position
