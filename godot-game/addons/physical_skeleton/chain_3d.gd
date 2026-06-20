@@ -1,5 +1,5 @@
 @tool
-class_name PhysicalBoneChain3D extends Node
+class_name PhysicalBoneChain3D extends Node3D
 
 
 @export_custom(
@@ -8,12 +8,27 @@ class_name PhysicalBoneChain3D extends Node
     PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_READ_ONLY
 )
 var resource: PhysicalBoneChainResource
+
+@export_custom(
+    PROPERTY_HINT_NODE_TYPE,
+    'IterateIK3D',
+    PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_READ_ONLY
+)
+var iterate_ik: IterateIK3D
+
+@export_custom(
+    PROPERTY_HINT_NONE,
+    '',
+    PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_READ_ONLY
+)
+var ik_setting: int = -1
+
+
 ## Set by PhysicalSkeleton when creating new chains, to skip the ready method
 var _skip_ready: bool = false
 
 var is_valid: bool = false
 var is_ik_enabled: bool = false
-var is_ik_initialized: bool = false
 
 var skeleton: Skeleton3D
 
@@ -21,8 +36,6 @@ var skeleton: Skeleton3D
 var is_using_power: bool = false
 ## This chain has at least one broken motor
 var is_any_motor_broken: bool = false
-
-var ik_setting_id: int = -1
 
 var bone_list: PackedInt32Array
 var part_list: Array[PhysicalBonePart3D]
@@ -78,6 +91,10 @@ func get_bone_part_map() -> Dictionary[int, PhysicalBonePart3D]:
 
     return result
 
+func set_joint_force_exceeded_signal(sig: Signal) -> void:
+    for part in part_list:
+        part.joint_force_exceeded_emit = sig.emit.bind(self)
+
 func build_chain(main_body: RigidBody3D, custom_joint_builder: Callable) -> bool:
     if not skeleton:
         # TODO: error
@@ -115,6 +132,8 @@ func build_chain(main_body: RigidBody3D, custom_joint_builder: Callable) -> bool
             return false
 
         parent_body = part
+
+    reload_chain()
 
     return true
 
@@ -180,14 +199,34 @@ func deactivate() -> void:
     for part in part_list:
         part.deactivate()
 
-func init_ik(iterate_ik: IterateIK3D, setting_index: int) -> void:
-    is_ik_initialized = true
-    # TODO
+func set_ik(ik_node: IterateIK3D, setting_index: int) -> void:
+    iterate_ik = ik_node
+    ik_setting = setting_index
+
+    on_ik_setting_changed()
+
+    for part in part_list:
+        on_part_ik_changed('', part.part_index)
+
+func on_ik_setting_changed() -> void:
+    iterate_ik.set_root_bone_name(ik_setting, resource.root_bone)
+    iterate_ik.set_end_bone_name(ik_setting, resource.end_bone)
+    iterate_ik.set_rest_correction(ik_setting, resource.rest_correction_rate)
+
+func on_part_ik_changed(setting_name: StringName, part_index: int) -> void:
+    # TODO: only run when IK settings change
+    var res: PhysicalBonePartResource = part_list[part_index].resource
+    iterate_ik.set_joint_rotation_axis(ik_setting, part_index, res.rotation_axis)
+    iterate_ik.set_joint_rotation_axis_vector(ik_setting, part_index, res.custom_axis_vector)
+    iterate_ik.set_joint_limitation(ik_setting, part_index, res.limitation_resource)
+    iterate_ik.set_joint_limitation_right_axis(ik_setting, part_index, res.limitation_right_axis)
+    iterate_ik.set_joint_limitation_right_axis_vector(ik_setting, part_index, res.limitation_custom_right_axis_vector)
+    iterate_ik.set_joint_limitation_rotation_offset(ik_setting, part_index, res.limitation_rotation_offset)
 
 func setup_velocity() -> void:
     for index in range(part_count):
         var part: PhysicalBonePart3D = part_list[index]
-        part.setup_velocity(skeleton, bone_list[index])
+        part.setup_motor_velocity(skeleton, bone_list[index])
 
 func solve_velocity(iteration_count: int, delta: float) -> void:
 
@@ -389,3 +428,16 @@ func reload_chain() -> void:
     bone_list = new_bone_list
     part_list = indexed_part_list
     part_count = new_part_count
+
+    if is_ik_enabled:
+        return
+
+    if not resource.changed.is_connected(on_ik_setting_changed):
+        resource.changed.connect(on_ik_setting_changed)
+        on_ik_setting_changed()
+
+    for part in part_list:
+        var binding := on_part_ik_changed.bind(part.part_index)
+        if not part.resource.setting_changed.is_connected(binding):
+            part.resource.setting_changed.connect(binding)
+            binding.call('')

@@ -1,10 +1,17 @@
 [gd_resource type="Resource" script_class="CrawlerLegSetting" format=3 uid="uid://b76dud03hxddv"]
 
+[ext_resource type="Shape3D" uid="uid://db3u3bwwhmq8v" path="res://character/crawler_bot/normal/leg_cast_shape.tres" id="1_oa4c1"]
 [ext_resource type="Script" uid="uid://2nu0yn2lgo2m" path="res://character/crawler_bot/res/CrawlerLegSetting.gd" id="1_sgecx"]
 
 [resource]
 resource_name = "MiddleLeg"
 script = ExtResource("1_sgecx")
+ground_cast_shape = ExtResource("1_oa4c1")
+ground_collision_mask = 49
+step_cast_shape = ExtResource("1_oa4c1")
+step_cast_start = 1.2999999999999998
+step_cast_end = -0.7
+step_cast_collision_mask = 48
 step_distance = 0.9
 rest_distance = 0.1
 move_offset = 0.3

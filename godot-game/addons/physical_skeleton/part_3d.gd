@@ -73,11 +73,16 @@ var mesh_bone_inst: MeshInstance3D
 ## the correct initial linear velocity when activating the body
 var _cached_com: Vector3
 
+var joint_force_exceeded_emit: Callable
+var _signal_should_break: bool = false
+
 
 func _ready() -> void:
     if _skip_ready:
         return
 
+    var xform: Transform3D = global_transform
+    top_level = not Engine.is_editor_hint()
     reload_part()
 
     if is_valid:
@@ -401,12 +406,18 @@ func _should_break(joint: Joint3D, displacement: Transform3D) -> bool:
     var max_force: float = joint.get_meta(META_BREAK_FORCE, 0.0)
 
     if total_force > max_force:
-        print('%d : %s: %.2f' % [Engine.get_physics_frames(), joint.name, total_force])
-        # return true
+        if resource.break_use_signal:
+            _signal_should_break = false
+            joint_force_exceeded_emit.call(joint, total_force, max_force, self)
+            return _signal_should_break
+        return true
 
     #print('error: %s\nangle: %s' % [displacement.origin, displacement.basis.get_euler()])
 
     return false
+
+func set_should_break() -> void:
+    _signal_should_break = true
 
 func setup_motor_velocity(skeleton: Skeleton3D, bone_idx: int) -> void:
     """

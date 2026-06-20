@@ -174,7 +174,6 @@ var linear_leg_accel: Vector3
 var angular_leg_accel: Vector3
 
 var _is_update_ik_queued: bool = false
-var _next_chain_ik_setting_index: int = 0
 
 
 func editor_rebuild_crawler() -> void:
@@ -191,7 +190,11 @@ func editor_rebuild_crawler() -> void:
             'This will delete existing chain nodes and create new ones, adding '
             + 'them to this scene file.\nAre you sure?'
         )
-        dialog.confirmed.connect(rebuild_crawler.bind(false, true))
+        dialog.confirmed.connect(
+            func():
+                rebuild_crawler(false, true)
+                EditorInterface.mark_scene_as_unsaved()
+        )
 
     EditorInterface.popup_dialog_centered(dialog)
 
@@ -204,11 +207,18 @@ func rebuild_crawler(remove_unowned_nodes: bool = false, editor_mode: bool = fal
 
     _load_legs()
 
+    # Clear IK settings, fully managed by chains
+    leg_ik.setting_count = 0
+
     for leg in legs:
         if not leg.physical_bone_chain:
             continue
 
+        if leg.index >= leg_ik.setting_count:
+            leg_ik.set_setting_count(leg.index + 1)
+
         leg.apply_position()
+        leg.setup_target()
 
         var success: bool = physical_skeleton.remove_chain(leg.physical_bone_chain, remove_unowned_nodes)
 
@@ -293,16 +303,15 @@ func rebuild_crawler(remove_unowned_nodes: bool = false, editor_mode: bool = fal
             return
 
         if chain.is_ik_enabled:
-            if _next_chain_ik_setting_index >= leg_ik.setting_count:
-                leg_ik.set_setting_count(_next_chain_ik_setting_index + 1)
-            chain.init_ik(leg_ik, _next_chain_ik_setting_index)
-            _next_chain_ik_setting_index += 1
+            chain.set_ik(leg_ik, leg.index)
+
 
 func _ready() -> void:
     super._ready()
 
     if enable_physical_skeleton:
         physical_skeleton.skeleton = skeleton
+        physical_skeleton.joint_force_exceeded.connect(on_joint_force_exceeded)
 
     _load_legs(true)
     _update_body_mass()
@@ -472,6 +481,15 @@ func _on_leg_pose_updated() -> void:
 
 func damage(source: Object, amount: float, hit_point: Vector3) -> void:
     print('Took %f damage from %s at position %s' % [amount, source.name, str(hit_point)])
+
+func on_joint_force_exceeded(
+        joint: Joint3D,
+        force: float,
+        max_force: float,
+        part: PhysicalBonePart3D,
+        chain: PhysicalBoneChain3D,
+) -> void:
+    print('%d : %s: %.2f' % [Engine.get_physics_frames(), joint.name, force])
 
 func _update_body_mass() -> void:
     """

@@ -1,9 +1,6 @@
 @tool
 class_name CrawlerLeg extends Node3D
 
-## The floor step target raycast
-@export_custom(PROPERTY_HINT_NODE_TYPE, 'ShapeCast3D', PROPERTY_USAGE_STORAGE)
-var shape_cast: ShapeCast3D
 
 ## The node that IK uses for this leg
 @export_custom(PROPERTY_HINT_NODE_TYPE, 'Marker3D', PROPERTY_USAGE_STORAGE)
@@ -23,7 +20,7 @@ var ground_bone: StringName
 @export_group('Debug', 'debug')
 
 @export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
-var debug_enable: bool = false
+var debug_enable: bool = true
 
 ## The comfort region for leg
 @export var debug_rest_area: bool = false
@@ -47,7 +44,7 @@ var _debug_ik_sphere: int = 0
 var _debug_ground_normal_vector: int = 0
 
 ## The cast used for ground detection
-@export var debug_ground_cast: bool = false
+@export var debug_ground_cast: bool = true
 var _debug_ground_cast_vector: int = 0
 var _debug_ground_cast_shape: int = 0
 
@@ -75,6 +72,9 @@ var has_initialized: bool = false
 
 ## Initial location of the leg position relative to the body
 var attachment_point: Vector3 = Vector3.ZERO
+
+## The floor step target raycast
+var shape_cast: ShapeCast3D
 
 ## Transform used for moving step cast and rest point
 var step_transform: Transform3D = Transform3D.IDENTITY
@@ -171,6 +171,9 @@ func setup(cast_exceptions: Array[RID]) -> void:
     # Teleport to root bone position, is a method to share with CrawlerCharacter
     # build tool
     apply_position()
+    # Setup target node and position, same reason as above
+    setup_target()
+
 
     cached_adjacent = get_adjacent()
     cached_diagonal = get_diagonal()
@@ -178,17 +181,7 @@ func setup(cast_exceptions: Array[RID]) -> void:
     comfort_distance = setting.rest_distance
     target_rest_position = global_transform.inverse() * target.global_position
     attachment_point = (body.global_transform.inverse() * global_transform).origin
-    target_last_global_position = target.global_position
 
-    target_bone_idx = -1
-    if physical_bone_chain:
-        target_bone_idx = body.skeleton.find_bone(physical_bone_chain.end_bone)
-
-    if target_bone_idx == -1:
-        push_error(
-            'Unable to find end bone targetting node "%s" for leg %s!' % [target.name, name]
-        )
-        return
 
     ground_bone_idx = body.skeleton.find_bone(ground_bone)
     if ground_bone_idx == -1:
@@ -197,15 +190,13 @@ func setup(cast_exceptions: Array[RID]) -> void:
         )
         return
 
-    target = Marker3D.new()
-    add_child(target, false, Node.INTERNAL_MODE_FRONT)
-    target.global_position = body.skeleton.global_transform * body.skeleton.get_bone_global_rest(target_bone_idx).origin
-
     shape_cast = ShapeCast3D.new()
+    shape_cast.name = 'StepCast'
     shape_cast.enabled = false # Manually update the cast
     add_child(shape_cast, false, Node.INTERNAL_MODE_FRONT)
 
     ground_cast = ShapeCast3D.new()
+    ground_cast.name = 'GroundCast'
     ground_cast.enabled = false
     add_child(ground_cast, false, Node.INTERNAL_MODE_FRONT)
 
@@ -224,6 +215,27 @@ func apply_position() -> void:
     var bone_xform: Transform3D = body.skeleton.global_transform * body.skeleton.get_bone_global_pose(body.skeleton.find_bone(physical_bone_chain.root_bone))
     global_position = bone_xform.origin
     global_basis = Basis.IDENTITY
+
+func setup_target() -> void:
+    target_bone_idx = -1
+    if physical_bone_chain:
+        target_bone_idx = body.skeleton.find_bone(physical_bone_chain.end_bone)
+
+    if target_bone_idx == -1:
+        push_error(
+            'Unable to find end bone targetting node "%s" for leg %s!' % [target.name, name]
+        )
+        return
+
+    if not target:
+        target = Marker3D.new()
+        target.name = '%sTarget' % name
+        add_child(target, true)
+        target.owner = owner
+
+    body.leg_ik.set_target_node(index, body.leg_ik.get_path_to(target))
+    target.global_position = body.skeleton.global_transform * body.skeleton.get_bone_global_rest(target_bone_idx).origin
+    target_last_global_position = target.global_position
 
 func pose_updated() -> void:
     if use_new_leg_mode:
@@ -296,14 +308,18 @@ func pre_update(state: PhysicsDirectBodyState3D) -> void:
     elif is_stepping:
         step_target = step_target_global * global_transform
 
-func _new_pre_update(state: PhysicsDirectBodyState3D) -> void:
+func _new_pre_update(_state: PhysicsDirectBodyState3D) -> void:
     pass
 
 func _update_grounded() -> void:
     var has_ground: bool = false
 
     var target_position: Vector3 = body.skeleton.global_transform * body.skeleton.get_bone_global_pose(ground_bone_idx).origin
-    var bone_direction: Vector3 = body.skeleton.global_transform * body.skeleton.get_bone_pose(ground_bone_idx).origin.normalized()
+    var bone_direction: Vector3 = (
+              body.skeleton.get_bone_global_pose(ground_bone_idx).origin
+            - body.skeleton.get_bone_global_pose(body.skeleton.get_bone_parent(ground_bone_idx)).origin
+    ).normalized()
+    bone_direction = body.skeleton.global_basis * bone_direction
     var shape_size: float = (ground_cast.shape as SphereShape3D).radius
     var start_position: Vector3 = (bone_direction * (setting.ground_hit_start + shape_size))
     ground_cast.global_position = target_position - start_position

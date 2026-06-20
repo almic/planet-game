@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PhysicalBoneChainResource" format=3 uid="uid://d3ovpowx8bkyr"]
+
+[ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="1_db2ne"]
+[ext_resource type="Resource" uid="uid://d2moeutnew25y" path="res://character/crawler_bot/normal/femur_part.tres" id="2_lui83"]
+[ext_resource type="Resource" uid="uid://i7rxnr5r8vqw" path="res://character/crawler_bot/normal/tibia_part.tres" id="3_aojob"]
+[ext_resource type="Resource" uid="uid://da5n6snt7g7mf" path="res://character/crawler_bot/normal/tarsus_part.tres" id="4_ku3uv"]
+[ext_resource type="Script" uid="uid://bumtikmwn5lpl" path="res://addons/physical_skeleton/resource/chain_resource.gd" id="5_8wxsh"]
+
+[resource]
+resource_name = "BackRightChain"
+script = ExtResource("5_8wxsh")
+root_bone = &"BackRightFemur"
+end_bone = &"BackRightTarsus_leaf"
+part_list = Array[ExtResource("1_db2ne")]([ExtResource("2_lui83"), ExtResource("3_aojob"), ExtResource("4_ku3uv")])
+metadata/_custom_type_script = "uid://bumtikmwn5lpl"

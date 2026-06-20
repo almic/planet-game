@@ -9,6 +9,15 @@ const META_CHAIN_ROOT: StringName = &'_physical_chain_root'
 const META_CHAIN_RESOURCE_ID: StringName = &'_physical_chain_resource_id'
 
 
+signal joint_force_exceeded(
+        joint: Joint3D,
+        force: float,
+        max_force: float,
+        part: PhysicalBonePart3D,
+        chain: PhysicalBoneChain3D,
+)
+
+
 @export_tool_button('Update Joints', 'Generic6DOFJoint3D')
 var _btn_update_joints = editor_update_joints
 
@@ -98,7 +107,7 @@ var main_body: RigidBody3D
 
 var _bone_part_map: Dictionary[int, PhysicalBonePart3D]
 ## Node holding all the chain nodes
-var _chain_node_root: Node
+var _chain_node_root: Node3D
 ## Map chain uids to chain nodes
 var _chain_node_map: Dictionary[int, PhysicalBoneChain3D]
 
@@ -183,7 +192,7 @@ func _setup() -> void:
         push_error('PhysicalSkeleton could not find a primary RigidBody3D!')
         return
 
-    var chain_root: Node = get_chain_node_root()
+    var chain_root: Node3D = get_chain_node_root()
     if not chain_root:
         push_error(
             'PhysicalSkeleton could not find the chain root node, it must be built first. '
@@ -212,6 +221,8 @@ func _setup() -> void:
         if not chain.is_node_ready():
             await chain.ready
         _bone_part_map.merge(chain.get_bone_part_map(), true)
+
+        chain.set_joint_force_exceeded_signal(joint_force_exceeded)
 
         var id: int = chain.get_meta(META_CHAIN_RESOURCE_ID, ResourceUID.INVALID_ID)
         if id != ResourceUID.INVALID_ID:
@@ -268,7 +279,7 @@ func on_pose_finalized() -> void:
 
     const ITERATIONS: int = 1
     for chain in chain_list:
-        if (not chain.is_valid) or (not chain.is_powered):
+        if (not chain.is_valid) or (not chain.is_using_power):
             continue
         chain.setup_velocity()
         chain.solve_velocity(ITERATIONS, cached_delta)
@@ -276,7 +287,7 @@ func on_pose_finalized() -> void:
 func get_bone_part_map() -> Dictionary[int, PhysicalBonePart3D]:
     return _bone_part_map
 
-func get_chain_node_root() -> Node:
+func get_chain_node_root() -> Node3D:
     if _chain_node_root:
         # Check that it is still in the scene tree
         if not _chain_node_root.is_inside_tree():
@@ -333,9 +344,9 @@ func build_chain(
         return null
 
     # Create the root if it doesn't exist yet
-    var chain_root: Node = get_chain_node_root()
+    var chain_root: Node3D = get_chain_node_root()
     if not chain_root:
-        chain_root = Node.new()
+        chain_root = Node3D.new()
         chain_root.name = 'ChainRootNode'
         chain_root.set_meta(PhysicalSkeleton.META_OWNED, true)
         chain_root.set_meta(META_CHAIN_ROOT, true)
@@ -515,7 +526,8 @@ func _setup_chain_part(
         query: PhysicsShapeQueryParameters3D
 ) -> void:
     # Check current exceptions, may already include main body
-    for excepted in part.get_collision_exceptions():
+    var exceptions = part.get_collision_exceptions()
+    for excepted in exceptions:
         if excepted == main_body:
             return
 
@@ -545,11 +557,6 @@ func _setup_chain_part(
     if not intersects_main_body:
         return
 
-    print(
-        (
-            'PhysicalBonePart3D %s initially intersects %s, adding exception'
-        ) % [part.name, main_body.name]
-    )
     part.add_collision_exception_with(main_body)
     main_body.add_collision_exception_with(part)
 
