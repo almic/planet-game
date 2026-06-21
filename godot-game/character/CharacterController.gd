@@ -147,7 +147,7 @@ func _ready() -> void:
     custom_integrator = true
 
     # Setup spring
-    if spring:
+    if (not Engine.is_editor_hint()) and spring:
         spring.enabled = false
         spring.body_rid = get_rid()
 
