@@ -137,3 +137,4 @@ process_mode = 3
 [node name="GuideDebugger" parent="CanvasLayer" unique_id=1627471453 instance=ExtResource("3_gtsfv")]
 unique_name_in_owner = true
 process_mode = 3
+visible = false
