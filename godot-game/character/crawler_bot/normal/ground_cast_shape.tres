@@ -1,0 +1,6 @@
+[gd_resource type="SphereShape3D" format=3 uid="uid://cpwwcv4wbwc2p"]
+
+[resource]
+resource_name = "GroundCast"
+margin = 0.0
+radius = 0.06

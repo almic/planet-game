@@ -174,7 +174,7 @@ var linear_leg_accel: Vector3
 var angular_leg_accel: Vector3
 
 var _is_update_ik_queued: bool = false
-
+var _cached_body_state: PhysicsDirectBodyState3D
 
 func editor_rebuild_crawler() -> void:
     var dialog: Window
@@ -326,10 +326,10 @@ func _ready() -> void:
     leg_gravity_power.fill(0.0)
 
     # Collect leg rigid bodies to ignore for shape casts
-    var child_bodies: Array[RID]
+    var leg_cast_exclude_list: Array[RID] = [get_rid()]
     for body in find_children('', 'CollisionObject3D'):
         if body is CollisionObject3D:
-            child_bodies.append(body.get_rid())
+            leg_cast_exclude_list.append(body.get_rid())
 
     # Get the chain end bones for each leg target
     var target_bones: Dictionary = {}
@@ -358,7 +358,7 @@ func _ready() -> void:
 
     # Initialize legs
     for leg in legs:
-        leg.setup(child_bodies)
+        leg.setup(leg_cast_exclude_list)
 
     _update_leg_modes()
 
@@ -485,9 +485,9 @@ func damage(source: Object, amount: float, hit_point: Vector3) -> void:
 func on_joint_force_exceeded(
         joint: Joint3D,
         force: float,
-        max_force: float,
-        part: PhysicalBonePart3D,
-        chain: PhysicalBoneChain3D,
+        _max_force: float,
+        _part: PhysicalBonePart3D,
+        _chain: PhysicalBoneChain3D,
 ) -> void:
     print('%d : %s: %.2f' % [Engine.get_physics_frames(), joint.name, force])
 
@@ -565,11 +565,12 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
     ground_position = Vector3.ZERO
     ground_velocity = Vector3.ZERO
 
-    for leg in legs:
-        leg.pre_update(state)
-
     # NOTE: different order of operations when in virtual mode
-    if not enable_physical_skeleton:
+    if enable_physical_skeleton:
+        _cached_body_state = state
+    else:
+        for leg in legs:
+            leg.pre_update(state)
         _update_legs()
 
     # This kicks off several callbacks:
@@ -603,6 +604,11 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
 func _update_legs() -> void:
     # NOTE: this is called before IK, so virtual cannot copy the pose yet
     if enable_physical_skeleton:
+        if _cached_body_state:
+            for leg in legs:
+                leg.pre_update(_cached_body_state)
+            _cached_body_state = null
+
         for chain in physical_skeleton.chain_list:
             if not chain.is_ik_enabled:
                 continue

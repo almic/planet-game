@@ -14,7 +14,8 @@ var ground_bone: StringName
     set = _set_physical_bone_chain
 
 ## Shareable general leg parameters
-@export var setting: CrawlerLegSetting
+@export var setting: CrawlerLegSetting:
+    set = set_setting
 
 #region Debug
 @export_group('Debug', 'debug')
@@ -158,11 +159,24 @@ var step_height: float = 0.0
 var use_new_leg_mode: bool = false
 
 
+func _enter_tree() -> void:
+    connect_setting()
+
+func _exit_tree() -> void:
+    disconnect_setting()
+
 func _validate_property(property: Dictionary) -> void:
     if property.name == &'ground_bone':
         property.hint = PROPERTY_HINT_ENUM
         if body.skeleton:
             property.hint_string = body.skeleton.get_concatenated_bone_names()
+
+func set_setting(new_setting: CrawlerLegSetting) -> void:
+    if setting:
+        disconnect_setting()
+    setting = new_setting
+    if setting:
+        connect_setting()
 
 func setup(cast_exceptions: Array[RID]) -> void:
     if has_initialized:
@@ -198,6 +212,7 @@ func setup(cast_exceptions: Array[RID]) -> void:
     ground_cast = ShapeCast3D.new()
     ground_cast.name = 'GroundCast'
     ground_cast.enabled = false
+    ground_cast.top_level = true
     add_child(ground_cast, false, Node.INTERNAL_MODE_FRONT)
 
     for rid in cast_exceptions:
@@ -314,16 +329,14 @@ func _new_pre_update(_state: PhysicsDirectBodyState3D) -> void:
 func _update_grounded() -> void:
     var has_ground: bool = false
 
-    var target_position: Vector3 = body.skeleton.global_transform * body.skeleton.get_bone_global_pose(ground_bone_idx).origin
-    var bone_direction: Vector3 = (
-              body.skeleton.get_bone_global_pose(ground_bone_idx).origin
-            - body.skeleton.get_bone_global_pose(body.skeleton.get_bone_parent(ground_bone_idx)).origin
-    ).normalized()
-    bone_direction = body.skeleton.global_basis * bone_direction
+    var bone_parent_xform: Transform3D = body.skeleton.get_bone_global_pose(body.skeleton.get_bone_parent(ground_bone_idx))
+    var target_position: Vector3 = body.skeleton.get_bone_global_pose(ground_bone_idx).origin
+    var bone_direction: Vector3 = (target_position - bone_parent_xform.origin).normalized()
     var shape_size: float = (ground_cast.shape as SphereShape3D).radius
     var start_position: Vector3 = (bone_direction * (setting.ground_hit_start + shape_size))
-    ground_cast.global_position = target_position - start_position
-    ground_cast.target_position = start_position + (bone_direction * (setting.ground_hit_extra - shape_size))
+    ground_cast.position = body.skeleton.global_transform * (target_position - start_position)
+    ground_cast.basis = body.skeleton.global_basis * bone_parent_xform.basis
+    ground_cast.target_position = Vector3.UP * (setting.ground_hit_start + setting.ground_hit_extra)
 
     ground_cast.force_shapecast_update()
 
@@ -778,6 +791,16 @@ func update_chain_setting() -> void:
     physical_bone_chain.callable_get_bone_name_hint = body.skeleton.get_concatenated_bone_names
     physical_bone_chain.refresh_part_list_bone_names()
 
+func connect_setting() -> void:
+    if setting.changed.is_connected(setting_modified):
+        return
+    setting.changed.connect(setting_modified)
+
+func disconnect_setting() -> void:
+    if not setting.changed.is_connected(setting_modified):
+        return
+    setting.changed.disconnect(setting_modified)
+
 func setting_modified() -> void:
     ground_cast.collision_mask = setting.ground_collision_mask
     ground_cast.shape = setting.ground_cast_shape
@@ -860,7 +883,7 @@ func _draw_ground_cast() -> void:
     var shape_origin: Vector3 = ground_cast.target_position
     var shape_color: Color
     if ground_cast.is_colliding():
-        shape_origin *= ground_cast.get_closest_collision_unsafe_fraction()
+        shape_origin *= ground_cast.get_closest_collision_safe_fraction()
         shape_color = Color.DARK_ORCHID
     else:
         shape_color = Color.DARK_SLATE_GRAY

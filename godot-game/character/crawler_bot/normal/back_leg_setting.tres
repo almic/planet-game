@@ -1,12 +1,14 @@
 [gd_resource type="Resource" script_class="CrawlerLegSetting" format=3 uid="uid://v0relty5uq7m"]
 
 [ext_resource type="Shape3D" uid="uid://db3u3bwwhmq8v" path="res://character/crawler_bot/normal/leg_cast_shape.tres" id="1_pecwi"]
+[ext_resource type="Shape3D" uid="uid://cpwwcv4wbwc2p" path="res://character/crawler_bot/normal/ground_cast_shape.tres" id="1_qfgcu"]
 [ext_resource type="Script" uid="uid://2nu0yn2lgo2m" path="res://character/crawler_bot/res/CrawlerLegSetting.gd" id="1_xrlf6"]
 
 [resource]
 resource_name = "BackLeg"
 script = ExtResource("1_xrlf6")
-ground_cast_shape = ExtResource("1_pecwi")
+ground_cast_shape = ExtResource("1_qfgcu")
+ground_hit_start = 0.18
 ground_collision_mask = 49
 step_cast_shape = ExtResource("1_pecwi")
 step_cast_start = 1.2999999999999998
