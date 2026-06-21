@@ -279,8 +279,14 @@ func on_pose_finalized() -> void:
 
     const ITERATIONS: int = 1
     for chain in chain_list:
-        if (not chain.is_valid) or (not chain.is_using_power):
+        if not chain.is_valid:
             continue
+
+        chain.on_pose_finalized()
+
+        if not chain.is_using_power:
+            continue
+
         chain.setup_velocity()
         chain.solve_velocity(ITERATIONS, cached_delta)
 

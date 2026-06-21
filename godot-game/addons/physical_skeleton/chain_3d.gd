@@ -174,8 +174,20 @@ func update() -> void:
         if (not is_any_motor_broken) and part.is_motor_broken:
             is_any_motor_broken = true
 
+    _update_ik_rest_rate()
+
     # TODO: I think this is still a good idea (June 13)
     # IDEA: Teleport IK end bone to real location? Maybe this will help IK
+
+func _update_ik_rest_rate() -> void:
+    iterate_ik.set_rest_correction(ik_setting, resource.rest_correction_rate / Engine.physics_ticks_per_second)
+
+func on_pose_finalized() -> void:
+    for index in range(part_count):
+        var part := part_list[index]
+        if not part.is_valid:
+            continue
+        part.on_pose_finalized(skeleton, bone_list[index])
 
 ## Activates all rigid body parts of this chain
 func activate(initial_state: PhysicsDirectBodyState3D) -> void:
@@ -211,7 +223,7 @@ func set_ik(ik_node: IterateIK3D, setting_index: int) -> void:
 func on_ik_setting_changed() -> void:
     iterate_ik.set_root_bone_name(ik_setting, resource.root_bone)
     iterate_ik.set_end_bone_name(ik_setting, resource.end_bone)
-    iterate_ik.set_rest_correction(ik_setting, resource.rest_correction_rate)
+    _update_ik_rest_rate()
 
 func on_part_ik_changed(setting_name: StringName, part_index: int) -> void:
     # TODO: only run when IK settings change

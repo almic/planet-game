@@ -150,10 +150,6 @@ func build_part(
     add_child(mesh_node, true)
     mesh_node.owner = owner
 
-    if resource.bone_enable_mesh:
-        var bone_mesh_node = _build_mesh_bone_inst()
-        add_child(bone_mesh_node, true)
-
     var collision_shape := CollisionShape3D.new()
     collision_shape.set_meta(PhysicalSkeleton.META_OWNED, true)
     add_child(collision_shape, true)
@@ -250,6 +246,24 @@ func _build_mesh_bone_inst() -> MeshInstance3D:
     bone_mesh_node.set_meta(PhysicalSkeleton.META_OWNED, true)
     bone_mesh_node.set_meta(META_BONE_MESH, true)
     return bone_mesh_node
+
+## Creates and adds the mesh bone instance as an unowned child if needed, or
+## frees the node if it is not needed
+func _ensure_mesh_bone_inst() -> void:
+    if resource.bone_enable_mesh:
+        if mesh_bone_inst:
+            return
+        mesh_bone_inst = _build_mesh_bone_inst()
+        add_child(mesh_bone_inst, true)
+        mesh_bone_inst.material_override = resource.bone_material_override
+        mesh_bone_inst.mesh = resource.bone_mesh_override
+        if not mesh_bone_inst.mesh:
+            mesh_bone_inst.mesh = resource.mesh
+        mesh_bone_inst.position = resource.mesh_offset
+        mesh_bone_inst.basis = resource.mesh_rotation
+    elif mesh_bone_inst:
+        mesh_bone_inst.queue_free()
+        mesh_bone_inst = null
 
 func prepare_custom_joints(custom_joint_callable: Callable) -> bool:
     if not custom_joint_callable.is_valid():
@@ -418,6 +432,17 @@ func _should_break(joint: Joint3D, displacement: Transform3D) -> bool:
 
 func set_should_break() -> void:
     _signal_should_break = true
+
+func on_pose_finalized(skeleton: Skeleton3D, bone_idx: int) -> void:
+    _ensure_mesh_bone_inst()
+    if not mesh_bone_inst:
+        return
+
+    var bone_xform: Transform3D = skeleton.global_transform * skeleton.get_bone_global_pose(bone_idx)
+
+    mesh_bone_inst.global_transform = bone_xform
+    mesh_bone_inst.position += resource.mesh_offset
+    #mesh_bone_inst.basis = Basis(resource.mesh_rotation) * mesh_bone_inst.basis
 
 func setup_motor_velocity(skeleton: Skeleton3D, bone_idx: int) -> void:
     """
@@ -591,6 +616,9 @@ func reload_part() -> void:
     mesh_inst = loaded_mesh_inst
     mesh_bone_inst = loaded_mesh_bone_inst
 
+    # This is not an owned node, and is for debugging, so this is okay.
+    _ensure_mesh_bone_inst()
+
 func _configure_joint(joint: Joint3D) -> JointData:
 
     var joint_data: JointData = JointData.new()
@@ -634,23 +662,7 @@ func resource_modified(setting: StringName = &'') -> void:
     mesh_inst.position = resource.mesh_offset
     mesh_inst.basis = resource.mesh_rotation
 
-    if resource.bone_enable_mesh:
-        if not mesh_bone_inst:
-            mesh_bone_inst = _build_mesh_bone_inst()
-            add_child(mesh_bone_inst, false, Node.INTERNAL_MODE_BACK)
-
-        mesh_bone_inst.mesh = resource.bone_mesh_override
-        if not mesh_bone_inst.mesh:
-            mesh_bone_inst.mesh = resource.mesh
-
-        mesh_bone_inst.material_override = resource.bone_material_override
-
-        mesh_bone_inst.position = resource.mesh_offset
-        mesh_bone_inst.basis = resource.mesh_rotation
-    elif mesh_bone_inst:
-        # Remove the mesh node completely
-        mesh_bone_inst.queue_free()
-        mesh_bone_inst = null
+    _ensure_mesh_bone_inst()
 
     if resource.break_enabled:
         bone_joint.set_meta(META_BREAK_FORCE, resource.break_max_force)
