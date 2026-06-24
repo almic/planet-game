@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="PhysicalBonePartResource" format=3 uid="uid://bu4xybjod1py7"]
+
+[ext_resource type="Material" uid="uid://b40dbxkqwa5td" path="res://character/crawler_bot/normal/ghost_material.tres" id="1_i6wjq"]
+[ext_resource type="Shape3D" uid="uid://dunuwguvgydu4" path="res://character/crawler_bot/normal/femur_collision_shape.tres" id="2_8ysax"]
+[ext_resource type="Resource" uid="uid://ck77e1m3hkx0f" path="res://character/crawler_bot/normal/femur_limitation_mr.tres" id="3_i6wjq"]
+[ext_resource type="BoxMesh" uid="uid://buu5evxiifjrq" path="res://character/crawler_bot/normal/femur_box_mesh.tres" id="4_0vt53"]
+[ext_resource type="PhysicsMaterial" uid="uid://dgom72xev8omg" path="res://material/physic/metal.tres" id="5_cawax"]
+[ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="6_14720"]
+
+[resource]
+resource_name = "FemurPartMR"
+script = ExtResource("6_14720")
+mesh = ExtResource("4_0vt53")
+mesh_offset = Vector3(0, 0.155, 0)
+bone_enable_mesh = true
+bone_material_override = ExtResource("1_i6wjq")
+physics_material = ExtResource("5_cawax")
+collider_shape = ExtResource("2_8ysax")
+collider_offset = Vector3(0, 0.155, 0)
+collision_mask = 51
+break_enabled = true
+break_use_signal = true
+break_max_force = 500.0
+ik_enabled = true
+rotation_axis = 2
+limitation = ExtResource("3_i6wjq")
+copy_ik_limitation_angle = true
+joint_angular_limit_z_upper = 0.2705260340591152
+joint_angular_limit_z_lower = -0.5148721293383332
+torque_powered = 20.0
+metadata/_custom_type_script = "uid://btiyh1v4d1d3v"

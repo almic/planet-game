@@ -6,5 +6,7 @@
 resource_name = "TarsusBeamJoint"
 script = ExtResource("1_1pksf")
 body_A_position = Vector3(0, 0.365, 0)
-body_B_position = Vector3(0, 1.3599999999999999, 0)
+body_B_position = Vector3(0, 1.36, 0)
+pitch_upper = 0.2617993877991494
+pitch_lower = 0.2617993877991494
 metadata/_custom_type_script = "uid://bgui7td28pcg7"

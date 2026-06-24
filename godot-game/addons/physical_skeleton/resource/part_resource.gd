@@ -132,57 +132,23 @@ var break_max_force: float = 5000.0
 ## If this part should create an IK setting
 @export var ik_enabled: bool = false
 
-
-@export_subgroup('Rotation Axis', '')
-
 ## Allowed rotation axis for IK
-@export_enum('X', 'Y', 'Z', 'All', 'Custom')
+@export_enum('X', 'Y', 'Z')
 var rotation_axis: int = 3:
     set(value):
         rotation_axis = value
         setting_changed.emit(&'rotation_axis')
         _update_joint_setting()
 
-## Custom axis of rotation. Does not need to be normalized, the limitation will
-## take a normalized copy for processing.
-@export var custom_axis_vector: Vector3 = Vector3(1.0, 0.0, 0.0):
-    set(value):
-        custom_axis_vector = value
-        setting_changed.emit(&'custom_axis_vector')
-
-
-@export_subgroup('Limitation', 'limitation')
-
 ## Limitation resource, provides additional restrictions to limit the IK
-@export var limitation_resource: JointLimitation3D:
+@export var limitation: IKJointLimitation:
     set(value):
-        if limitation_resource and limitation_resource.changed.is_connected(_update_joint_setting):
-            limitation_resource.changed.disconnect(_update_joint_setting)
-        limitation_resource = value
-        if limitation_resource and (not limitation_resource.changed.is_connected(_update_joint_setting)):
-            limitation_resource.changed.connect(_update_joint_setting)
-        setting_changed.emit(&'limitation_resource')
-        _update_joint_setting()
-
-@export_enum('None', '+X', '-X', '+Y', '-Y', '+Z', '-Z', 'Custom')
-var limitation_right_axis: int = 0:
-    set(value):
-        limitation_right_axis = value
-        setting_changed.emit(&'limitation_right_axis')
-
-## Custom right axis of limitation. Does not need to be normalized, the
-## limitation will take a normalized copy for processing.
-@export var limitation_custom_right_axis_vector: Vector3:
-    set(value):
-        limitation_custom_right_axis_vector = value
-        setting_changed.emit(&'limitation_custom_right_axis_vector')
-
-## Rotation offset when applying limitation
-@export var limitation_rotation_offset: Quaternion:
-    set(value):
-        limitation_rotation_offset = value
-        setting_changed.emit(&'limitation_rotation_offset')
-        _update_joint_setting()
+        if limitation and limitation.changed.is_connected(_update_joint_setting):
+            limitation.changed.disconnect(_update_joint_setting)
+        limitation = value
+        if limitation and (not limitation.changed.is_connected(_update_joint_setting)):
+            limitation.changed.connect(_update_joint_setting)
+        setting_changed.emit(&'limitation')
 #endregion IK Settings
 
 #region Joint Settings
@@ -332,56 +298,51 @@ func _update_joint_setting() -> void:
     if rotation_axis > 2:
         return
 
-    if not limitation_resource:
+    if not limitation:
         return
 
-    var limitation_angle: float = TAU
-    var rotation_offset: Vector3 = Vector3.ZERO
+    var rotation_offset: Vector3 = limitation.rotation_offset.get_euler()
 
-    var limitation: JointLimitationCone3D = limitation_resource as JointLimitationCone3D
-    if limitation:
-        limitation_angle = limitation.angle
-        rotation_offset = limitation_rotation_offset.get_euler()
+    # Verify rotation offset is normal, should only apply on the axis of rotation
+    for i in range(3):
+        if i == rotation_axis:
+            continue
+        elif absf(rotation_offset[i]) >= 1.74e-3: # about 0.1 degrees
+            var limit_axis_str: String
+            if rotation_axis == 0:
+                limit_axis_str = 'X'
+            elif rotation_axis == 1:
+                limit_axis_str = 'Y'
+            else:
+                limit_axis_str = 'Z'
 
-        # Verify rotation offset is normal, should only apply on the axis of rotation
-        for i in range(3):
-            if i == rotation_axis:
-                continue
-            elif absf(rotation_offset[i]) >= 1.74e-3: # about 0.1 degrees
-                var limit_axis_str: String
-                if rotation_axis == 0:
-                    limit_axis_str = 'X'
-                elif rotation_axis == 1:
-                    limit_axis_str = 'Y'
-                else:
-                    limit_axis_str = 'Z'
+            var offset_axis_str: String
+            if i == 0:
+                offset_axis_str = 'X'
+            elif i == 1:
+                offset_axis_str = 'Y'
+            else:
+                offset_axis_str = 'Z'
+            push_error(
+                (
+                    'PhysicalBoneChainPart %s (at %s) has misaligned limitation_rotation_offset. '
+                    + 'Offsets should only be rotated on the axis they restrict, this limit acts '
+                    + 'on the %s axis but contains rotation on the %s axis. Please correct the '
+                    + 'rotation offset so that only axis %s has rotation.'
+                ) % [resource_name, resource_path, limit_axis_str, offset_axis_str, limit_axis_str]
+            )
+            return
 
-                var offset_axis_str: String
-                if i == 0:
-                    offset_axis_str = 'X'
-                elif i == 1:
-                    offset_axis_str = 'Y'
-                else:
-                    offset_axis_str = 'Z'
-                push_error(
-                    (
-                        'PhysicalBoneChainPart %s (at %s) has misaligned limitation_rotation_offset. '
-                        + 'Offsets should only be rotated on the axis they restrict, this limit acts '
-                        + 'on the %s axis but contains rotation on the %s axis. Please correct the '
-                        + 'rotation offset so that only axis %s has rotation.'
-                    ) % [resource_name, resource_path, limit_axis_str, offset_axis_str, limit_axis_str]
-                )
-                return
-
-    var lower_limit: float = rotation_offset[rotation_axis] - (limitation_angle * 0.5)
-    var upper_limit: float = rotation_offset[rotation_axis] + (limitation_angle * 0.5)
+    var lower_limit: float = rotation_offset[rotation_axis] - (limitation.angle * 0.5)
+    var upper_limit: float = rotation_offset[rotation_axis] + (limitation.angle * 0.5)
     # NOTE: X and Z limits are way more likely than Y, so I check those first
+    #       Also, invert the angles because I'm pretty sure Godot are meth addicts
     if rotation_axis == 0:
-        joint_angular_limit_x_lower = lower_limit
-        joint_angular_limit_x_upper = upper_limit
+        joint_angular_limit_x_lower = -upper_limit
+        joint_angular_limit_x_upper = -lower_limit
     elif rotation_axis == 2:
-        joint_angular_limit_z_lower = lower_limit
-        joint_angular_limit_z_upper = upper_limit
+        joint_angular_limit_z_lower = -upper_limit
+        joint_angular_limit_z_upper = -lower_limit
     else: # rotation_axis == 1
-        joint_angular_limit_y_lower = lower_limit
-        joint_angular_limit_y_upper = upper_limit
+        joint_angular_limit_y_lower = -upper_limit
+        joint_angular_limit_y_upper = -lower_limit

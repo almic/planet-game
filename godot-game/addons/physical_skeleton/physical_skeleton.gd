@@ -275,6 +275,10 @@ func deactivate_bodies() -> void:
 ## correctly target what changed in the pose.
 func on_pose_finalized() -> void:
     if not bodies_active:
+        # Just update visual skeleton in editor
+        if Engine.is_editor_hint():
+            for chain in chain_list:
+                chain.on_pose_finalized()
         return
 
     const ITERATIONS: int = 1
@@ -356,6 +360,7 @@ func build_chain(
         chain_root.name = 'ChainRootNode'
         chain_root.set_meta(PhysicalSkeleton.META_OWNED, true)
         chain_root.set_meta(META_CHAIN_ROOT, true)
+        chain_root.set_meta(&'_edit_lock_', true)
         skeleton.add_child(chain_root, true)
         chain_root.owner = owner
         queue_setup()
@@ -363,6 +368,7 @@ func build_chain(
     var chain := PhysicalBoneChain3D.new()
     chain.set_meta(PhysicalSkeleton.META_OWNED, true)
     chain.set_meta(&'_custom_type_script', ResourceUID.id_to_text(ResourceLoader.get_resource_uid((chain.get_script() as Script).resource_path)))
+    chain.set_meta(&'_edit_lock_', true)
     chain.resource = chain_resource
     chain.set_meta(META_CHAIN_RESOURCE_ID, chain.resource.get_unique_id())
     chain.name = chain.resource.resource_name
@@ -499,8 +505,6 @@ func setup_body() -> void:
                 return
 
         bone_joint_map.assign(chain_bone_joint_map)
-
-        # Process parts
 
         for part in chain.part_list:
             _setup_chain_part(part, space, query)

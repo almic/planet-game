@@ -6,13 +6,13 @@
 [ext_resource type="Texture2D" uid="uid://bs0wm5rj1jdy2" path="res://texture/dev/grid_red.png" id="2_welis"]
 [ext_resource type="Script" uid="uid://bco1liolqoebw" path="res://character/crawler_bot/CrawlerLeg.gd" id="3_cfulw"]
 [ext_resource type="Script" uid="uid://ba78jnlpxs7ph" path="res://addons/physical_skeleton/physical_skeleton.gd" id="3_xefeq"]
+[ext_resource type="Script" uid="uid://dfs1kud1hcgq1" path="res://node/ik_modifier/ik_modifier.gd" id="5_2n4j6"]
 [ext_resource type="Texture2D" uid="uid://c4kyalj0xhphu" path="res://texture/dev/grid_blue.png" id="5_eqa8u"]
-[ext_resource type="JointLimitationCone3D" uid="uid://btiyh1v4d1d3v" path="res://character/crawler_bot/normal/femur_joint_cone_limit.tres" id="5_ksujv"]
-[ext_resource type="JointLimitationCone3D" uid="uid://bcym6vtt2jqsf" path="res://character/crawler_bot/normal/tibia_joint_cone_limit.tres" id="6_2n4j6"]
 [ext_resource type="Resource" uid="uid://cd7utf738hfx6" path="res://character/crawler_bot/normal/front_leg_setting.tres" id="6_8gnh6"]
 [ext_resource type="Resource" uid="uid://deep6fs82y85d" path="res://character/crawler_bot/normal/front_left_chain.tres" id="6_h414r"]
+[ext_resource type="Script" uid="uid://co33qil70ybm6" path="res://node/ik_modifier/chain_resource.gd" id="6_hitf2"]
 [ext_resource type="Resource" uid="uid://b76dud03hxddv" path="res://character/crawler_bot/normal/middle_leg_setting.tres" id="7_6k2hw"]
-[ext_resource type="JointLimitationCone3D" uid="uid://d213qmgc1ylep" path="res://character/crawler_bot/normal/tarsus_joint_cone_limit.tres" id="7_hitf2"]
+[ext_resource type="Script" uid="uid://c5ct6mxt0vyod" path="res://node/ik_modifier/joint_resource.gd" id="7_wrlb8"]
 [ext_resource type="Resource" uid="uid://v0relty5uq7m" path="res://character/crawler_bot/normal/back_leg_setting.tres" id="8_1207b"]
 [ext_resource type="Resource" uid="uid://rcjr4qkpvkaw" path="res://character/crawler_bot/normal/front_right_chain.tres" id="8_c7gij"]
 [ext_resource type="Resource" uid="uid://b7os8v0bturis" path="res://character/crawler_bot/normal/middle_left_chain.tres" id="9_t7n8w"]
@@ -22,19 +22,187 @@
 [ext_resource type="Script" uid="uid://bby5w01y4paxl" path="res://addons/physical_skeleton/chain_3d.gd" id="17_ksujv"]
 [ext_resource type="PhysicsMaterial" uid="uid://dgom72xev8omg" path="res://material/physic/metal.tres" id="18_2n4j6"]
 [ext_resource type="Script" uid="uid://bgi016jncnd26" path="res://addons/physical_skeleton/part_3d.gd" id="19_hitf2"]
-[ext_resource type="Resource" uid="uid://d2moeutnew25y" path="res://character/crawler_bot/normal/femur_part.tres" id="20_wrlb8"]
 [ext_resource type="BoxMesh" uid="uid://buu5evxiifjrq" path="res://character/crawler_bot/normal/femur_box_mesh.tres" id="21_omih1"]
 [ext_resource type="Shape3D" uid="uid://dunuwguvgydu4" path="res://character/crawler_bot/normal/femur_collision_shape.tres" id="22_dmr5u"]
-[ext_resource type="Resource" uid="uid://i7rxnr5r8vqw" path="res://character/crawler_bot/normal/tibia_part.tres" id="23_gijdl"]
 [ext_resource type="BoxMesh" uid="uid://btoiao1l4fp0n" path="res://character/crawler_bot/normal/tibia_box_mesh.tres" id="24_yl080"]
 [ext_resource type="Shape3D" uid="uid://biemjf2j15vco" path="res://character/crawler_bot/normal/tibia_collision_shape.tres" id="25_15unk"]
+[ext_resource type="Resource" uid="uid://skrqmv3ata1a" path="res://character/crawler_bot/normal/femur_part_flbr.tres" id="25_hitf2"]
+[ext_resource type="Resource" uid="uid://3aihiv8s5f3h" path="res://character/crawler_bot/normal/tibia_part_flbr.tres" id="26_1ph6b"]
 [ext_resource type="Resource" uid="uid://da5n6snt7g7mf" path="res://character/crawler_bot/normal/tarsus_part.tres" id="28_y8fkf"]
 [ext_resource type="BoxMesh" uid="uid://bg5sh58i7q6tc" path="res://character/crawler_bot/normal/tarsus_box_mesh.tres" id="29_1ph6b"]
+[ext_resource type="Script" uid="uid://dfvyp4ujh55gf" path="res://node/beam_joint/beam_joint.gd" id="29_gijdl"]
+[ext_resource type="Resource" uid="uid://cnqset3111t5x" path="res://character/crawler_bot/normal/tibia_beam_frbl.tres" id="30_gijdl"]
+[ext_resource type="Resource" uid="uid://pddx5xji5rxn" path="res://character/crawler_bot/normal/tibia_beam_flbr.tres" id="30_tevyj"]
 [ext_resource type="Shape3D" uid="uid://drn7atwnqby6m" path="res://character/crawler_bot/normal/tarsus_collision_shape.tres" id="30_ysf54"]
+[ext_resource type="Resource" uid="uid://dpbhcca4qsy0s" path="res://character/crawler_bot/normal/femur_part_frbl.tres" id="32_2n4j6"]
+[ext_resource type="Resource" uid="uid://cs6xc2o50vm3u" path="res://character/crawler_bot/normal/femur_part_ml.tres" id="33_hitf2"]
+[ext_resource type="Resource" uid="uid://xbem30drgjxp" path="res://character/crawler_bot/normal/tarsus_beam_joint.tres" id="34_15unk"]
+[ext_resource type="Resource" uid="uid://bu4xybjod1py7" path="res://character/crawler_bot/normal/femur_part_mr.tres" id="34_wrlb8"]
+[ext_resource type="Resource" uid="uid://darhwxiggg7fm" path="res://character/crawler_bot/normal/tibia_part_frbl.tres" id="36_a6782"]
+[ext_resource type="Resource" uid="uid://doujt6twhh7e0" path="res://character/crawler_bot/normal/tibia_part_ml.tres" id="39_6v3m6"]
+[ext_resource type="Resource" uid="uid://dfwq8ggtlnn7k" path="res://character/crawler_bot/normal/tibia_beam_ml.tres" id="40_x5yrr"]
+[ext_resource type="Resource" uid="uid://m5bp67g4s544" path="res://character/crawler_bot/normal/tibia_part_mr.tres" id="42_rjoxa"]
+[ext_resource type="Resource" uid="uid://chv8p4u042q7n" path="res://character/crawler_bot/normal/tibia_beam_mr.tres" id="43_gw1yc"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_3kbc3"]
 margin = 0.0
 radius = 0.3
+
+[sub_resource type="Resource" id="Resource_1ph6b"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+rotation_axis = 2
+limitation_angle = 0.8726646259971648
+limitation_rotation_offset = Quaternion(0, 0, 0.08715574274766, 0.99619469809175)
+
+[sub_resource type="Resource" id="Resource_ysf54"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+limitation_angle = 0.8726646259971648
+
+[sub_resource type="Resource" id="Resource_tevyj"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+limitation_angle = 1.4835298641951802
+limitation_rotation_offset = Quaternion(0.08715574274766, 0, 0, 0.99619469809175)
+
+[sub_resource type="Resource" id="Resource_a6782"]
+resource_name = "ChainResource"
+script = ExtResource("6_hitf2")
+root_bone = &"FrontLeftFemur"
+end_bone = &"FrontLeftTarsus_leaf"
+target_node = NodePath("../LegTargets/FL_Leg/FL_LegTarget")
+joint_list = Array[ExtResource("7_wrlb8")]([SubResource("Resource_1ph6b"), SubResource("Resource_ysf54"), SubResource("Resource_tevyj")])
+
+[sub_resource type="Resource" id="Resource_6v3m6"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+rotation_axis = 2
+limitation_angle = 0.8726646259971648
+limitation_rotation_offset = Quaternion(0, 0, -0.08715574274766, 0.99619469809175)
+
+[sub_resource type="Resource" id="Resource_x5yrr"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+limitation_angle = 0.8726646259971648
+
+[sub_resource type="Resource" id="Resource_rjoxa"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+limitation_angle = 1.4835298641951802
+limitation_rotation_offset = Quaternion(0.08715574274766, 0, 0, 0.99619469809175)
+
+[sub_resource type="Resource" id="Resource_gw1yc"]
+resource_name = "ChainResource"
+script = ExtResource("6_hitf2")
+root_bone = &"FrontRightFemur"
+end_bone = &"FrontRightTarsus_leaf"
+target_node = NodePath("../LegTargets/FR_Leg/FR_LegTarget")
+joint_list = Array[ExtResource("7_wrlb8")]([SubResource("Resource_6v3m6"), SubResource("Resource_x5yrr"), SubResource("Resource_rjoxa")])
+
+[sub_resource type="Resource" id="Resource_2fyxm"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+rotation_axis = 2
+limitation_angle = 0.7853981633974483
+limitation_rotation_offset = Quaternion(0, 0, -0.06104853953486, 0.99813479842187)
+
+[sub_resource type="Resource" id="Resource_oi0ki"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+limitation_angle = 0.8726646259971648
+
+[sub_resource type="Resource" id="Resource_fy4h3"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+limitation_angle = 1.4835298641951802
+limitation_rotation_offset = Quaternion(0.08715574274766, 0, 0, 0.99619469809175)
+
+[sub_resource type="Resource" id="Resource_dh0pb"]
+resource_name = "ChainResource"
+script = ExtResource("6_hitf2")
+root_bone = &"MiddleLeftFemur"
+end_bone = &"MiddleLeftTarsus_leaf"
+target_node = NodePath("../LegTargets/ML_Leg/ML_LegTarget")
+joint_list = Array[ExtResource("7_wrlb8")]([SubResource("Resource_2fyxm"), SubResource("Resource_oi0ki"), SubResource("Resource_fy4h3")])
+
+[sub_resource type="Resource" id="Resource_jwypw"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+rotation_axis = 2
+limitation_angle = 0.7853981633974483
+limitation_rotation_offset = Quaternion(0, 0, 0.06104853953486, 0.99813479842187)
+
+[sub_resource type="Resource" id="Resource_12o05"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+limitation_angle = 0.8726646259971648
+
+[sub_resource type="Resource" id="Resource_ldd6o"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+limitation_angle = 1.4835298641951802
+limitation_rotation_offset = Quaternion(0.08715574274766, 0, 0, 0.99619469809175)
+
+[sub_resource type="Resource" id="Resource_8uln7"]
+resource_name = "ChainResource"
+script = ExtResource("6_hitf2")
+root_bone = &"MiddleRightFemur"
+end_bone = &"MiddleRightTarsus_leaf"
+target_node = NodePath("../LegTargets/MR_Leg/MR_LegTarget")
+joint_list = Array[ExtResource("7_wrlb8")]([SubResource("Resource_jwypw"), SubResource("Resource_12o05"), SubResource("Resource_ldd6o")])
+
+[sub_resource type="Resource" id="Resource_4nkpw"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+rotation_axis = 2
+limitation_angle = 0.8726646259971648
+limitation_rotation_offset = Quaternion(0, 0, -0.08715574274766, 0.99619469809175)
+
+[sub_resource type="Resource" id="Resource_5sffu"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+limitation_angle = 0.8726646259971648
+
+[sub_resource type="Resource" id="Resource_cjg8e"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+limitation_angle = 1.4835298641951802
+limitation_rotation_offset = Quaternion(0.08715574274766, 0, 0, 0.99619469809175)
+
+[sub_resource type="Resource" id="Resource_70uui"]
+resource_name = "ChainResource"
+script = ExtResource("6_hitf2")
+root_bone = &"BackLeftFemur"
+end_bone = &"BackLeftTarsus_leaf"
+target_node = NodePath("../LegTargets/BL_Leg/BL_LegTarget")
+joint_list = Array[ExtResource("7_wrlb8")]([SubResource("Resource_4nkpw"), SubResource("Resource_5sffu"), SubResource("Resource_cjg8e")])
+
+[sub_resource type="Resource" id="Resource_oj6dy"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+rotation_axis = 2
+limitation_angle = 0.8726646259971648
+limitation_rotation_offset = Quaternion(0, 0, 0.08715574274766, 0.99619469809175)
+
+[sub_resource type="Resource" id="Resource_bhq5e"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+limitation_angle = 0.8726646259971648
+
+[sub_resource type="Resource" id="Resource_ps3yj"]
+resource_name = "JointResource"
+script = ExtResource("7_wrlb8")
+limitation_angle = 1.4835298641951802
+limitation_rotation_offset = Quaternion(0.08715574274766, 0, 0, 0.99619469809175)
+
+[sub_resource type="Resource" id="Resource_mxslf"]
+resource_name = "ChainResource"
+script = ExtResource("6_hitf2")
+root_bone = &"BackRightFemur"
+end_bone = &"BackRightTarsus_leaf"
+target_node = NodePath("../LegTargets/BR_Leg/BR_LegTarget")
+joint_list = Array[ExtResource("7_wrlb8")]([SubResource("Resource_oj6dy"), SubResource("Resource_bhq5e"), SubResource("Resource_ps3yj")])
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2g2re"]
 albedo_texture = ExtResource("2_welis")
@@ -63,11 +231,11 @@ continuous_cd = true
 script = ExtResource("1_3kbc3")
 max_speed = 2.0
 skeleton = NodePath("big_crawler/Skeleton3D")
-leg_ik = NodePath("big_crawler/Skeleton3D/LegIKModifier")
+leg_ik = NodePath("big_crawler/Skeleton3D/IKModifier")
 physical_skeleton = NodePath("big_crawler/Skeleton3D/PhysicalSkeleton")
 ik_max_iterations = 10
 ik_min_distance = 0.0
-ik_angular_delta_limit = 1.7453292519943295
+ik_angular_delta_limit = 4.71238898038469
 body_leg_mass_ratio = 8.0
 body_height_offset = 0.9
 body_leg_lift_ratio = 0.4
@@ -83,7 +251,7 @@ shape = SubResource("CapsuleShape3D_3kbc3")
 
 [node name="big_crawler" parent="." unique_id=1739686264 instance=ExtResource("2_2g2re")]
 
-[node name="Skeleton3D" parent="big_crawler" index="0" unique_id=1916335741]
+[node name="Skeleton3D" parent="big_crawler" index="0" unique_id=2028449087]
 modifier_callback_mode_process = 2
 
 [node name="PhysicalSkeleton" type="SkeletonModifier3D" parent="big_crawler/Skeleton3D" index="0" unique_id=165867730]
@@ -109,146 +277,28 @@ joint_copies = 0
 joint_copy_width = 0.12
 metadata/_custom_type_script = "uid://ba78jnlpxs7ph"
 
-[node name="LegIKModifier" type="CCDIK3D" parent="big_crawler/Skeleton3D" index="1" unique_id=89345736]
-active = false
-mutable_bone_axes = false
-max_iterations = 10
+[node name="IKModifier" type="SkeletonModifier3D" parent="big_crawler/Skeleton3D" index="1" unique_id=523852362]
+unique_name_in_owner = false
+process_mode = 0
+process_priority = 0
+process_physics_priority = 0
+process_thread_group = 0
+physics_interpolation_mode = 0
+auto_translate_mode = 0
+editor_description = ""
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+rotation_edit_mode = 0
+rotation_order = 2
+top_level = false
+visible = true
+visibility_parent = NodePath("")
+active = true
+influence = 1.0
+script = ExtResource("5_2n4j6")
 min_distance = 0.0
-angular_delta_limit = 0.0017453292519943296
-deterministic = true
-setting_count = 6
-settings/0/target_node = NodePath("../LegTargets/FL_Leg/FL_LegTarget")
-settings/0/rest_correction_angle = 0.007853982
-settings/1/target_node = NodePath("../LegTargets/FR_Leg/FR_LegTarget")
-settings/1/rest_correction_angle = 0.007853982
-settings/2/target_node = NodePath("../LegTargets/ML_Leg/ML_LegTarget")
-settings/2/rest_correction_angle = 0.007853982
-settings/3/target_node = NodePath("../LegTargets/MR_Leg/MR_LegTarget")
-settings/3/rest_correction_angle = 0.007853982
-settings/4/target_node = NodePath("../LegTargets/BL_Leg/BL_LegTarget")
-settings/4/rest_correction_angle = 0.007853982
-settings/5/target_node = NodePath("../LegTargets/BR_Leg/BR_LegTarget")
-settings/5/rest_correction_angle = 0.007853982
-settings/0/root_bone_name = "FrontLeftFemur"
-settings/0/root_bone = 8
-settings/0/end_bone_name = "FrontLeftTarsus_leaf"
-settings/0/end_bone = 11
-settings/0/extend_end_bone = false
-settings/0/joint_count = 4
-settings/1/root_bone_name = "FrontRightFemur"
-settings/1/root_bone = 3
-settings/1/end_bone_name = "FrontRightTarsus_leaf"
-settings/1/end_bone = 6
-settings/1/extend_end_bone = false
-settings/1/joint_count = 4
-settings/2/root_bone_name = "MiddleLeftFemur"
-settings/2/root_bone = 18
-settings/2/end_bone_name = "MiddleLeftTarsus_leaf"
-settings/2/end_bone = 21
-settings/2/extend_end_bone = false
-settings/2/joint_count = 4
-settings/3/root_bone_name = "MiddleRightFemur"
-settings/3/root_bone = 13
-settings/3/end_bone_name = "MiddleRightTarsus_leaf"
-settings/3/end_bone = 16
-settings/3/extend_end_bone = false
-settings/3/joint_count = 4
-settings/4/root_bone_name = "BackLeftFemur"
-settings/4/root_bone = 23
-settings/4/end_bone_name = "BackLeftTarsus_leaf"
-settings/4/end_bone = 26
-settings/4/extend_end_bone = false
-settings/4/joint_count = 4
-settings/5/root_bone_name = "BackRightFemur"
-settings/5/root_bone = 28
-settings/5/end_bone_name = "BackRightTarsus_leaf"
-settings/5/end_bone = 31
-settings/5/extend_end_bone = false
-settings/5/joint_count = 4
-settings/0/joints/0/rotation_axis = 2
-settings/0/joints/0/limitation = ExtResource("5_ksujv")
-settings/0/joints/0/limitation/right_axis = 1
-settings/0/joints/0/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/0/joints/1/rotation_axis = 0
-settings/0/joints/1/limitation = ExtResource("6_2n4j6")
-settings/0/joints/1/limitation/right_axis = 6
-settings/0/joints/1/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/0/joints/2/rotation_axis = 0
-settings/0/joints/2/limitation = ExtResource("7_hitf2")
-settings/0/joints/2/limitation/right_axis = 6
-settings/0/joints/2/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/0/joints/3/rotation_axis = 3
-settings/0/joints/3/limitation = null
-settings/1/joints/0/rotation_axis = 2
-settings/1/joints/0/limitation = ExtResource("5_ksujv")
-settings/1/joints/0/limitation/right_axis = 1
-settings/1/joints/0/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/1/joints/1/rotation_axis = 0
-settings/1/joints/1/limitation = ExtResource("6_2n4j6")
-settings/1/joints/1/limitation/right_axis = 6
-settings/1/joints/1/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/1/joints/2/rotation_axis = 0
-settings/1/joints/2/limitation = ExtResource("7_hitf2")
-settings/1/joints/2/limitation/right_axis = 6
-settings/1/joints/2/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/1/joints/3/rotation_axis = 3
-settings/1/joints/3/limitation = null
-settings/2/joints/0/rotation_axis = 2
-settings/2/joints/0/limitation = ExtResource("5_ksujv")
-settings/2/joints/0/limitation/right_axis = 1
-settings/2/joints/0/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/2/joints/1/rotation_axis = 0
-settings/2/joints/1/limitation = ExtResource("6_2n4j6")
-settings/2/joints/1/limitation/right_axis = 6
-settings/2/joints/1/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/2/joints/2/rotation_axis = 0
-settings/2/joints/2/limitation = ExtResource("7_hitf2")
-settings/2/joints/2/limitation/right_axis = 6
-settings/2/joints/2/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/2/joints/3/rotation_axis = 3
-settings/2/joints/3/limitation = null
-settings/3/joints/0/rotation_axis = 2
-settings/3/joints/0/limitation = ExtResource("5_ksujv")
-settings/3/joints/0/limitation/right_axis = 1
-settings/3/joints/0/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/3/joints/1/rotation_axis = 0
-settings/3/joints/1/limitation = ExtResource("6_2n4j6")
-settings/3/joints/1/limitation/right_axis = 6
-settings/3/joints/1/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/3/joints/2/rotation_axis = 0
-settings/3/joints/2/limitation = ExtResource("7_hitf2")
-settings/3/joints/2/limitation/right_axis = 6
-settings/3/joints/2/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/3/joints/3/rotation_axis = 3
-settings/3/joints/3/limitation = null
-settings/4/joints/0/rotation_axis = 2
-settings/4/joints/0/limitation = ExtResource("5_ksujv")
-settings/4/joints/0/limitation/right_axis = 1
-settings/4/joints/0/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/4/joints/1/rotation_axis = 0
-settings/4/joints/1/limitation = ExtResource("6_2n4j6")
-settings/4/joints/1/limitation/right_axis = 6
-settings/4/joints/1/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/4/joints/2/rotation_axis = 0
-settings/4/joints/2/limitation = ExtResource("7_hitf2")
-settings/4/joints/2/limitation/right_axis = 6
-settings/4/joints/2/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/4/joints/3/rotation_axis = 3
-settings/4/joints/3/limitation = null
-settings/5/joints/0/rotation_axis = 2
-settings/5/joints/0/limitation = ExtResource("5_ksujv")
-settings/5/joints/0/limitation/right_axis = 1
-settings/5/joints/0/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/5/joints/1/rotation_axis = 0
-settings/5/joints/1/limitation = ExtResource("6_2n4j6")
-settings/5/joints/1/limitation/right_axis = 6
-settings/5/joints/1/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/5/joints/2/rotation_axis = 0
-settings/5/joints/2/limitation = ExtResource("7_hitf2")
-settings/5/joints/2/limitation/right_axis = 6
-settings/5/joints/2/limitation/rotation_offset = Quaternion(0, 0, 0, 1)
-settings/5/joints/3/rotation_axis = 3
-settings/5/joints/3/limitation = null
+angular_delta_limit = 4.71238898038469
+setting_list = Array[ExtResource("6_hitf2")]([SubResource("Resource_a6782"), SubResource("Resource_gw1yc"), SubResource("Resource_dh0pb"), SubResource("Resource_8uln7"), SubResource("Resource_70uui"), SubResource("Resource_mxslf")])
+metadata/_custom_type_script = "uid://dfs1kud1hcgq1"
 
 [node name="LegTargets" type="Node3D" parent="big_crawler/Skeleton3D" index="2" unique_id=1831794]
 
@@ -261,8 +311,9 @@ physical_bone_chain = ExtResource("6_h414r")
 setting = ExtResource("6_8gnh6")
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
-[node name="FL_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/FL_Leg" unique_id=2132663691]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1316897994972137, -0.8200002637279464, -1.5361897448335555)
+[node name="FL_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/FL_Leg" unique_id=252489343]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1316897994972135, -0.8200002637279464, -1.5361897448335555)
+gizmo_extents = 0.1
 
 [node name="FR_Leg" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=734277902 node_paths=PackedStringArray("target")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1729999629310944, 0.820000018584341, -0.6729999905830053)
@@ -272,9 +323,11 @@ ground_bone = &"FrontRightTarsus_leaf"
 physical_bone_chain = ExtResource("8_c7gij")
 setting = ExtResource("6_8gnh6")
 metadata/_custom_type_script = "uid://bco1liolqoebw"
+metadata/_edit_lock_ = true
 
-[node name="FR_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/FR_Leg" unique_id=726732163]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1316897994972137, -0.8200002637279464, -1.5361897448335555)
+[node name="FR_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/FR_Leg" unique_id=313845362]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1316897994972135, -0.8200002637279464, -1.5361897448335555)
+gizmo_extents = 0.1
 
 [node name="ML_Leg" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=1724073026 node_paths=PackedStringArray("target")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15000001963246493, 0.8199999775042561, 2.8673026472508733e-08)
@@ -284,9 +337,11 @@ ground_bone = &"MiddleLeftTarsus_leaf"
 physical_bone_chain = ExtResource("9_t7n8w")
 setting = ExtResource("7_6k2hw")
 metadata/_custom_type_script = "uid://bco1liolqoebw"
+metadata/_edit_lock_ = true
 
-[node name="ML_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/ML_Leg" unique_id=939877894]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9083802259523648, -0.8199997715675613, 3.86036573856717e-07)
+[node name="ML_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/ML_Leg" unique_id=1374616570]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9083802259523646, -0.8199997715675613, 3.8603657385671696e-07)
+gizmo_extents = 0.1
 
 [node name="MR_Leg" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=535388397 node_paths=PackedStringArray("target")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15000001963246493, 0.8199999775042561, 2.8673026472508733e-08)
@@ -296,9 +351,11 @@ ground_bone = &"MiddleRightTarsus_leaf"
 physical_bone_chain = ExtResource("11_j5g3f")
 setting = ExtResource("7_6k2hw")
 metadata/_custom_type_script = "uid://bco1liolqoebw"
+metadata/_edit_lock_ = true
 
-[node name="MR_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/MR_Leg" unique_id=1507264562]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.9083801970678744, -0.8199997985141179, 3.860366077733255e-07)
+[node name="MR_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/MR_Leg" unique_id=1527091504]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.9083801970678742, -0.8199997985141179, 3.860366077733255e-07)
+gizmo_extents = 0.1
 
 [node name="BL_Leg" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=1539461357 node_paths=PackedStringArray("target")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.17299997386683233, 0.8199999798820695, 0.6729999845784954)
@@ -308,9 +365,11 @@ ground_bone = &"BackLeftTarsus_leaf"
 physical_bone_chain = ExtResource("12_3motw")
 setting = ExtResource("8_1207b")
 metadata/_custom_type_script = "uid://bco1liolqoebw"
+metadata/_edit_lock_ = true
 
-[node name="BL_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/BL_Leg" unique_id=217267728]
+[node name="BL_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/BL_Leg" unique_id=2051365773]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1316897718826358, -0.8200002237818728, 1.5361900622041404)
+gizmo_extents = 0.1
 
 [node name="BR_Leg" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=1208467192 node_paths=PackedStringArray("target")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.17299997386683233, 0.8199999798820695, 0.6729999845784954)
@@ -320,9 +379,11 @@ ground_bone = &"BackRightTarsus_leaf"
 physical_bone_chain = ExtResource("14_mefpt")
 setting = ExtResource("8_1207b")
 metadata/_custom_type_script = "uid://bco1liolqoebw"
+metadata/_edit_lock_ = true
 
-[node name="BR_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/BR_Leg" unique_id=669161403]
+[node name="BR_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/BR_Leg" unique_id=1506875962]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1316897718826358, -0.8200002237818728, 1.5361900622041404)
+gizmo_extents = 0.1
 
 [node name="LowerSection" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="3" unique_id=920247470]
 transform = Transform3D(1, 0, 0, 0, 2.220446e-16, 1, 0, -1, 2.220446e-16, 0, 0.9, 0.5)
@@ -339,79 +400,98 @@ metadata/_edit_lock_ = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
 mesh = SubResource("BoxMesh_ro1ip")
 
-[node name="ChainRootNode" type="Node3D" parent="big_crawler/Skeleton3D" index="4" unique_id=1681202083]
+[node name="ChainRootNode" type="Node3D" parent="big_crawler/Skeleton3D" index="4" unique_id=331699015]
 metadata/_physical_skeleton_owned = true
 metadata/_physical_chain_root = true
+metadata/_edit_lock_ = true
 
-[node name="FrontLeftChain" type="Node3D" parent="big_crawler/Skeleton3D/ChainRootNode" unique_id=413847547 node_paths=PackedStringArray("iterate_ik")]
+[node name="FrontLeftChain" type="Node3D" parent="big_crawler/Skeleton3D/ChainRootNode" unique_id=1726891716 node_paths=PackedStringArray("ik_node")]
 script = ExtResource("17_ksujv")
 resource = ExtResource("6_h414r")
-iterate_ik = NodePath("../../LegIKModifier")
+ik_node = NodePath("../../IKModifier")
 ik_setting = 0
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bby5w01y4paxl"
+metadata/_edit_lock_ = true
 metadata/_physical_chain_resource_id = 7449241343109883283
 
-[node name="FemurPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain" unique_id=628435868]
-transform = Transform3D(0.784356720308211, -0.6203100316030258, 3.798303473408194e-17, 0, 6.123233995736766e-17, 1, -0.6203100316030258, -0.784356720308211, 4.802799734575831e-17, -0.1729999629310944, 0.820000018584341, -0.6729999905830053)
+[node name="FemurPartFLBR" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain" unique_id=347711095]
+transform = Transform3D(0.784356720308211, -0.6203100316030258, 3.798303473408195e-17, 0, 6.123233995736766e-17, 1, -0.6203100316030258, -0.784356720308211, 4.802799734575832e-17, -0.1729999629310944, 0.820000018584341, -0.6729999905830053)
 collision_mask = 51
 mass = 0.241930473974201
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
-resource = ExtResource("20_wrlb8")
+resource = ExtResource("25_hitf2")
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/FemurPart" unique_id=572885457]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/FemurPartFLBR" unique_id=1738062966]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.155, 0)
 mesh = ExtResource("21_omih1")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/FemurPart" unique_id=456124931]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/FemurPartFLBR" unique_id=1079240292]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.155, 0)
 shape = ExtResource("22_dmr5u")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/FemurPart" unique_id=397098808]
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/FemurPartFLBR" unique_id=1323538600]
 node_a = NodePath("../../../../../..")
 node_b = NodePath("..")
-angular_limit_z/upper_angle = 0.5235987755982988
-angular_limit_z/lower_angle = -0.5235987755982988
+angular_limit_z/upper_angle = 0.2617993877991466
+angular_limit_z/lower_angle = -0.6108652381980182
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 500.0
 
-[node name="TibiaPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain" unique_id=499729408]
-transform = Transform3D(0.8090155752860068, -0.4268200494888425, 0.40412676761010735, 8.760612206988665e-08, 0.6875393259617616, 0.7261471443557697, -0.5877872054958698, -0.587464314329295, 0.5562300607167572, -0.3646779557319027, 0.8200000546614017, -0.9153690385853962)
+[node name="TibiaPartFLBR" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain" unique_id=823382832]
+transform = Transform3D(0.8090155752860068, -0.42682004948884245, 0.40412676761010735, 8.760612206988665e-08, 0.6875393259617616, 0.7261471443557697, -0.5877872054958698, -0.587464314329295, 0.5562300607167572, -0.36467795573190276, 0.8200000546614017, -0.9153690385853962)
 collision_mask = 51
 mass = 0.5699344217038157
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
-resource = ExtResource("23_gijdl")
+resource = ExtResource("26_1ph6b")
 part_index = 1
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/TibiaPart" unique_id=841160641]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/TibiaPartFLBR" unique_id=816156460]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.365, 0)
 mesh = ExtResource("24_yl080")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/TibiaPart" unique_id=1901849962]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/TibiaPartFLBR" unique_id=301272657]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.365, 0)
 shape = ExtResource("25_15unk")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/TibiaPart" unique_id=126475668]
-node_a = NodePath("../../FemurPart")
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/TibiaPartFLBR" unique_id=671913820]
+node_a = NodePath("../../FemurPartFLBR")
 node_b = NodePath("..")
+angular_limit_x/upper_angle = 0.4363323129985824
+angular_limit_x/lower_angle = -0.4363323129985824
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 300.0
 
-[node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain" unique_id=1279155546]
+[node name="TibiaBeamFLBR" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/TibiaPartFLBR" unique_id=188514358]
+transform = Transform3D(0.015985256077089727, 0.0065423229282726425, -0.9998508236726376, -0.932362317290417, 0.36130763106690217, -0.012542130188546052, 0.36117167785554966, 0.9324237200669689, 0.0118754103710777, 1.6653345e-16, 0.5800000000000001, 1.110223e-16)
+node_a = NodePath("../../../../../..")
+node_b = NodePath("..")
+script = ExtResource("29_gijdl")
+setting = ExtResource("30_tevyj")
+body_A_offset = Vector3(-0.1729999629310944, 0.820000018584341, -0.6729999905830053)
+metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
+metadata/_physical_skeleton_owned = true
+metadata/_part_custom_index = 0
+
+[node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain" unique_id=870469493]
 transform = Transform3D(0.8090194832710097, -0.3701832651178344, -0.4565652482555013, -6.8709954832684095e-09, -0.7767597279980052, 0.6297970506127073, -0.5877818266056789, -0.5095180813152407, -0.6284137563142037, -0.6753789166644286, 1.3204898589641512, -1.3430101113619606)
 collision_mask = 51
 mass = 1.330992247179126
@@ -422,95 +502,125 @@ resource = ExtResource("28_y8fkf")
 part_index = 2
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/TarsusPart" unique_id=1105205838]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/TarsusPart" unique_id=437688010]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 mesh = ExtResource("29_1ph6b")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/TarsusPart" unique_id=1416594991]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/TarsusPart" unique_id=1238011529]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 shape = ExtResource("30_ysf54")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/TarsusPart" unique_id=1204645312]
-node_a = NodePath("../../TibiaPart")
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/TarsusPart" unique_id=1797485871]
+node_a = NodePath("../../TibiaPartFLBR")
 node_b = NodePath("..")
-angular_limit_x/upper_angle = 1.0471975511965976
-angular_limit_x/lower_angle = -1.0471975511965976
+angular_limit_x/upper_angle = 0.5672320068981543
+angular_limit_x/lower_angle = -0.9162978572970258
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 200.0
 
-[node name="FrontRightChain" type="Node3D" parent="big_crawler/Skeleton3D/ChainRootNode" unique_id=106510942 node_paths=PackedStringArray("iterate_ik")]
+[node name="TarsusBeamJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/TarsusPart" unique_id=169483626]
+transform = Transform3D(1.2297043715525646e-06, -8.942961163826979e-07, -0.9999999999988441, -0.9650282257676612, -0.2621459964806123, -9.522632812286602e-07, -0.2621459964794576, 0.9650282257677167, -1.1853830723107528e-06, -2.220446e-16, 1.3600000000000003, 4.440892e-16)
+node_a = NodePath("../../TibiaPartFLBR")
+node_b = NodePath("..")
+script = ExtResource("29_gijdl")
+setting = ExtResource("34_15unk")
+metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
+metadata/_physical_skeleton_owned = true
+metadata/_part_custom_index = 0
+
+[node name="FrontRightChain" type="Node3D" parent="big_crawler/Skeleton3D/ChainRootNode" unique_id=1614486807 node_paths=PackedStringArray("ik_node")]
 script = ExtResource("17_ksujv")
 resource = ExtResource("8_c7gij")
-iterate_ik = NodePath("../../LegIKModifier")
+ik_node = NodePath("../../IKModifier")
 ik_setting = 1
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bby5w01y4paxl"
+metadata/_edit_lock_ = true
 metadata/_physical_chain_resource_id = 1197917457155212566
 
-[node name="FemurPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain" unique_id=1040257996]
-transform = Transform3D(0.784356720308211, 0.6203100316030258, -3.798303473408194e-17, 0, 6.123233995736766e-17, 1, 0.6203100316030258, -0.784356720308211, 4.802799734575831e-17, 0.1729999629310944, 0.820000018584341, -0.6729999905830053)
+[node name="FemurPartFRBL" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain" unique_id=1030394447]
+transform = Transform3D(0.784356720308211, 0.6203100316030258, -3.798303473408195e-17, 0, 6.123233995736766e-17, 1, 0.6203100316030258, -0.784356720308211, 4.802799734575832e-17, 0.1729999629310944, 0.820000018584341, -0.6729999905830053)
 collision_mask = 51
 mass = 0.241930473974201
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
-resource = ExtResource("20_wrlb8")
+resource = ExtResource("32_2n4j6")
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/FemurPart" unique_id=72288873]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/FemurPartFRBL" unique_id=299808894]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.155, 0)
 mesh = ExtResource("21_omih1")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/FemurPart" unique_id=960994022]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/FemurPartFRBL" unique_id=959121040]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.155, 0)
 shape = ExtResource("22_dmr5u")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/FemurPart" unique_id=1803787541]
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/FemurPartFRBL" unique_id=623275057]
 node_a = NodePath("../../../../../..")
 node_b = NodePath("..")
-angular_limit_z/upper_angle = 0.5235987755982988
-angular_limit_z/lower_angle = -0.5235987755982988
+angular_limit_z/upper_angle = 0.6108652381980182
+angular_limit_z/lower_angle = -0.2617993877991466
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 500.0
 
-[node name="TibiaPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain" unique_id=775570441]
-transform = Transform3D(0.8090155752860068, 0.4268200494888425, -0.40412676761010735, -8.760612206988665e-08, 0.6875393259617616, 0.7261471443557697, 0.5877872054958698, -0.587464314329295, 0.5562300607167572, 0.3646779557319027, 0.8200000546614017, -0.9153690385853962)
+[node name="TibiaPartFRBL" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain" unique_id=1013846126]
+transform = Transform3D(0.8090155752860068, 0.42682004948884245, -0.40412676761010735, -8.760612206988665e-08, 0.6875393259617616, 0.7261471443557697, 0.5877872054958698, -0.587464314329295, 0.5562300607167572, 0.36467795573190276, 0.8200000546614017, -0.9153690385853962)
 collision_mask = 51
 mass = 0.5699344217038157
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
-resource = ExtResource("23_gijdl")
+resource = ExtResource("36_a6782")
 part_index = 1
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/TibiaPart" unique_id=1349730818]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/TibiaPartFRBL" unique_id=1013940099]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.365, 0)
 mesh = ExtResource("24_yl080")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/TibiaPart" unique_id=1557475885]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/TibiaPartFRBL" unique_id=469698770]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.365, 0)
 shape = ExtResource("25_15unk")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/TibiaPart" unique_id=169799134]
-node_a = NodePath("../../FemurPart")
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/TibiaPartFRBL" unique_id=1261391517]
+node_a = NodePath("../../FemurPartFRBL")
 node_b = NodePath("..")
+angular_limit_x/upper_angle = 0.4363323129985824
+angular_limit_x/lower_angle = -0.4363323129985824
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 300.0
 
-[node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain" unique_id=705653944]
+[node name="TibiaBeamFRBL" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/TibiaPartFRBL" unique_id=1669527688]
+transform = Transform3D(-0.015985256077089727, -0.0065423229282726425, -0.9998508236726376, -0.932362317290417, 0.36130763106690217, 0.012542130188546052, 0.36117167785554966, 0.9324237200669689, -0.0118754103710777, -1.6653345e-16, 0.5800000000000001, 1.110223e-16)
+node_a = NodePath("../../../../../..")
+node_b = NodePath("..")
+script = ExtResource("29_gijdl")
+setting = ExtResource("30_gijdl")
+body_A_offset = Vector3(0.1729999629310944, 0.820000018584341, -0.6729999905830053)
+metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
+metadata/_physical_skeleton_owned = true
+metadata/_part_custom_index = 0
+
+[node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain" unique_id=1213399416]
 transform = Transform3D(0.8090194832710097, 0.3701832651178344, 0.4565652482555013, 6.8709954832684095e-09, -0.7767597279980052, 0.6297970506127073, 0.5877818266056789, -0.5095180813152407, -0.6284137563142037, 0.6753789166644286, 1.3204898589641512, -1.3430101113619606)
 collision_mask = 51
 mass = 1.330992247179126
@@ -521,96 +631,126 @@ resource = ExtResource("28_y8fkf")
 part_index = 2
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/TarsusPart" unique_id=1919004171]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/TarsusPart" unique_id=1224785862]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 mesh = ExtResource("29_1ph6b")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/TarsusPart" unique_id=382126673]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/TarsusPart" unique_id=240603828]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 shape = ExtResource("30_ysf54")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/TarsusPart" unique_id=1796561262]
-node_a = NodePath("../../TibiaPart")
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/TarsusPart" unique_id=2037688961]
+node_a = NodePath("../../TibiaPartFRBL")
 node_b = NodePath("..")
-angular_limit_x/upper_angle = 1.0471975511965976
-angular_limit_x/lower_angle = -1.0471975511965976
+angular_limit_x/upper_angle = 0.5672320068981543
+angular_limit_x/lower_angle = -0.9162978572970258
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 200.0
 
-[node name="MiddleLeftChain" type="Node3D" parent="big_crawler/Skeleton3D/ChainRootNode" unique_id=510289315 node_paths=PackedStringArray("iterate_ik")]
+[node name="TarsusBeamJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/TarsusPart" unique_id=1496234733]
+transform = Transform3D(-1.2297043715525646e-06, 8.942961163826979e-07, -0.9999999999988441, -0.9650282257676612, -0.2621459964806123, 9.522632812286602e-07, -0.2621459964794576, 0.9650282257677167, 1.1853830723107528e-06, 2.220446e-16, 1.3600000000000003, 4.440892e-16)
+node_a = NodePath("../../TibiaPartFRBL")
+node_b = NodePath("..")
+script = ExtResource("29_gijdl")
+setting = ExtResource("34_15unk")
+metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
+metadata/_physical_skeleton_owned = true
+metadata/_part_custom_index = 0
+
+[node name="MiddleLeftChain" type="Node3D" parent="big_crawler/Skeleton3D/ChainRootNode" unique_id=1932967821 node_paths=PackedStringArray("ik_node")]
 script = ExtResource("17_ksujv")
 resource = ExtResource("9_t7n8w")
-iterate_ik = NodePath("../../LegIKModifier")
+ik_node = NodePath("../../IKModifier")
 ik_setting = 2
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bby5w01y4paxl"
+metadata/_edit_lock_ = true
 metadata/_physical_chain_resource_id = 4662517947417727382
 
-[node name="FemurPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain" unique_id=1010232299]
+[node name="FemurPartML" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain" unique_id=1806829887]
 transform = Transform3D(-1.7159081505107705e-07, -0.9999999999999852, 6.123233995736676e-17, 0, 6.123233995736766e-17, 1, -0.9999999999999852, 1.7159081505107705e-07, -1.050690712076935e-23, -0.15000001963246493, 0.8199999775042561, 2.8673026472508733e-08)
 collision_mask = 51
 mass = 0.2420174290629674
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
-resource = ExtResource("20_wrlb8")
+resource = ExtResource("33_hitf2")
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/FemurPart" unique_id=1874021351]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/FemurPartML" unique_id=1895608192]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.155, 0)
 mesh = ExtResource("21_omih1")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/FemurPart" unique_id=170469522]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/FemurPartML" unique_id=1879516445]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.155, 0)
 shape = ExtResource("22_dmr5u")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/FemurPart" unique_id=1777973166]
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/FemurPartML" unique_id=410853882]
 node_a = NodePath("../../../../../..")
 node_b = NodePath("..")
-angular_limit_z/upper_angle = 0.5235987755982988
-angular_limit_z/lower_angle = -0.5235987755982988
+angular_limit_z/upper_angle = 0.5148721293383332
+angular_limit_z/lower_angle = -0.2705260340591152
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 500.0
 
-[node name="TibiaPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain" unique_id=1086000844]
-transform = Transform3D(-1.5110055404063198e-07, -0.7261474529281385, 0.6875390000617814, -4.670409521403128e-08, 0.6875390000617936, 0.7261474529281411, -0.9999999999999876, 7.761039553039057e-08, -1.3780158361486116e-07, -0.4591290561935918, 0.8199999785885815, 8.171672966359552e-08)
+[node name="TibiaPartML" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain" unique_id=1259086693]
+transform = Transform3D(-1.5110055404063195e-07, -0.7261474529281385, 0.6875390000617814, -4.6704095214031276e-08, 0.6875390000617936, 0.7261474529281411, -0.9999999999999875, 7.761039553039055e-08, -1.3780158361486116e-07, -0.4591290561935918, 0.8199999785885815, 8.171672966359552e-08)
 collision_mask = 51
 mass = 0.569908206461339
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
-resource = ExtResource("23_gijdl")
+resource = ExtResource("39_6v3m6")
 part_index = 1
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/TibiaPart" unique_id=1538705407]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/TibiaPartML" unique_id=2081474431]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.365, 0)
 mesh = ExtResource("24_yl080")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/TibiaPart" unique_id=69752558]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/TibiaPartML" unique_id=804379489]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.365, 0)
 shape = ExtResource("25_15unk")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/TibiaPart" unique_id=589274366]
-node_a = NodePath("../../FemurPart")
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/TibiaPartML" unique_id=974497116]
+node_a = NodePath("../../FemurPartML")
 node_b = NodePath("..")
+angular_limit_x/upper_angle = 0.4363323129985824
+angular_limit_x/lower_angle = -0.4363323129985824
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 300.0
 
-[node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain" unique_id=2039223233]
-transform = Transform3D(-1.368669619638421e-07, -0.6297980380444905, -0.7767589273869285, -9.649914254140837e-08, -0.7767589273869239, 0.6297980380445037, -0.999999999999986, 1.6115511457216213e-07, 4.5537663924186296e-08, -0.9877238355997564, 1.3204898790910904, 1.3821276852050953e-07)
+[node name="TibiaBeamML" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/TibiaPartML" unique_id=1605293499]
+transform = Transform3D(2.1085245282811114e-09, -4.959883373265834e-08, -0.9999999999999987, -0.9324150921767568, 0.361389119760141, -1.989049895616918e-08, 0.3613891197601414, 0.9324150921767559, -4.548470330342807e-08, 2.646978e-23, 0.58, 1.110223e-16)
+node_a = NodePath("../../../../../..")
+node_b = NodePath("..")
+script = ExtResource("29_gijdl")
+setting = ExtResource("40_x5yrr")
+body_A_offset = Vector3(-0.15000001963246493, 0.8199999775042561, 2.8673026472508733e-08)
+metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
+metadata/_physical_skeleton_owned = true
+metadata/_part_custom_index = 0
+
+[node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain" unique_id=1144377780]
+transform = Transform3D(-1.368669619638421e-07, -0.6297980380444905, -0.7767589273869285, -9.649914254140834e-08, -0.7767589273869239, 0.6297980380445037, -0.999999999999986, 1.6115511457216213e-07, 4.5537663924186296e-08, -0.9877238355997565, 1.3204898790910904, 1.3821276852050953e-07)
 collision_mask = 51
 mass = 1.3309315073328365
 physics_material_override = ExtResource("18_2n4j6")
@@ -620,96 +760,126 @@ resource = ExtResource("28_y8fkf")
 part_index = 2
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/TarsusPart" unique_id=138145901]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/TarsusPart" unique_id=1178545913]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 mesh = ExtResource("29_1ph6b")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/TarsusPart" unique_id=170849423]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/TarsusPart" unique_id=1495592315]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 shape = ExtResource("30_ysf54")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/TarsusPart" unique_id=2147017559]
-node_a = NodePath("../../TibiaPart")
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/TarsusPart" unique_id=143025286]
+node_a = NodePath("../../TibiaPartML")
 node_b = NodePath("..")
-angular_limit_x/upper_angle = 1.0471975511965976
-angular_limit_x/lower_angle = -1.0471975511965976
+angular_limit_x/upper_angle = 0.5672320068981543
+angular_limit_x/lower_angle = -0.9162978572970258
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 200.0
 
-[node name="MiddleRightChain" type="Node3D" parent="big_crawler/Skeleton3D/ChainRootNode" unique_id=1152930095 node_paths=PackedStringArray("iterate_ik")]
+[node name="TarsusBeamJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/TarsusPart" unique_id=376005691]
+transform = Transform3D(1.1718852868905157e-08, -1.2737134018123133e-07, -0.9999999999999919, -0.9650281725446697, -0.26214619241006426, 2.208088868227759e-08, -0.26214619241006487, 0.965028172544662, -1.259889843086564e-07, -7.940934e-23, 1.36, 0)
+node_a = NodePath("../../TibiaPartML")
+node_b = NodePath("..")
+script = ExtResource("29_gijdl")
+setting = ExtResource("34_15unk")
+metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
+metadata/_physical_skeleton_owned = true
+metadata/_part_custom_index = 0
+
+[node name="MiddleRightChain" type="Node3D" parent="big_crawler/Skeleton3D/ChainRootNode" unique_id=295266793 node_paths=PackedStringArray("ik_node")]
 script = ExtResource("17_ksujv")
 resource = ExtResource("11_j5g3f")
-iterate_ik = NodePath("../../LegIKModifier")
+ik_node = NodePath("../../IKModifier")
 ik_setting = 3
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bby5w01y4paxl"
+metadata/_edit_lock_ = true
 metadata/_physical_chain_resource_id = 6898837170122338674
 
-[node name="FemurPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain" unique_id=1583439045]
+[node name="FemurPartMR" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain" unique_id=265972680]
 transform = Transform3D(-1.7159081527312165e-07, 0.9999999999999852, -6.123233995736676e-17, 0, 6.123233995736766e-17, 1, 0.9999999999999852, 1.7159081527312165e-07, -1.050690713436566e-23, 0.15000001963246493, 0.8199999775042561, 2.8673026472508733e-08)
 collision_mask = 51
 mass = 0.24201734138859407
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
-resource = ExtResource("20_wrlb8")
+resource = ExtResource("34_wrlb8")
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/FemurPart" unique_id=1294270250]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/FemurPartMR" unique_id=1326553890]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.155, 0)
 mesh = ExtResource("21_omih1")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/FemurPart" unique_id=1403419317]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/FemurPartMR" unique_id=796750444]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.155, 0)
 shape = ExtResource("22_dmr5u")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/FemurPart" unique_id=187408087]
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/FemurPartMR" unique_id=2020777867]
 node_a = NodePath("../../../../../..")
 node_b = NodePath("..")
-angular_limit_z/upper_angle = 0.5235987755982988
-angular_limit_z/lower_angle = -0.5235987755982988
+angular_limit_z/upper_angle = 0.2705260340591152
+angular_limit_z/lower_angle = -0.5148721293383332
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 500.0
 
-[node name="TibiaPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain" unique_id=157211159]
-transform = Transform3D(-2.3306157440105537e-07, 0.7261476508884414, -0.6875387909850208, 1.3326762223459422e-07, 0.6875387909850559, 0.7261476508884332, 0.999999999999964, 7.761045489506478e-08, -2.57010843913914e-07, 0.45912887033093175, 0.819999973843162, 8.171669811224349e-08)
+[node name="TibiaPartMR" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain" unique_id=828114687]
+transform = Transform3D(-2.3306157440105537e-07, 0.7261476508884414, -0.6875387909850208, 1.3326762223459422e-07, 0.6875387909850559, 0.7261476508884332, 0.999999999999964, 7.761045489506477e-08, -2.57010843913914e-07, 0.45912887033093175, 0.819999973843162, 8.171669811224349e-08)
 collision_mask = 51
 mass = 0.5699081347269354
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
-resource = ExtResource("23_gijdl")
+resource = ExtResource("42_rjoxa")
 part_index = 1
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/TibiaPart" unique_id=1781988956]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/TibiaPartMR" unique_id=1236702453]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.365, 0)
 mesh = ExtResource("24_yl080")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/TibiaPart" unique_id=2064255052]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/TibiaPartMR" unique_id=1300166295]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.365, 0)
 shape = ExtResource("25_15unk")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/TibiaPart" unique_id=692063833]
-node_a = NodePath("../../FemurPart")
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/TibiaPartMR" unique_id=560699503]
+node_a = NodePath("../../FemurPartMR")
 node_b = NodePath("..")
+angular_limit_x/upper_angle = 0.4363323129985824
+angular_limit_x/lower_angle = -0.4363323129985824
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 300.0
 
-[node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain" unique_id=1012691994]
-transform = Transform3D(-1.71590832121912e-07, 0.6297981833744478, 0.7767588095530144, 6.834496957278197e-08, -0.7767588095530166, 0.6297981833744647, 0.9999999999999828, 1.61155151558384e-07, 9.024115280950788e-08, 0.9877236102791952, 1.3204895893891364, 1.3821276663002286e-07)
+[node name="TibiaBeamMR" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/TibiaPartMR" unique_id=962579693]
+transform = Transform3D(4.097240208752101e-08, 1.6075136218905246e-07, -0.9999999999999861, -0.9324151551350087, 0.3613889573223804, 1.989047852096444e-08, 0.3613889573223785, 0.9324151551349952, 1.6469397998307185e-07, 2.646978e-23, 0.5799999999999996, -1.6653345e-16)
+node_a = NodePath("../../../../../..")
+node_b = NodePath("..")
+script = ExtResource("29_gijdl")
+setting = ExtResource("43_gw1yc")
+body_A_offset = Vector3(0.15000001963246493, 0.8199999775042561, 2.8673026472508733e-08)
+metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
+metadata/_physical_skeleton_owned = true
+metadata/_part_custom_index = 0
+
+[node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain" unique_id=374364956]
+transform = Transform3D(-1.71590832121912e-07, 0.6297981833744478, 0.7767588095530144, 6.834496957278197e-08, -0.7767588095530166, 0.6297981833744647, 0.9999999999999829, 1.61155151558384e-07, 9.024115280950787e-08, 0.9877236102791952, 1.3204895893891364, 1.3821276663002283e-07)
 collision_mask = 51
 mass = 1.3309316667416131
 physics_material_override = ExtResource("18_2n4j6")
@@ -719,95 +889,125 @@ resource = ExtResource("28_y8fkf")
 part_index = 2
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/TarsusPart" unique_id=1582835581]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/TarsusPart" unique_id=64392770]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 mesh = ExtResource("29_1ph6b")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/TarsusPart" unique_id=1260194582]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/TarsusPart" unique_id=778396132]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 shape = ExtResource("30_ysf54")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/TarsusPart" unique_id=420907883]
-node_a = NodePath("../../TibiaPart")
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/TarsusPart" unique_id=222929673]
+node_a = NodePath("../../TibiaPartMR")
 node_b = NodePath("..")
-angular_limit_x/upper_angle = 1.0471975511965976
-angular_limit_x/lower_angle = -1.0471975511965976
+angular_limit_x/upper_angle = 0.5672320068981543
+angular_limit_x/lower_angle = -0.9162978572970258
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 200.0
 
-[node name="BackLeftChain" type="Node3D" parent="big_crawler/Skeleton3D/ChainRootNode" unique_id=2122998699 node_paths=PackedStringArray("iterate_ik")]
+[node name="TarsusBeamJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/TarsusPart" unique_id=666210546]
+transform = Transform3D(-5.317899635934125e-15, 8.423121068550721e-08, -0.9999999999999967, -0.9650282195092417, -0.26214601952122496, -2.208087146873626e-08, -0.2621460195212259, 0.9650282195092383, 8.128549666900904e-08, -1.323489e-23, 1.3600000000000003, 4.440892e-16)
+node_a = NodePath("../../TibiaPartMR")
+node_b = NodePath("..")
+script = ExtResource("29_gijdl")
+setting = ExtResource("34_15unk")
+metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
+metadata/_physical_skeleton_owned = true
+metadata/_part_custom_index = 0
+
+[node name="BackLeftChain" type="Node3D" parent="big_crawler/Skeleton3D/ChainRootNode" unique_id=675553588 node_paths=PackedStringArray("ik_node")]
 script = ExtResource("17_ksujv")
 resource = ExtResource("12_3motw")
-iterate_ik = NodePath("../../LegIKModifier")
+ik_node = NodePath("../../IKModifier")
 ik_setting = 4
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bby5w01y4paxl"
+metadata/_edit_lock_ = true
 metadata/_physical_chain_resource_id = 7238387431258634720
 
-[node name="FemurPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain" unique_id=825922554]
-transform = Transform3D(-0.7843566826215239, -0.6203100792563007, 3.798303765200348e-17, 0, 6.123233995736766e-17, 1, -0.6203100792563007, 0.7843566826215239, -4.802799503811427e-17, -0.17299997386683233, 0.8199999798820695, 0.6729999845784954)
+[node name="FemurPartFRBL" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain" unique_id=2058486714]
+transform = Transform3D(-0.7843566826215239, -0.6203100792563007, 3.798303765200348e-17, 0, 6.123233995736766e-17, 1, -0.6203100792563007, 0.7843566826215239, -4.802799503811428e-17, -0.17299997386683233, 0.8199999798820695, 0.6729999845784954)
 collision_mask = 51
 mass = 0.24193040133978685
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
-resource = ExtResource("20_wrlb8")
+resource = ExtResource("32_2n4j6")
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/FemurPart" unique_id=1016023763]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/FemurPartFRBL" unique_id=1407210016]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.155, 0)
 mesh = ExtResource("21_omih1")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/FemurPart" unique_id=168686709]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/FemurPartFRBL" unique_id=988996654]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.155, 0)
 shape = ExtResource("22_dmr5u")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/FemurPart" unique_id=1337245531]
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/FemurPartFRBL" unique_id=252082945]
 node_a = NodePath("../../../../../..")
 node_b = NodePath("..")
-angular_limit_z/upper_angle = 0.5235987755982988
-angular_limit_z/lower_angle = -0.5235987755982988
+angular_limit_z/upper_angle = 0.6108652381980182
+angular_limit_z/lower_angle = -0.2617993877991466
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 500.0
 
-[node name="TibiaPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain" unique_id=1546024881]
-transform = Transform3D(-0.8090156043519785, -0.4268200230661771, 0.40412673732975263, -4.1036908625726514e-08, 0.6875392746972367, 0.7261471928946609, -0.5877871654901979, 0.5874643935240549, -0.5562300193502803, -0.36467799947204615, 0.8200000244055524, 0.9153689627790244)
+[node name="TibiaPartFRBL" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain" unique_id=162544400]
+transform = Transform3D(-0.8090156043519785, -0.4268200230661771, 0.40412673732975263, -4.103690862572651e-08, 0.6875392746972367, 0.7261471928946609, -0.5877871654901979, 0.5874643935240549, -0.5562300193502803, -0.36467799947204615, 0.8200000244055524, 0.9153689627790245)
 collision_mask = 51
 mass = 0.5699343221644416
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
-resource = ExtResource("23_gijdl")
+resource = ExtResource("36_a6782")
 part_index = 1
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/TibiaPart" unique_id=494598598]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/TibiaPartFRBL" unique_id=336062016]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.365, 0)
 mesh = ExtResource("24_yl080")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/TibiaPart" unique_id=1468517967]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/TibiaPartFRBL" unique_id=1899289675]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.365, 0)
 shape = ExtResource("25_15unk")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/TibiaPart" unique_id=1454328713]
-node_a = NodePath("../../FemurPart")
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/TibiaPartFRBL" unique_id=2012260799]
+node_a = NodePath("../../FemurPartFRBL")
 node_b = NodePath("..")
+angular_limit_x/upper_angle = 0.4363323129985824
+angular_limit_x/lower_angle = -0.4363323129985824
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 300.0
 
-[node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain" unique_id=900055180]
+[node name="TibiaBeamFRBL" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/TibiaPartFRBL" unique_id=1233005188]
+transform = Transform3D(-0.01598535551223995, -0.006542312915783249, -0.9998508221484141, -0.9323623337113314, 0.36130758532786966, 0.012542227111030813, 0.3611716310641075, 0.9324237378607737, -0.011875436338764311, 5.551115e-17, 0.5799999999999998, 0)
+node_a = NodePath("../../../../../..")
+node_b = NodePath("..")
+script = ExtResource("29_gijdl")
+setting = ExtResource("30_gijdl")
+body_A_offset = Vector3(-0.17299997386683233, 0.8199999798820695, 0.6729999845784954)
+metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
+metadata/_physical_skeleton_owned = true
+metadata/_part_custom_index = 0
+
+[node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain" unique_id=1691515460]
 transform = Transform3D(-0.8090195666491559, -0.3701833353726407, -0.4565650435493273, 9.737117231135362e-08, -0.7767596098371478, 0.6297971963462783, -0.5877817118444589, 0.5095182104086459, 0.628413758986202, -0.6753788157819457, 1.3204899754233028, 1.3430099557389998)
 collision_mask = 51
 mass = 1.3309924193529141
@@ -818,95 +1018,125 @@ resource = ExtResource("28_y8fkf")
 part_index = 2
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/TarsusPart" unique_id=193120333]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/TarsusPart" unique_id=702743911]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 mesh = ExtResource("29_1ph6b")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/TarsusPart" unique_id=774590261]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/TarsusPart" unique_id=1450285017]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 shape = ExtResource("30_ysf54")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/TarsusPart" unique_id=540830078]
-node_a = NodePath("../../TibiaPart")
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/TarsusPart" unique_id=998434324]
+node_a = NodePath("../../TibiaPartFRBL")
 node_b = NodePath("..")
-angular_limit_x/upper_angle = 1.0471975511965976
-angular_limit_x/lower_angle = -1.0471975511965976
+angular_limit_x/upper_angle = 0.5672320068981543
+angular_limit_x/lower_angle = -0.9162978572970258
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 200.0
 
-[node name="BackRightChain" type="Node3D" parent="big_crawler/Skeleton3D/ChainRootNode" unique_id=1413638773 node_paths=PackedStringArray("iterate_ik")]
+[node name="TarsusBeamJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/TarsusPart" unique_id=1989147289]
+transform = Transform3D(-1.240334233765239e-06, 1.0134893571600578e-06, -0.9999999999987172, -0.9650282212696424, -0.26214601303907464, 9.312753452284106e-07, -0.2621460130377945, 0.9650282212695596, 1.3031945058639138e-06, -4.440892e-16, 1.3600000000000003, -4.440892e-16)
+node_a = NodePath("../../TibiaPartFRBL")
+node_b = NodePath("..")
+script = ExtResource("29_gijdl")
+setting = ExtResource("34_15unk")
+metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
+metadata/_physical_skeleton_owned = true
+metadata/_part_custom_index = 0
+
+[node name="BackRightChain" type="Node3D" parent="big_crawler/Skeleton3D/ChainRootNode" unique_id=160214736 node_paths=PackedStringArray("ik_node")]
 script = ExtResource("17_ksujv")
 resource = ExtResource("14_mefpt")
-iterate_ik = NodePath("../../LegIKModifier")
+ik_node = NodePath("../../IKModifier")
 ik_setting = 5
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bby5w01y4paxl"
+metadata/_edit_lock_ = true
 metadata/_physical_chain_resource_id = 9154753575659480673
 
-[node name="FemurPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain" unique_id=793465681]
-transform = Transform3D(-0.7843566826215239, 0.6203100792563007, -3.798303765200348e-17, 0, 6.123233995736766e-17, 1, 0.6203100792563007, 0.7843566826215239, -4.802799503811427e-17, 0.17299997386683233, 0.8199999798820695, 0.6729999845784954)
+[node name="FemurPartFLBR" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain" unique_id=393105744]
+transform = Transform3D(-0.7843566826215239, 0.6203100792563007, -3.798303765200348e-17, 0, 6.123233995736766e-17, 1, 0.6203100792563007, 0.7843566826215239, -4.802799503811428e-17, 0.17299997386683233, 0.8199999798820695, 0.6729999845784954)
 collision_mask = 51
 mass = 0.24193040133978685
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
-resource = ExtResource("20_wrlb8")
+resource = ExtResource("25_hitf2")
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/FemurPart" unique_id=946164449]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/FemurPartFLBR" unique_id=2079849569]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.155, 0)
 mesh = ExtResource("21_omih1")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/FemurPart" unique_id=1909327127]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/FemurPartFLBR" unique_id=1708853477]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.155, 0)
 shape = ExtResource("22_dmr5u")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/FemurPart" unique_id=1623785057]
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/FemurPartFLBR" unique_id=1240221912]
 node_a = NodePath("../../../../../..")
 node_b = NodePath("..")
-angular_limit_z/upper_angle = 0.5235987755982988
-angular_limit_z/lower_angle = -0.5235987755982988
+angular_limit_z/upper_angle = 0.2617993877991466
+angular_limit_z/lower_angle = -0.6108652381980182
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 500.0
 
-[node name="TibiaPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain" unique_id=727630937]
-transform = Transform3D(-0.8090156043519785, 0.4268200230661771, -0.40412673732975263, 4.1036908625726514e-08, 0.6875392746972367, 0.7261471928946609, 0.5877871654901979, 0.5874643935240549, -0.5562300193502803, 0.36467799947204615, 0.8200000244055524, 0.9153689627790244)
+[node name="TibiaPartFLBR" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain" unique_id=1605519161]
+transform = Transform3D(-0.8090156043519785, 0.4268200230661771, -0.40412673732975263, 4.103690862572651e-08, 0.6875392746972367, 0.7261471928946609, 0.5877871654901979, 0.5874643935240549, -0.5562300193502803, 0.36467799947204615, 0.8200000244055524, 0.9153689627790245)
 collision_mask = 51
 mass = 0.5699343221644416
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
-resource = ExtResource("23_gijdl")
+resource = ExtResource("26_1ph6b")
 part_index = 1
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/TibiaPart" unique_id=1308146745]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/TibiaPartFLBR" unique_id=321006919]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.365, 0)
 mesh = ExtResource("24_yl080")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/TibiaPart" unique_id=1556804463]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/TibiaPartFLBR" unique_id=431419181]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.365, 0)
 shape = ExtResource("25_15unk")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/TibiaPart" unique_id=587346668]
-node_a = NodePath("../../FemurPart")
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/TibiaPartFLBR" unique_id=1878198153]
+node_a = NodePath("../../FemurPartFLBR")
 node_b = NodePath("..")
+angular_limit_x/upper_angle = 0.4363323129985824
+angular_limit_x/lower_angle = -0.4363323129985824
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 300.0
 
-[node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain" unique_id=651357716]
+[node name="TibiaBeamFLBR" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/TibiaPartFLBR" unique_id=1434632766]
+transform = Transform3D(0.01598535551223995, 0.006542312915783249, -0.9998508221484141, -0.9323623337113314, 0.36130758532786966, -0.012542227111030813, 0.3611716310641075, 0.9324237378607737, 0.011875436338764311, -5.551115e-17, 0.5799999999999998, 0)
+node_a = NodePath("../../../../../..")
+node_b = NodePath("..")
+script = ExtResource("29_gijdl")
+setting = ExtResource("30_tevyj")
+body_A_offset = Vector3(0.17299997386683233, 0.8199999798820695, 0.6729999845784954)
+metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
+metadata/_physical_skeleton_owned = true
+metadata/_part_custom_index = 0
+
+[node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain" unique_id=1812219442]
 transform = Transform3D(-0.8090195666491559, 0.3701833353726407, 0.4565650435493273, -9.737117231135362e-08, -0.7767596098371478, 0.6297971963462783, 0.5877817118444589, 0.5095182104086459, 0.628413758986202, 0.6753788157819457, 1.3204899754233028, 1.3430099557389998)
 collision_mask = 51
 mass = 1.3309924193529141
@@ -917,24 +1147,36 @@ resource = ExtResource("28_y8fkf")
 part_index = 2
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
+metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/TarsusPart" unique_id=419955148]
+[node name="PartMesh" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/TarsusPart" unique_id=1766841390]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 mesh = ExtResource("29_1ph6b")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/TarsusPart" unique_id=581604866]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/TarsusPart" unique_id=105312438]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 shape = ExtResource("30_ysf54")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/TarsusPart" unique_id=1949791826]
-node_a = NodePath("../../TibiaPart")
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/TarsusPart" unique_id=11118828]
+node_a = NodePath("../../TibiaPartFLBR")
 node_b = NodePath("..")
-angular_limit_x/upper_angle = 1.0471975511965976
-angular_limit_x/lower_angle = -1.0471975511965976
+angular_limit_x/upper_angle = 0.5672320068981543
+angular_limit_x/lower_angle = -0.9162978572970258
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
+metadata/_edit_lock_ = true
 metadata/_part_break_force = 200.0
+
+[node name="TarsusBeamJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/TarsusPart" unique_id=150249602]
+transform = Transform3D(1.240334233765239e-06, -1.0134893571600578e-06, -0.9999999999987172, -0.9650282212696424, -0.26214601303907464, -9.312753452284106e-07, -0.2621460130377945, 0.9650282212695596, -1.3031945058639138e-06, 4.440892e-16, 1.3600000000000003, -4.440892e-16)
+node_a = NodePath("../../TibiaPartFLBR")
+node_b = NodePath("..")
+script = ExtResource("29_gijdl")
+setting = ExtResource("34_15unk")
+metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
+metadata/_physical_skeleton_owned = true
+metadata/_part_custom_index = 0
 
 [editable path="big_crawler"]

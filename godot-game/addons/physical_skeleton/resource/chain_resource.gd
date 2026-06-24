@@ -24,8 +24,8 @@ var end_bone: StringName:
 ## The total IterateIK rest angle correction per second. This is applied one
 ## time just before starting the iteration loop, and is divided by the current
 ## `Engine.physics_ticks_per_second` so it is consistent with different TPS.
-@export_range(0.0, 90.0, 0.1, 'radians_as_degrees', 'suffix:°/s')
-var rest_correction_rate: float = deg_to_rad(45.0):
+@export_range(0.0, 10.0, 0.01, 'or_greater', 'radians_as_degrees', 'suffix:°/s')
+var rest_correction_rate: float = deg_to_rad(1.0):
     set(value):
         rest_correction_rate = value
         emit_changed()

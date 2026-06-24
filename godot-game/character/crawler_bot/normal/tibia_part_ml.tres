@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="PhysicalBonePartResource" format=3 uid="uid://doujt6twhh7e0"]
+
+[ext_resource type="Material" uid="uid://b40dbxkqwa5td" path="res://character/crawler_bot/normal/ghost_material.tres" id="1_pnqkf"]
+[ext_resource type="Shape3D" uid="uid://biemjf2j15vco" path="res://character/crawler_bot/normal/tibia_collision_shape.tres" id="2_5ytcb"]
+[ext_resource type="Resource" uid="uid://dfwq8ggtlnn7k" path="res://character/crawler_bot/normal/tibia_beam_ml.tres" id="3_p0h73"]
+[ext_resource type="Resource" uid="uid://r7jexawb7mgr" path="res://character/crawler_bot/normal/tibia_limitation.tres" id="4_bdm7i"]
+[ext_resource type="BoxMesh" uid="uid://btoiao1l4fp0n" path="res://character/crawler_bot/normal/tibia_box_mesh.tres" id="5_kp74o"]
+[ext_resource type="PhysicsMaterial" uid="uid://dgom72xev8omg" path="res://material/physic/metal.tres" id="6_ma5ve"]
+[ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="7_7fegd"]
+
+[resource]
+resource_name = "TibiaPartML"
+script = ExtResource("7_7fegd")
+mesh = ExtResource("5_kp74o")
+mesh_offset = Vector3(0, 0.365, 0)
+bone_enable_mesh = true
+bone_material_override = ExtResource("1_pnqkf")
+physics_material = ExtResource("6_ma5ve")
+collider_shape = ExtResource("2_5ytcb")
+collider_offset = Vector3(0, 0.365, 0)
+collision_mask = 51
+break_enabled = true
+break_use_signal = true
+break_max_force = 300.0
+ik_enabled = true
+rotation_axis = 0
+limitation = ExtResource("4_bdm7i")
+copy_ik_limitation_angle = true
+joint_angular_limit_x_upper = 0.4363323129985824
+joint_angular_limit_x_lower = -0.4363323129985824
+torque_powered = 20.0
+custom_enabled = true
+custom_joint_resource_list = Array[Resource]([ExtResource("3_p0h73")])
+metadata/_custom_type_script = "uid://beoy3te8b6dll"

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="IKJointLimitation" format=3 uid="uid://ck77e1m3hkx0f"]
+
+[ext_resource type="Script" uid="uid://def477t0ae837" path="res://addons/physical_skeleton/resource/joint_limitation.gd" id="1_wm4yv"]
+
+[resource]
+resource_name = "FemurLimitationMR"
+script = ExtResource("1_wm4yv")
+angle = 0.7853981633974483
+rotation_offset = Quaternion(0, 0, 0.06104853953486, 0.99813479842187)
+metadata/_custom_type_script = "uid://def477t0ae837"

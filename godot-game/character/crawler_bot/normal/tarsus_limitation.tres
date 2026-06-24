@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="IKJointLimitation" format=3 uid="uid://b8j34bj6qovyu"]
+
+[ext_resource type="Script" uid="uid://def477t0ae837" path="res://addons/physical_skeleton/resource/joint_limitation.gd" id="1_u5ila"]
+
+[resource]
+resource_name = "TarsusLimitation"
+script = ExtResource("1_u5ila")
+angle = 1.4835298641951802
+rotation_offset = Quaternion(0.08715574274766, 0, 0, 0.99619469809175)
+metadata/_custom_type_script = "uid://def477t0ae837"

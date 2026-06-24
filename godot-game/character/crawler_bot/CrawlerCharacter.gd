@@ -6,6 +6,10 @@ class_name CrawlerCharacter extends CharacterController
 @export_tool_button('Rebuild Crawler', 'SphereMesh')
 var _btn_rebuild_crawler = editor_rebuild_crawler
 
+@warning_ignore("unused_private_class_variable")
+@export_tool_button('Advance Skeleton', 'Skeleton3D')
+var _btn_step_skeleton = editor_step_skeleton
+
 
 ## Whole body mass of the crawler. This is used with 'Leg Mass Ratio' to
 ## disperse the mass between the main body and the individual leg segments.
@@ -36,7 +40,7 @@ var rotation_overshoot: float = 0.2
 
 @export var skeleton: Skeleton3D
 
-@export var leg_ik: IterateIK3D
+@export var leg_ik: IKModifier
 
 
 @export_group('Physical Skeleton')
@@ -68,25 +72,10 @@ var ik_min_distance: float = 0.001:
 ## each iteration relative to the current `Engine.physics_ticks_per_second`,
 ## unlike the Godot implementation which applies it per-iteration and doesn't
 ## consider frame rate or physics TPS.
-@export_range(0.01, 180.0, 0.01, 'radians_as_degrees', 'suffix:°/s')
-var ik_angular_delta_limit: float = deg_to_rad(30.0):
+@export_range(0.01, 360.0, 0.01, 'or_greater', 'radians_as_degrees', 'suffix:°/s')
+var ik_angular_delta_limit: float = deg_to_rad(180.0):
     set(value):
         ik_angular_delta_limit = value
-        _queue_update_ik_settings()
-
-## Generally, enabling this will copy the current skeleton pose and process that.
-## When disabled, it is loaded once on the first run and never again.
-@export var ik_deterministic: bool = true:
-    set(value):
-        ik_deterministic = value
-        _queue_update_ik_settings()
-
-## Generally, this break limitations by treating the incoming rotation as the
-## rest rotation. It should be turned off if the skeleton is modified by
-## animations or other modifiers.
-@export var ik_mutable_bone_axes: bool = false:
-    set(value):
-        ik_mutable_bone_axes = value
         _queue_update_ik_settings()
 #endregion IK Parameters
 
@@ -198,6 +187,16 @@ func editor_rebuild_crawler() -> void:
 
     EditorInterface.popup_dialog_centered(dialog)
 
+func editor_step_skeleton() -> void:
+    if not Engine.is_editor_hint():
+        return
+
+    if not skeleton:
+        push_warning('Skeleton not found!')
+        return
+
+    skeleton.advance(1.0 / float(Engine.physics_ticks_per_second), true)
+
 ## Clears and builds the crawler body.
 ## Enable editor mode to use popups for issues.
 func rebuild_crawler(remove_unowned_nodes: bool = false, editor_mode: bool = false) -> void:
@@ -208,13 +207,13 @@ func rebuild_crawler(remove_unowned_nodes: bool = false, editor_mode: bool = fal
     _load_legs()
 
     # Clear IK settings, fully managed by chains
-    leg_ik.setting_count = 0
+    leg_ik.set_setting_count(0)
 
     for leg in legs:
         if not leg.physical_bone_chain:
             continue
 
-        if leg.index >= leg_ik.setting_count:
+        if leg.index >= leg_ik.setting_list.size():
             leg_ik.set_setting_count(leg.index + 1)
 
         leg.apply_position()
@@ -304,6 +303,9 @@ func rebuild_crawler(remove_unowned_nodes: bool = false, editor_mode: bool = fal
 
         if chain.is_ik_enabled:
             chain.set_ik(leg_ik, leg.index)
+    # NOTE: building chains defers the setup for bone part maps on physical
+    #       skeleton, so we must defer the mass update
+    _update_body_mass.call_deferred()
 
 
 func _ready() -> void:
@@ -318,6 +320,9 @@ func _ready() -> void:
     _queue_update_ik_settings()
 
     if Engine.is_editor_hint():
+        # Allow physical skeleton to match bone meshes to IK results
+        if enable_physical_skeleton:
+            leg_ik.modification_processed.connect(physical_skeleton.on_pose_finalized)
         return
 
     var count: int = legs.size()
@@ -331,31 +336,6 @@ func _ready() -> void:
         if body is CollisionObject3D:
             leg_cast_exclude_list.append(body.get_rid())
 
-    # Get the chain end bones for each leg target
-    var target_bones: Dictionary = {}
-    for setting in range(leg_ik.setting_count):
-        target_bones.set(leg_ik.get_target_node(setting), leg_ik.get_end_bone(setting))
-
-    # Collect target nodes for ground bones
-    var ground_targets: Dictionary[int, Node3D] = {}
-    var attachments: Array[ModifierBoneTarget3D]
-    attachments.assign(skeleton.find_children('', 'ModifierBoneTarget3D'))
-    for attach in attachments:
-        var target: Node3D
-        if enable_physical_skeleton:
-            var bodies: Array[RigidBody3D]
-            bodies.assign(attach.find_children('', 'RigidBody3D', false))
-            if bodies.size() == 0:
-                continue
-            target = bodies[0]
-        else:
-            target = attach
-
-        ground_targets.set(
-            attach.bone,
-            target
-        )
-
     # Initialize legs
     for leg in legs:
         leg.setup(leg_cast_exclude_list)
@@ -368,20 +348,14 @@ func _ready() -> void:
     if enable_physical_skeleton:
         physical_skeleton.active = true
         physical_skeleton.modification_processed.connect(_update_legs)
-        # NOTE: deterministic has the effect of just copying the joint positions
-        #       into the working chain state, so as long as the skeleton is
-        #       being updated by physics, "deterministic" is what we want from IK
-        leg_ik.deterministic = true
         leg_ik.modification_processed.connect(physical_skeleton.on_pose_finalized)
     else:
         # Must run this method, for some reason Skeleton3D respects custom
         # modifiers "active" flag on load, while IterateIK3D definitely still
         # processes once even though it is also disabled
-        physical_skeleton.setup_body()
+        physical_skeleton.setup_body.call_deferred()
         leg_ik.modification_processed.connect(_on_leg_pose_updated)
-        # NOTE: ensure this is off when in pure IK mode, see above note for
-        #       physics to understand why this might be enabled
-        leg_ik.deterministic = false
+        leg_ik.use_prior_work = true
 
     desired_surface_friction = 0.0
 
@@ -469,11 +443,9 @@ func _update_ik_settings() -> void:
     if not leg_ik:
         return
 
-    leg_ik.max_iterations = ik_max_iterations
+    leg_ik.iterations = ik_max_iterations
     leg_ik.min_distance = ik_min_distance
-    leg_ik.angular_delta_limit = ik_angular_delta_limit / (InputManager.PHYSICS_TICKS * ik_max_iterations)
-    leg_ik.deterministic = ik_deterministic
-    leg_ik.mutable_bone_axes = ik_mutable_bone_axes
+    leg_ik.angular_delta_limit = ik_angular_delta_limit
 
 func _on_leg_pose_updated() -> void:
     for leg in legs:

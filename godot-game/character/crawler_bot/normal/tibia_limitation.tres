@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="IKJointLimitation" format=3 uid="uid://r7jexawb7mgr"]
+
+[ext_resource type="Script" uid="uid://def477t0ae837" path="res://addons/physical_skeleton/resource/joint_limitation.gd" id="1_v0r6d"]
+
+[resource]
+resource_name = "TibiaLimitation"
+script = ExtResource("1_v0r6d")
+angle = 0.8726646259971648
+metadata/_custom_type_script = "uid://def477t0ae837"

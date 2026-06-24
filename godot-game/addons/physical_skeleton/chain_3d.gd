@@ -11,10 +11,10 @@ var resource: PhysicalBoneChainResource
 
 @export_custom(
     PROPERTY_HINT_NODE_TYPE,
-    'IterateIK3D',
+    'IKModifier',
     PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_READ_ONLY
 )
-var iterate_ik: IterateIK3D
+var ik_node: IKModifier
 
 @export_custom(
     PROPERTY_HINT_NONE,
@@ -108,6 +108,7 @@ func build_chain(main_body: RigidBody3D, custom_joint_builder: Callable) -> bool
         var part := PhysicalBonePart3D.new()
         part.set_meta(PhysicalSkeleton.META_OWNED, true)
         part.set_meta(&'_custom_type_script', ResourceUID.id_to_text(ResourceLoader.get_resource_uid((part.get_script() as Script).resource_path)))
+        part.set_meta(&'_edit_lock_', true)
         part.resource = resource.part_list[index]
         part.name = part.resource.resource_name
         part.part_index = index
@@ -174,13 +175,8 @@ func update() -> void:
         if (not is_any_motor_broken) and part.is_motor_broken:
             is_any_motor_broken = true
 
-    _update_ik_rest_rate()
-
     # TODO: I think this is still a good idea (June 13)
     # IDEA: Teleport IK end bone to real location? Maybe this will help IK
-
-func _update_ik_rest_rate() -> void:
-    iterate_ik.set_rest_correction(ik_setting, resource.rest_correction_rate / Engine.physics_ticks_per_second)
 
 func on_pose_finalized() -> void:
     for index in range(part_count):
@@ -211,8 +207,8 @@ func deactivate() -> void:
     for part in part_list:
         part.deactivate()
 
-func set_ik(ik_node: IterateIK3D, setting_index: int) -> void:
-    iterate_ik = ik_node
+func set_ik(ik_modifier: IKModifier, setting_index: int) -> void:
+    ik_node = ik_modifier
     ik_setting = setting_index
 
     on_ik_setting_changed()
@@ -221,19 +217,22 @@ func set_ik(ik_node: IterateIK3D, setting_index: int) -> void:
         on_part_ik_changed('', part.part_index)
 
 func on_ik_setting_changed() -> void:
-    iterate_ik.set_root_bone_name(ik_setting, resource.root_bone)
-    iterate_ik.set_end_bone_name(ik_setting, resource.end_bone)
-    _update_ik_rest_rate()
+    var setting: IKModifier.ChainResource = ik_node.setting_list[ik_setting]
+    setting.root_bone = resource.root_bone
+    setting.end_bone = resource.end_bone
+    setting.rest_correction = resource.rest_correction_rate
 
 func on_part_ik_changed(setting_name: StringName, part_index: int) -> void:
     # TODO: only run when IK settings change
     var res: PhysicalBonePartResource = part_list[part_index].resource
-    iterate_ik.set_joint_rotation_axis(ik_setting, part_index, res.rotation_axis)
-    iterate_ik.set_joint_rotation_axis_vector(ik_setting, part_index, res.custom_axis_vector)
-    iterate_ik.set_joint_limitation(ik_setting, part_index, res.limitation_resource)
-    iterate_ik.set_joint_limitation_right_axis(ik_setting, part_index, res.limitation_right_axis)
-    iterate_ik.set_joint_limitation_right_axis_vector(ik_setting, part_index, res.limitation_custom_right_axis_vector)
-    iterate_ik.set_joint_limitation_rotation_offset(ik_setting, part_index, res.limitation_rotation_offset)
+    var chain_setting: IKModifier.ChainResource = ik_node.setting_list[ik_setting]
+    if part_index >= chain_setting.joint_list.size():
+        chain_setting.set_joint_count(part_index + 1)
+
+    var joint_setting: IKModifier.JointResource = chain_setting.joint_list[part_index]
+    joint_setting.rotation_axis = res.rotation_axis
+    joint_setting.limitation_angle = res.limitation.angle
+    joint_setting.limitation_rotation_offset = res.limitation.rotation_offset
 
 func setup_velocity() -> void:
     for index in range(part_count):
@@ -441,15 +440,17 @@ func reload_chain() -> void:
     part_list = indexed_part_list
     part_count = new_part_count
 
-    if is_ik_enabled:
+    if not is_ik_enabled:
         return
 
     if not resource.changed.is_connected(on_ik_setting_changed):
         resource.changed.connect(on_ik_setting_changed)
-        on_ik_setting_changed()
+        if ik_node:
+            on_ik_setting_changed()
 
     for part in part_list:
         var binding := on_part_ik_changed.bind(part.part_index)
         if not part.resource.setting_changed.is_connected(binding):
             part.resource.setting_changed.connect(binding)
-            binding.call('')
+            if ik_node:
+                binding.call('')

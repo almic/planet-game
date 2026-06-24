@@ -40,7 +40,7 @@ var contract_limit: float = 0.1:
 ## Maximum counter-clockwise pitch rotation of the joint on Body B. Should be
 ## wide enough to allow the bodies to rotate through the beam.
 @export_range(0.0, 180.0, 0.1, 'radians_as_degrees')
-var pitch_upper: float = deg_to_rad(15.0):
+var pitch_upper: float = 0.0:
     set(value):
         pitch_upper = value
         emit_changed()
@@ -48,7 +48,7 @@ var pitch_upper: float = deg_to_rad(15.0):
 ## Maximum clockwise pitch rotation of the joint on Body B. Should be wide
 ## enough to allow the bodies to rotate through the beam.
 @export_range(0.0, 180.0, 0.1, 'radians_as_degrees')
-var pitch_lower: float = deg_to_rad(15.0):
+var pitch_lower: float = 0.0:
     set(value):
         pitch_lower = value
         emit_changed()

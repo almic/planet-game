@@ -2,8 +2,8 @@
 
 [ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="1_odbbt"]
 [ext_resource type="Script" uid="uid://bumtikmwn5lpl" path="res://addons/physical_skeleton/resource/chain_resource.gd" id="2_ass3p"]
-[ext_resource type="Resource" uid="uid://d2moeutnew25y" path="res://character/crawler_bot/normal/femur_part.tres" id="2_rb73x"]
-[ext_resource type="Resource" uid="uid://i7rxnr5r8vqw" path="res://character/crawler_bot/normal/tibia_part.tres" id="3_q2vts"]
+[ext_resource type="Resource" uid="uid://cs6xc2o50vm3u" path="res://character/crawler_bot/normal/femur_part_ml.tres" id="2_rb73x"]
+[ext_resource type="Resource" uid="uid://doujt6twhh7e0" path="res://character/crawler_bot/normal/tibia_part_ml.tres" id="3_rb73x"]
 [ext_resource type="Resource" uid="uid://da5n6snt7g7mf" path="res://character/crawler_bot/normal/tarsus_part.tres" id="4_qjrq3"]
 
 [resource]
@@ -11,5 +11,5 @@ resource_name = "MiddleLeftChain"
 script = ExtResource("2_ass3p")
 root_bone = &"MiddleLeftFemur"
 end_bone = &"MiddleLeftTarsus_leaf"
-part_list = Array[ExtResource("1_odbbt")]([ExtResource("2_rb73x"), ExtResource("3_q2vts"), ExtResource("4_qjrq3")])
+part_list = Array[ExtResource("1_odbbt")]([ExtResource("2_rb73x"), ExtResource("3_rb73x"), ExtResource("4_qjrq3")])
 metadata/_custom_type_script = "uid://bumtikmwn5lpl"

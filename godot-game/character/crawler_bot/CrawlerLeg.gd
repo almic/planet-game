@@ -6,6 +6,10 @@ class_name CrawlerLeg extends Node3D
 @export_custom(PROPERTY_HINT_NODE_TYPE, 'Marker3D', PROPERTY_USAGE_STORAGE)
 var target: Marker3D
 
+@export_tool_button('Reset Target', '3D')
+@warning_ignore("unused_private_class_variable")
+var _btn_editor_reset_target = editor_reset_target
+
 @export_custom(PROPERTY_HINT_ENUM, '')
 var ground_bone: StringName
 
@@ -159,6 +163,11 @@ var step_height: float = 0.0
 var use_new_leg_mode: bool = false
 
 
+func editor_reset_target() -> void:
+    if target_bone_idx == -1 and physical_bone_chain:
+        target_bone_idx = body.skeleton.find_bone(physical_bone_chain.end_bone)
+    target.global_position = body.skeleton.global_transform * body.skeleton.get_bone_global_rest(target_bone_idx).origin
+
 func _enter_tree() -> void:
     connect_setting()
 
@@ -242,13 +251,14 @@ func setup_target() -> void:
         )
         return
 
-    if not target:
+    if (not target) or (not target.is_inside_tree()):
         target = Marker3D.new()
         target.name = '%sTarget' % name
+        target.gizmo_extents = 0.1
         add_child(target, true)
         target.owner = owner
 
-    body.leg_ik.set_target_node(index, body.leg_ik.get_path_to(target))
+    body.leg_ik.setting_list[index].target_node = body.leg_ik.get_path_to(target)
     target.global_position = body.skeleton.global_transform * body.skeleton.get_bone_global_rest(target_bone_idx).origin
     target_last_global_position = target.global_position
 

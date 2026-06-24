@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BeamPivotJoint3DSetting" format=3 uid="uid://dfwq8ggtlnn7k"]
+
+[ext_resource type="Script" uid="uid://bgui7td28pcg7" path="res://node/beam_joint/beam_joint_setting.gd" id="1_6y33s"]
+
+[resource]
+resource_name = "TibiaBeamML"
+script = ExtResource("1_6y33s")
+attach_to_main_body = true
+body_A_position = Vector3(0, 0.1, 0)
+body_B_position = Vector3(0, 0.58, 0)
+yaw_upper = 0.27052603405912107
+yaw_lower = 0.5148721293383273
+roll_upper = 0.3490658503988659
+roll_lower = 0.19198621771937624
+metadata/_custom_type_script = "uid://bgui7td28pcg7"

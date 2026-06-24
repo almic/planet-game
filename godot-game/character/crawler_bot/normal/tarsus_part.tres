@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="PhysicalBonePartResource" format=3 uid="uid://da5n6snt7g7mf"]
 
-[ext_resource type="JointLimitationCone3D" uid="uid://d213qmgc1ylep" path="res://character/crawler_bot/normal/tarsus_joint_cone_limit.tres" id="1_65ewy"]
 [ext_resource type="Shape3D" uid="uid://drn7atwnqby6m" path="res://character/crawler_bot/normal/tarsus_collision_shape.tres" id="1_dwj6o"]
 [ext_resource type="Material" uid="uid://b40dbxkqwa5td" path="res://character/crawler_bot/normal/ghost_material.tres" id="1_qpwkv"]
 [ext_resource type="PhysicsMaterial" uid="uid://dgom72xev8omg" path="res://material/physic/metal.tres" id="2_dwj6o"]
 [ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="3_65ewy"]
 [ext_resource type="Resource" uid="uid://xbem30drgjxp" path="res://character/crawler_bot/normal/tarsus_beam_joint.tres" id="3_yhue1"]
+[ext_resource type="Resource" uid="uid://b8j34bj6qovyu" path="res://character/crawler_bot/normal/tarsus_limitation.tres" id="4_gtill"]
 [ext_resource type="BoxMesh" uid="uid://bg5sh58i7q6tc" path="res://character/crawler_bot/normal/tarsus_box_mesh.tres" id="4_yhue1"]
 
 [resource]
@@ -24,11 +24,11 @@ break_use_signal = true
 break_max_force = 200.0
 ik_enabled = true
 rotation_axis = 0
-limitation_resource = ExtResource("1_65ewy")
-limitation_right_axis = 6
+limitation = ExtResource("4_gtill")
 copy_ik_limitation_angle = true
-joint_angular_limit_x_upper = 1.0471975511965976
-joint_angular_limit_x_lower = -1.0471975511965976
+joint_angular_limit_x_upper = 0.5672320068981543
+joint_angular_limit_x_lower = -0.9162978572970258
 torque_powered = 20.0
+custom_enabled = true
 custom_joint_resource_list = Array[Resource]([ExtResource("3_yhue1")])
 metadata/_custom_type_script = "uid://beoy3te8b6dll"

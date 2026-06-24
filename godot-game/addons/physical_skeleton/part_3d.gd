@@ -76,6 +76,8 @@ var _cached_com: Vector3
 var joint_force_exceeded_emit: Callable
 var _signal_should_break: bool = false
 
+var rotation_error: Quaternion
+var _bone_rotation: Quaternion
 
 func _ready() -> void:
     if _skip_ready:
@@ -159,6 +161,7 @@ func build_part(
     main_joint.name = 'BoneJoint'
     main_joint.set_meta(PhysicalSkeleton.META_OWNED, true)
     main_joint.set_meta(META_BONE_JOINT, true)
+    main_joint.set_meta(&'_edit_lock_', true)
     add_child(main_joint, true)
     main_joint.owner = owner
     main_joint.node_a = main_joint.get_path_to(parent_body)
@@ -251,10 +254,9 @@ func _build_mesh_bone_inst() -> MeshInstance3D:
 ## frees the node if it is not needed
 func _ensure_mesh_bone_inst() -> void:
     if resource.bone_enable_mesh:
-        if mesh_bone_inst:
-            return
-        mesh_bone_inst = _build_mesh_bone_inst()
-        add_child(mesh_bone_inst, true)
+        if not mesh_bone_inst:
+            mesh_bone_inst = _build_mesh_bone_inst()
+            add_child(mesh_bone_inst, true)
         mesh_bone_inst.material_override = resource.bone_material_override
         mesh_bone_inst.mesh = resource.bone_mesh_override
         if not mesh_bone_inst.mesh:
@@ -342,8 +344,12 @@ func update(skeleton: Skeleton3D, bone_idx: int) -> void:
     if not bone_joint_data.is_destroyed:
         _update_joint(bone_joint_data)
 
-        var bone_rotation: Quaternion = skeleton.get_bone_rest(bone_idx).basis.get_rotation_quaternion() * bone_joint_data.offset.basis.get_rotation_quaternion()
-        skeleton.set_bone_pose_rotation(bone_idx, bone_rotation)
+        var bone_global = skeleton.get_bone_global_rest(bone_idx)
+        var bone_local = skeleton.get_bone_pose_rotation(bone_idx)
+        _bone_rotation = skeleton.get_bone_rest(bone_idx).basis.get_rotation_quaternion()
+        _bone_rotation = _bone_rotation * bone_joint_data.offset.basis.get_rotation_quaternion()
+        skeleton.set_bone_pose_rotation(bone_idx, _bone_rotation)
+        bone_global = skeleton.get_bone_global_pose(bone_idx)
 
         if bone_joint_data.is_breakable and _should_break(bone_joint_data.joint, bone_joint_data.offset):
             print('Breaking joint %s' % [get_nice_path(bone_joint)])
@@ -440,16 +446,31 @@ func on_pose_finalized(skeleton: Skeleton3D, bone_idx: int) -> void:
 
     var bone_xform: Transform3D = skeleton.global_transform * skeleton.get_bone_global_pose(bone_idx)
 
-    mesh_bone_inst.global_transform = bone_xform
-    mesh_bone_inst.position += resource.mesh_offset
+    mesh_bone_inst.global_transform = bone_xform.translated_local(resource.mesh_offset)
     #mesh_bone_inst.basis = Basis(resource.mesh_rotation) * mesh_bone_inst.basis
 
+var _debug_timer: int = 0
 func setup_motor_velocity(skeleton: Skeleton3D, bone_idx: int) -> void:
-    """
-    var target_rotation: Quaternion = skeleton.get_bone_pose_rotation(joint_data.bone_idx)
-    target_rotation = skeleton.get_bone_rest(joint_data.bone_idx).basis.get_rotation_quaternion().inverse() * target_rotation
-    """
-    pass
+    return
+    #_bone_rotation = (
+            #_bone_rotation.inverse()
+            #* _bone_rotation
+    #)
+
+    if part_index == 2 and get_parent().name.begins_with('FrontLeft'):
+        _debug_timer += 1
+        if _debug_timer > 10:
+            _debug_timer = 0
+            print(_bone_rotation.get_euler() * 180.0 / PI, '\n', skeleton.get_bone_pose_rotation(bone_idx).get_euler() * 180.0 / PI, '\n')
+            #print(
+                #(
+                    #'euler: %s\n axis: %s\n angle: %.2f'
+                #) % [
+                    ##name,
+                    #_bone_rotation.get_euler() * 180.0 / PI,
+                    #_bone_rotation.get_axis(), rad_to_deg(_bone_rotation.get_angle())
+                #]
+            #)
 
 func solve_motor_velocity(delta: float) -> bool:
     """

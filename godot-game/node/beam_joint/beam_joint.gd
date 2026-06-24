@@ -46,8 +46,8 @@ func _exit_tree() -> void:
 
 func _validate_property(property: Dictionary) -> void:
     # Hide linear and angular limits so we maintain full control
-    if property.name.begins_with('angular_limit_') or property.name.begins_with('linear_limit_'):
-        property.usage &= ~PROPERTY_USAGE_EDITOR
+    if property.name.begins_with('angular_') or property.name.begins_with('linear_'):
+        property.usage = PROPERTY_USAGE_NONE
 
 # Update joint when nodes change
 func _set(property: StringName, value: Variant) -> bool:
@@ -114,16 +114,16 @@ func _update_joint() -> void:
     # NOTE: I don't understand, but these must be flipped to stay with
     #       the common "positive is counter-clockwise" thing in Godot
     set_flag_x(FLAG_ENABLE_ANGULAR_LIMIT, true)
-    set_param_x(PARAM_ANGULAR_LOWER_LIMIT, -setting.roll_upper)
-    set_param_x(PARAM_ANGULAR_UPPER_LIMIT, setting.roll_lower)
+    set_param_x(PARAM_ANGULAR_LOWER_LIMIT, -setting.pitch_upper)
+    set_param_x(PARAM_ANGULAR_UPPER_LIMIT, setting.pitch_lower)
 
     set_flag_y(FLAG_ENABLE_ANGULAR_LIMIT, true)
     set_param_y(PARAM_ANGULAR_LOWER_LIMIT, -setting.yaw_upper)
     set_param_y(PARAM_ANGULAR_UPPER_LIMIT, setting.yaw_lower)
 
     set_flag_z(FLAG_ENABLE_ANGULAR_LIMIT, true)
-    set_param_z(PARAM_ANGULAR_LOWER_LIMIT, -setting.pitch_upper)
-    set_param_z(PARAM_ANGULAR_UPPER_LIMIT, setting.pitch_lower)
+    set_param_z(PARAM_ANGULAR_LOWER_LIMIT, -setting.roll_upper)
+    set_param_z(PARAM_ANGULAR_UPPER_LIMIT, setting.roll_lower)
 
     beam_span = beam_displacement.length()
     _debug_draw_points()

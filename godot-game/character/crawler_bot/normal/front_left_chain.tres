@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="PhysicalBoneChainResource" format=3 uid="uid://deep6fs82y85d"]
 
 [ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="1_627vj"]
-[ext_resource type="Resource" uid="uid://d2moeutnew25y" path="res://character/crawler_bot/normal/femur_part.tres" id="2_ecaan"]
-[ext_resource type="Resource" uid="uid://i7rxnr5r8vqw" path="res://character/crawler_bot/normal/tibia_part.tres" id="3_0o1fa"]
+[ext_resource type="Resource" uid="uid://skrqmv3ata1a" path="res://character/crawler_bot/normal/femur_part_flbr.tres" id="2_627vj"]
+[ext_resource type="Resource" uid="uid://3aihiv8s5f3h" path="res://character/crawler_bot/normal/tibia_part_flbr.tres" id="3_627vj"]
 [ext_resource type="Resource" uid="uid://da5n6snt7g7mf" path="res://character/crawler_bot/normal/tarsus_part.tres" id="4_gropi"]
 [ext_resource type="Script" uid="uid://bumtikmwn5lpl" path="res://addons/physical_skeleton/resource/chain_resource.gd" id="5_a1qvr"]
 
@@ -11,5 +11,5 @@ resource_name = "FrontLeftChain"
 script = ExtResource("5_a1qvr")
 root_bone = &"FrontLeftFemur"
 end_bone = &"FrontLeftTarsus_leaf"
-part_list = Array[ExtResource("1_627vj")]([ExtResource("2_ecaan"), ExtResource("3_0o1fa"), ExtResource("4_gropi")])
+part_list = Array[ExtResource("1_627vj")]([ExtResource("2_627vj"), ExtResource("3_627vj"), ExtResource("4_gropi")])
 metadata/_custom_type_script = "uid://bumtikmwn5lpl"

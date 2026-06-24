@@ -1,5 +1,0 @@
-[gd_resource type="JointLimitationCone3D" format=3 uid="uid://d213qmgc1ylep"]
-
-[resource]
-resource_name = "TarsusJointConeLimit"
-angle = 2.0943951023931953
