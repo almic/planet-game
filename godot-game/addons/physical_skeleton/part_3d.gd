@@ -76,8 +76,10 @@ var _cached_com: Vector3
 var joint_force_exceeded_emit: Callable
 var _signal_should_break: bool = false
 
+## Set by the chain, this is an additional term for the motor target delta
 var rotation_error: Quaternion
 var _bone_rotation: Quaternion
+var _bone_rotation_delta: Quaternion
 
 func _ready() -> void:
     if _skip_ready:
@@ -346,8 +348,10 @@ func update(skeleton: Skeleton3D, bone_idx: int) -> void:
 
         var bone_global = skeleton.get_bone_global_rest(bone_idx)
         var bone_local = skeleton.get_bone_pose_rotation(bone_idx)
-        _bone_rotation = skeleton.get_bone_rest(bone_idx).basis.get_rotation_quaternion()
-        _bone_rotation = _bone_rotation * bone_joint_data.offset.basis.get_rotation_quaternion()
+        _bone_rotation = (
+                skeleton.get_bone_rest(bone_idx).basis.get_rotation_quaternion()
+                * bone_joint_data.offset.basis.get_rotation_quaternion()
+        )
         skeleton.set_bone_pose_rotation(bone_idx, _bone_rotation)
         bone_global = skeleton.get_bone_global_pose(bone_idx)
 
@@ -451,17 +455,18 @@ func on_pose_finalized(skeleton: Skeleton3D, bone_idx: int) -> void:
 
 var _debug_timer: int = 0
 func setup_motor_velocity(skeleton: Skeleton3D, bone_idx: int) -> void:
-    return
     #_bone_rotation = (
             #_bone_rotation.inverse()
             #* _bone_rotation
     #)
 
+    _bone_rotation_delta = _bone_rotation.inverse() * skeleton.get_bone_pose_rotation(bone_idx)
+
     if part_index == 2 and get_parent().name.begins_with('FrontLeft'):
         _debug_timer += 1
-        if _debug_timer > 10:
+        if _debug_timer > 30:
             _debug_timer = 0
-            print(_bone_rotation.get_euler() * 180.0 / PI, '\n', skeleton.get_bone_pose_rotation(bone_idx).get_euler() * 180.0 / PI, '\n')
+            print(_bone_rotation_delta.get_euler() * 180.0 / PI)
             #print(
                 #(
                     #'euler: %s\n axis: %s\n angle: %.2f'

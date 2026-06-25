@@ -461,7 +461,7 @@ func on_joint_force_exceeded(
         _part: PhysicalBonePart3D,
         _chain: PhysicalBoneChain3D,
 ) -> void:
-    print('%d : %s: %.2f' % [Engine.get_physics_frames(), joint.name, force])
+    print('%d : %s: %.2f' % [Engine.get_physics_frames(), get_nice_path(joint), force])
 
 func _update_body_mass() -> void:
     """

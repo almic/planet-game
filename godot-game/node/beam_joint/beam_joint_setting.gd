@@ -20,7 +20,7 @@ var body_B_position: Vector3 = Vector3.ZERO:
         emit_changed()
 
 ## Additional expansion allowed between the two attachment points
-@export_range(0.0, 1.0, 0.01, 'or_greater')
+@export_range(0.0, 1.0, 0.0001, 'or_greater')
 var expand_limit: float = 0.1:
     set(value):
         expand_limit = value
@@ -28,7 +28,7 @@ var expand_limit: float = 0.1:
 
 ## Additional contraction allowed between the two attachment points, will be
 ## effectively limited by the initial beam span length
-@export_range(0.0, 1.0, 0.01, 'or_greater')
+@export_range(0.0, 1.0, 0.0001, 'or_greater')
 var contract_limit: float = 0.1:
     set(value):
         contract_limit = value
