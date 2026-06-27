@@ -38,10 +38,6 @@ The smaller crawler will have 4 legs with a round body. Not armored, very fragil
 - [ ] Change leg step behavior to be mostly an internal state, and act when unexpectedly removed from the ground. Legs should not pay attention to any step parameters of other legs, only the ground and comfort state. In fact it is probably best to think of steps as roughly asking its neighbors "hey, are you okay if I were to intentionally come off the ground?" then neighbors should say yes or no using simple logic questions about itself and its neighbors.
 
 
-# TODO NOW!!!
-
-- [ ] Fix the use of setting for beam joint, remove exports and only use the setting
-
 # Joint Structure
 
 Things joints do:
@@ -49,15 +45,6 @@ Things joints do:
 2. Take damage either from raycast, projectile, or exceeding a maximum stress force
 3. Can be part of an IK chain and use motors to match IK targets
 4. When a joint is destroyed in an IK chain, all IK joints have their motors powered off. This means the motor targets zero velocity and is left with a low "friction" max drive value.
-
-Structures:
-- BreakableJoint:
-    - extend Shared6DOFJoint
-- JointData:
-    - parent body
-    - main body
-    - joint
-    - joint copies
 
 
 Goals of a leg

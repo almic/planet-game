@@ -109,7 +109,7 @@ func _ready() -> void:
         GUIDE.enable_mapping_context(input_context_look)
         GUIDE.enable_mapping_context(input_context_move)
 
-        # InputManager.pause()
+        InputManager.pause()
 
 func _process(_delta: float) -> void:
     if Engine.is_editor_hint():

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PhysicalMotorParameters" format=3 uid="uid://cn7a03d8sukgt"]
+
+[ext_resource type="Script" uid="uid://cauv4ysnymf0u" path="res://addons/physical_skeleton/resource/motor_parameters.gd" id="1_7kqob"]
+
+[resource]
+resource_name = "TarsusMotor"
+script = ExtResource("1_7kqob")
+torque_change_rate = 100.0
+torque_powered = 7.0
+torque_friction = 4.0
+metadata/_custom_type_script = "uid://cauv4ysnymf0u"

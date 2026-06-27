@@ -156,6 +156,7 @@ func prepare_custom_joints(custom_joint_callable: Callable) -> bool:
 
     return true
 
+var last_end_pos: Vector3 = Vector3.INF
 func update() -> void:
     var power_active: bool = true
     is_using_power = false
@@ -175,8 +176,12 @@ func update() -> void:
         if (not is_any_motor_broken) and part.is_motor_broken:
             is_any_motor_broken = true
 
-    # TODO: I think this is still a good idea (June 13)
-    # IDEA: Teleport IK end bone to real location? Maybe this will help IK
+    # TODO:
+    # Revised: After updating bone positions, end bone is perfectly in place
+    #          and this probably isn't needed now! (June 27)
+    # Original:
+    #     TODO: I think this is still a good idea (June 13)
+    #     IDEA: Teleport IK end bone to real location? Maybe this will help IK
 
 func on_pose_finalized() -> void:
     for index in range(part_count):
@@ -272,14 +277,43 @@ func solve_velocity(iteration_count: int, delta: float) -> void:
             if part.is_motor_broken:
                 continue
 
-            # TODO: given the motor velocities and rigid body state, calculate
-            #       an angle error for this part
+            part.rotation_error = _calculate_error(index)
 
             var applied_impulse: bool = part.solve_motor_velocity(delta)
             had_impulse = had_impulse || applied_impulse
 
+            continue
+            print(
+                (
+                    'Part %d:\n'
+                    + '  vel: %+.2f\n'
+                    + '  des: %+.2f\n'
+                    + '  trq:  %.2f'
+                ) % [
+                    index,
+                    rad_to_deg(part.actual_joint_velocity),
+                    rad_to_deg(part.desired_motor_velocity),
+                    part.desired_motor_torque
+                ]
+            )
+
         if not had_impulse:
             break
+
+func _calculate_error(part_index: int) -> float:
+    var part: PhysicalBonePart3D = part_list[part_index]
+
+    var part_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(part.get_rid())
+    var parent_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(part.bone_joint_data.parent)
+
+    var joint_axis: Vector3 = part.bone_rotation_axis_vector
+
+    # Save joint velocity to part
+    part.actual_joint_velocity = -joint_axis.dot(part_state.angular_velocity - parent_state.angular_velocity)
+
+    var part_inertia: Vector3 = part_state.inverse_inertia_tensor * joint_axis
+
+    return 0.0
 
 func reload_chain() -> void:
     is_valid = false

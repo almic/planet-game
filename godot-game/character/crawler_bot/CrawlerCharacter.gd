@@ -520,9 +520,13 @@ func _update_leg_modes() -> void:
 
 func _handle_input() -> void:
 
-    if target_position.is_finite() and (target_position - position).length_squared() > 4.0:
-        target_direction = (target_position - position).normalized()
-        desired_direction = (target_position - position).normalized()
+    var body_center: Vector3 = position + PhysicsServer3D.body_get_param(get_rid(), PhysicsServer3D.BODY_PARAM_CENTER_OF_MASS)
+    var to_target: Vector3 = target_position - body_center
+
+    if target_position.is_finite() and to_target.length_squared() > 4.0:
+        var to_target_dir: Vector3 = to_target.normalized()
+        target_direction = to_target_dir
+        desired_direction = to_target_dir
         desired_speed = max_speed
     elif not desired_direction.is_zero_approx():
         desired_direction = Vector3.ZERO
@@ -589,7 +593,7 @@ func _update_legs() -> void:
             if chain.is_any_motor_broken:
                 chain.is_ik_enabled = false # mark disabled to skip in the future
                 # NOTE: setting node path to empty effectively disables that ik setting
-                leg_ik.set_target_node(chain.ik_setting_id, NodePath(""))
+                leg_ik.setting_list[chain.ik_setting].target_node = NodePath("")
                 # TODO: tell CrawlerLegs about this so they can change behavior
 
         _on_leg_pose_updated()

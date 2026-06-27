@@ -6,6 +6,7 @@
 [ext_resource type="Resource" uid="uid://r7jexawb7mgr" path="res://character/crawler_bot/normal/tibia_limitation.tres" id="4_vl6ou"]
 [ext_resource type="BoxMesh" uid="uid://btoiao1l4fp0n" path="res://character/crawler_bot/normal/tibia_box_mesh.tres" id="5_kdypb"]
 [ext_resource type="PhysicsMaterial" uid="uid://dgom72xev8omg" path="res://material/physic/metal.tres" id="6_3v0tn"]
+[ext_resource type="Resource" uid="uid://b6hjp2n07pjft" path="res://character/crawler_bot/normal/tibia_motor.tres" id="6_edrtx"]
 [ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="7_yr7dv"]
 
 [resource]
@@ -28,7 +29,7 @@ limitation = ExtResource("4_vl6ou")
 copy_ik_limitation_angle = true
 joint_angular_limit_x_upper = 0.4363323129985824
 joint_angular_limit_x_lower = -0.4363323129985824
-torque_powered = 20.0
+motor_parameters = ExtResource("6_edrtx")
 custom_enabled = true
 custom_joint_resource_list = Array[Resource]([ExtResource("3_0ledl")])
 metadata/_custom_type_script = "uid://beoy3te8b6dll"

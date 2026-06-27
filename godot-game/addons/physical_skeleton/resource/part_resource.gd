@@ -133,7 +133,7 @@ var break_max_force: float = 5000.0
 @export var ik_enabled: bool = false
 
 ## Allowed rotation axis for IK
-@export_enum('X', 'Y', 'Z')
+@export_enum('X', 'Y', 'Z', 'None')
 var rotation_axis: int = 3:
     set(value):
         rotation_axis = value
@@ -262,22 +262,12 @@ var joint_angular_limit_z_lower: float = 0:
 ## If the motor should be enabled at run-time
 @export var motor_enabled: bool = true
 
-@export_subgroup('Torque Limit', 'torque')
-## Torque drive limit when the joint is powered. Set to zero to simply disable
-## the motor.
-@export_range(0.0, 1000.0, 0.01, 'or_greater', 'hide_control', 'suffix:kg\u22C5m\u00B2/s\u00B2 (Nm)')
-var torque_powered: float = 340282346638528859811704183484516925440.0:
+## Motor parameters
+@export var motor_parameters: PhysicalMotorParameters:
     set(value):
-        torque_powered = value
-        setting_changed.emit(&'torque_powered')
-
-## Torque drive limit when the joint is unpowered due to another joint in the
-## chain being destroyed. Set to zero to simply disable the motor.
-@export_range(0.0, 50.0, 0.01, 'or_greater', 'hide_control', 'suffix:kg\u22C5m\u00B2/s\u00B2 (Nm)')
-var torque_unpowered: float = 10.0:
-    set(value):
-        torque_unpowered = value
-        setting_changed.emit(&'torque_unpowered')
+        _disconnect_named(motor_parameters, &'motor_parameters')
+        motor_parameters = value
+        _connect_named_and_call(motor_parameters, &'motor_parameters')
 #endregion Motor Settings
 
 #region Custom Joints
@@ -289,6 +279,17 @@ var torque_unpowered: float = 10.0:
 @export var custom_joint_resource_list: Array[Resource]
 #endregion Custom Joints
 
+
+func _connect_named_and_call(member: Resource, name: StringName) -> void:
+    var binding: Callable = setting_changed.emit.bind(name)
+    if member and (not member.changed.is_connected(binding)):
+        member.changed.connect(binding)
+    binding.call()
+
+func _disconnect_named(member: Resource, name: StringName) -> void:
+    var binding: Callable = setting_changed.emit.bind(name)
+    if member and member.changed.is_connected(binding):
+        member.changed.disconnect(binding)
 
 ## Updates copied joint setting from IK limitation
 func _update_joint_setting() -> void:

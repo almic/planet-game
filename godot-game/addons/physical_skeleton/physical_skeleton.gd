@@ -504,7 +504,7 @@ func setup_body() -> void:
                 )
                 return
 
-        bone_joint_map.assign(chain_bone_joint_map)
+        bone_joint_map.merge(chain_bone_joint_map)
 
         for part in chain.part_list:
             _setup_chain_part(part, space, query)

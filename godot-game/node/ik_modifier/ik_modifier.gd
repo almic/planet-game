@@ -18,6 +18,12 @@ var min_distance: float = 0.01
 @export_range(0.01, 360.0, 0.01, 'or_greater', 'radians_as_degrees', 'suffix:°/s')
 var angular_delta_limit: float = deg_to_rad(45.0)
 
+## How much joint deflection to fix when calculating end effector positions,
+## useful to stabilize IK results when physical bodies have significant axis
+## deflection for joints at the end of the chain.
+@export_range(0.0, 1.0, 0.001)
+var error_correction: float = 1.0
+
 ## When enabled, this modifier will remember the output of the last IK result
 ## and start from that. The default behavior will start from the incoming pose.
 @export var use_prior_work: bool = false:
@@ -118,6 +124,9 @@ func _disconnect_setting_list() -> void:
             setting.joint_list_changed.disconnect(_update_joint_bone_names)
 
 func _update_chain_list() -> void:
+    if not skeleton:
+        return
+
     var count: int = setting_list.size()
     chain_bone_list.resize(count)
     for index in range(count):
@@ -175,6 +184,9 @@ func _update_joint_bone_names() -> void:
             joint.bone_name = skeleton.get_bone_name(bone_list[joint_index])
 
 func _process_modification_with_delta(delta: float) -> void:
+    if delta == 0.0 and Engine.is_editor_hint():
+        return
+
     var count: int = setting_list.size()
     var min_dist_sqr: float = min_distance * min_distance
 
@@ -269,21 +281,26 @@ func _iterate_chain(bone_list: PackedInt32Array, setting: ChainResource, target:
         var bone_xform: Transform3D = skeleton.get_bone_global_pose(bone_idx)
         var bone_position: Vector3 = bone_xform.origin
         var bone_rotation: Quaternion = bone_xform.basis.get_rotation_quaternion()
-        var end_bone_position: Vector3 = skeleton.get_bone_global_pose(end_bone).origin
+        var end_bone_position: Vector3 = _calculate_end_position(
+                bone_xform,
+                joint,
+                bone_list,
+                setting.joint_list,
+                end_bone
+        )
+        var end_offset: Vector3 = end_bone_position - skeleton.get_bone_global_pose(end_bone).origin
         var parent_rotation: Quaternion
 
         if parent_bone != -1:
             parent_rotation = skeleton.get_bone_global_pose(parent_bone).basis.get_rotation_quaternion()
 
         var to_end: Vector3 = end_bone_position - bone_position
-        var to_target: Vector3 = target - bone_position
+        var to_target: Vector3 = (target + end_offset) - bone_position
         var rot_to_target: Quaternion = Quaternion(to_end, to_target)
 
         # Axis limitation
         var axis: Vector3 = Basis(bone_rotation)[joint_setting.rotation_axis]
-        var rotated_axis: Vector3 = rot_to_target * axis
-        var axis_correction_rot: Quaternion = Quaternion(rotated_axis, axis)
-        rot_to_target = axis_correction_rot * rot_to_target
+        rot_to_target = _restrict_to_axis(rot_to_target, axis)
 
         var new_bone_rot: Quaternion = rot_to_target * bone_rotation
 
@@ -296,6 +313,48 @@ func _iterate_chain(bone_list: PackedInt32Array, setting: ChainResource, target:
 
         skeleton.set_bone_pose_rotation(bone_idx, parent_rotation.inverse() * new_bone_rot)
 
+## Calculate the end bone position, correcting for rotation axis deflection, but
+## assuming the initial from_xform.
+func _calculate_end_position(
+        from_xform: Transform3D,
+        from_joint: int,
+        bone_list: PackedInt32Array,
+        joint_list: Array[JointResource],
+        end_bone_idx: int
+) -> Vector3:
+    var end_bone_offset: Vector3 = skeleton.get_bone_rest(end_bone_idx).origin
+    var xform := from_xform
+    var correction: float = (1.0 - error_correction)
+    for joint in range(from_joint + 1, bone_list.size()):
+        var bone_idx: int = bone_list[joint]
+        if bone_idx == end_bone_idx:
+            break
+
+        var joint_setting: JointResource = joint_list[joint]
+        var bone_rest: Transform3D = skeleton.get_bone_rest(bone_idx)
+
+        var bone_offset: Vector3 = skeleton.get_bone_pose_position(bone_idx)
+        bone_offset = bone_offset.lerp(bone_rest.origin, 1.0 - correction)
+
+        var bone_axis: Vector3 = bone_rest.basis[joint_setting.rotation_axis]
+        var bone_rotation: Quaternion = skeleton.get_bone_pose_rotation(bone_idx)
+        bone_rotation = bone_rotation.slerp(
+                _restrict_to_axis(bone_rotation, bone_axis),
+                1.0 - correction
+        )
+
+        xform *= Transform3D(bone_rotation, bone_offset)
+        correction *= correction
+
+    return xform * end_bone_offset
+
+## Clamps a rotation to a desired axis of rotation
+func _restrict_to_axis(rot: Quaternion, axis: Vector3) -> Quaternion:
+    var rotated_axis: Vector3 = rot * axis
+    var axis_correction_rot: Quaternion = Quaternion(rotated_axis, axis)
+    return axis_correction_rot * rot
+
+## Restricts a rotation to a maximum angle from the origin position
 func _limit_rotation(rot: Quaternion, origin: Quaternion, joint_setting: JointResource) -> Quaternion:
     var angle: float = rot.angle_to(origin)
     var max_angle: float = joint_setting.limitation_angle * 0.5

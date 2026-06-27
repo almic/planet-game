@@ -49,7 +49,7 @@ var is_motor_powered: bool = false
 ## This part is powered, managed by the chain
 var is_powered: bool = false
 ## This part can transfer power, determined by this part's health status
-var is_power_interrupted: bool = true
+var is_power_interrupted: bool = false
 ## This part is using power, set to false when motors are disabled/ destroyed
 var is_using_power: bool = false
 
@@ -76,10 +76,23 @@ var _cached_com: Vector3
 var joint_force_exceeded_emit: Callable
 var _signal_should_break: bool = false
 
-## Set by the chain, this is an additional term for the motor target delta
-var rotation_error: Quaternion
+## Set by the chain, the computed velocity of the joint on the rotation axis
+var actual_joint_velocity: float
+## Set by the chain, this is an additional term for the motor velocity
+var rotation_error: float
+## Global-space bone rotation axis
+var bone_rotation_axis_vector: Vector3
+## Calculated desired motor velocity, used by the chain to set errors
+var desired_motor_velocity: float
+## Calculated motor torque, exposed for debugging, mostly
+var desired_motor_torque: float
 var _bone_rotation: Quaternion
-var _bone_rotation_delta: Quaternion
+var _bone_rotation_axis: int
+## Calculated angle delta from IK
+var _ik_angle: float
+## Current torque change, used to limit the maximum delta during iteration
+var _motor_torque_delta: float
+
 
 func _ready() -> void:
     if _skip_ready:
@@ -348,11 +361,13 @@ func update(skeleton: Skeleton3D, bone_idx: int) -> void:
 
         var bone_global = skeleton.get_bone_global_rest(bone_idx)
         var bone_local = skeleton.get_bone_pose_rotation(bone_idx)
+        var bone_rest = skeleton.get_bone_rest(bone_idx)
         _bone_rotation = (
-                skeleton.get_bone_rest(bone_idx).basis.get_rotation_quaternion()
+                bone_rest.basis.get_rotation_quaternion()
                 * bone_joint_data.offset.basis.get_rotation_quaternion()
         )
         skeleton.set_bone_pose_rotation(bone_idx, _bone_rotation)
+        skeleton.set_bone_pose_position(bone_idx, bone_rest * bone_joint_data.offset.origin)
         bone_global = skeleton.get_bone_global_pose(bone_idx)
 
         if bone_joint_data.is_breakable and _should_break(bone_joint_data.joint, bone_joint_data.offset):
@@ -364,8 +379,8 @@ func update(skeleton: Skeleton3D, bone_idx: int) -> void:
             bone_joint = null
             bone_joint_data.joint = null
 
-        if not bone_joint_data.is_destroyed:
-            _update_motor_torque()
+        if bone_joint:
+            _update_motor()
 
         is_using_power = is_motor_powered
 
@@ -391,34 +406,52 @@ func _update_joint(joint_data: JointData) -> void:
     var body_diff: Transform3D = joint_parent.affine_inverse() * joint_body
     joint_data.offset = body_diff
 
-func _update_motor_torque() -> void:
+func _update_motor() -> void:
     var motor_should_be_powered: bool = is_powered and (not is_motor_broken)
     if is_motor_powered == motor_should_be_powered:
         return
-
     is_motor_powered = motor_should_be_powered
-    var torque_limit: float
-    if is_motor_powered:
-        torque_limit = resource.torque_powered
-    else:
-        torque_limit = resource.torque_unpowered
-
-    var motor_axis: IterateIK3D.RotationAxis = IterateIK3D.ROTATION_AXIS_ALL
 
     # Setting only the limitation axis
+    var motor_axis: int = -1
     if resource.ik_enabled:
         motor_axis = resource.rotation_axis
 
-    var all: bool = motor_axis >= IterateIK3D.ROTATION_AXIS_ALL
+    if motor_axis < 0 or motor_axis > 2:
+        push_error(
+            (
+                'PhysicalBonePart3D at %s has a motor with an invalid rotation '
+                + 'axis. Rotation axes for joints must be set to 0-2.'
+            ) % get_nice_path()
+        )
+        return
 
-    if all or motor_axis == IterateIK3D.ROTATION_AXIS_X:
-        bone_joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, torque_limit)
-    if all or motor_axis == IterateIK3D.ROTATION_AXIS_Y:
-        bone_joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, torque_limit)
-    if all or motor_axis == IterateIK3D.ROTATION_AXIS_Z:
-        bone_joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, torque_limit)
+    bone_joint.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, false)
+    bone_joint.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, false)
+    bone_joint.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, false)
+
+    # NOTE: X and Z are most common, so these should be the faster paths
+    if motor_axis == 0:
+        bone_joint.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, true)
+    elif motor_axis == 2:
+        bone_joint.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, true)
+    else:
+        bone_joint.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, true)
+
+    var t_friction: float = resource.motor_parameters.torque_friction
+
+    bone_joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, t_friction)
+    bone_joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, t_friction)
+    bone_joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, t_friction)
+
+    bone_joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, 0.0)
+    bone_joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, 0.0)
+    bone_joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, 0.0)
 
 func _should_break(joint: Joint3D, displacement: Transform3D) -> bool:
+    #if get_parent().name != 'FrontLeftChain':
+        #return true
+
     var total_force: float = 0
     if joint is BeamPivotJoint3D:
         total_force = joint.get_total_applied_force()
@@ -453,60 +486,121 @@ func on_pose_finalized(skeleton: Skeleton3D, bone_idx: int) -> void:
     mesh_bone_inst.global_transform = bone_xform.translated_local(resource.mesh_offset)
     #mesh_bone_inst.basis = Basis(resource.mesh_rotation) * mesh_bone_inst.basis
 
-var _debug_timer: int = 0
 func setup_motor_velocity(skeleton: Skeleton3D, bone_idx: int) -> void:
-    #_bone_rotation = (
-            #_bone_rotation.inverse()
-            #* _bone_rotation
-    #)
+    var axis: int = resource.rotation_axis
+    if axis < 0 or axis > 2:
+        push_error(
+            (
+                'PhysicalBonePart3D at %s has a motor with an invalid rotation '
+                + 'axis. Rotation axes for joints must be set to 0-2.'
+            ) % get_nice_path()
+        )
+        return
 
-    _bone_rotation_delta = _bone_rotation.inverse() * skeleton.get_bone_pose_rotation(bone_idx)
+    _bone_rotation_axis = axis
+    _motor_torque_delta = 0.0
+    bone_rotation_axis_vector = skeleton.global_basis * skeleton.get_bone_global_pose(bone_idx).basis[axis]
 
-    if part_index == 2 and get_parent().name.begins_with('FrontLeft'):
-        _debug_timer += 1
-        if _debug_timer > 30:
-            _debug_timer = 0
-            print(_bone_rotation_delta.get_euler() * 180.0 / PI)
-            #print(
-                #(
-                    #'euler: %s\n axis: %s\n angle: %.2f'
-                #) % [
-                    ##name,
-                    #_bone_rotation.get_euler() * 180.0 / PI,
-                    #_bone_rotation.get_axis(), rad_to_deg(_bone_rotation.get_angle())
-                #]
-            #)
+    var pose: Quaternion = skeleton.get_bone_pose_rotation(bone_idx)
+
+    var bone_rotation_delta = (_bone_rotation.inverse() * pose).normalized()
+
+    # Axis correction
+    var local_axis: Vector3 = Basis(pose)[axis]
+    var rotated_axis: Vector3 = bone_rotation_delta * local_axis
+    var axis_correction_rot: Quaternion = Quaternion(rotated_axis, local_axis)
+    bone_rotation_delta = (axis_correction_rot * bone_rotation_delta).normalized()
+    _ik_angle = wrapf(
+            bone_rotation_delta.get_angle() * signf(local_axis.dot(bone_rotation_delta.get_axis())),
+            -PI, PI
+    )
 
 func solve_motor_velocity(delta: float) -> bool:
-    """
-    const MAX_VELOCITY: float = 0.5
 
-    var velocities: Vector3 = -(joint_data.angle.inverse() * target_rotation).get_euler()
-    #if velocities.y > deg_to_rad(1.0):
-        #breakpoint
-    for i in range(3):
-        if absf(velocities[i]) < 1.745e-3:
-            velocities[i] = 0.0
-            continue
+    # Here is my idea:
+    #  1. Determine a "true" motor velocity by adding together the current target
+    #     velocity and the implied velocity from rotation_error.
+    #  2. Calculate the desired velocity according to the target_rotation.
+    #  3. Calculate the change in velocity.
+    #  4. Add this change to the current target velocity
 
-    velocities = velocities.sign() * (velocities.abs() / delta).minf(MAX_VELOCITY)
+    var motor_torque: float
+    var motor_velocity: float
+    if _bone_rotation_axis == 0:
+        motor_torque = bone_joint.get_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT)
+        motor_velocity = bone_joint.get_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY)
+    elif _bone_rotation_axis == 2:
+        motor_torque = bone_joint.get_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT)
+        motor_velocity = bone_joint.get_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY)
+    else:
+        motor_torque = bone_joint.get_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT)
+        motor_velocity = bone_joint.get_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY)
 
-    if velocities == Vector3.ZERO:
-        return false
+    # Velocity
+    desired_motor_velocity = -1.0 * _calculate_velocity(_ik_angle, delta)
+    desired_motor_velocity -= rotation_error
+    desired_motor_velocity = signf(desired_motor_velocity) * minf(absf(desired_motor_velocity), resource.motor_parameters.max_velocity)
+    var velocity_delta: float = desired_motor_velocity - motor_velocity
 
-    # TODO: velocity calculation improvements
+    # Torque
+    desired_motor_torque = _calculate_torque_curve(absf(motor_velocity) / resource.motor_parameters.max_velocity)
 
-    if joint_data.joint.get_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
-        joint_data.joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.x)
-    if joint_data.joint.get_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
-        joint_data.joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.y)
-    if joint_data.joint.get_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR):
-        joint_data.joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, velocities.z)
+    # Limit delta
+    var max_torque_delta: float = resource.motor_parameters.torque_change_rate * delta
+    var torque_delta: float = desired_motor_torque - motor_torque
 
-    return true
-    """
+    desired_motor_torque = motor_torque + torque_delta
 
-    return false
+    if _bone_rotation_axis == 0:
+        bone_joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, desired_motor_torque)
+        bone_joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, desired_motor_velocity)
+    elif _bone_rotation_axis == 2:
+        bone_joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, desired_motor_torque)
+        bone_joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, desired_motor_velocity)
+    else:
+        bone_joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, desired_motor_torque)
+        bone_joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, desired_motor_velocity)
+
+    if false and get_parent().name == 'FrontLeftChain' and part_index == 0:
+        print(
+            (
+                'Part %d:\n  ang: %.4f\n  act: %.2f\n  vel: %.2f\n  trq: %.2f\n'
+            ) % [
+                part_index,
+                rad_to_deg(_ik_angle),
+                rad_to_deg(actual_joint_velocity),
+                rad_to_deg(desired_motor_velocity),
+                desired_motor_torque
+            ]
+        )
+
+    return velocity_delta != 0.0
+
+var _prior_error: float = 0.0
+var _integrated_error: float = 0.0
+## Given an angle error and delta time, computes a desired velocity
+func _calculate_velocity(error: float, delta: float) -> float:
+    _integrated_error += error * delta
+    var derivative: float = (error - _prior_error) / delta
+    var output: float = (
+              resource.motor_parameters.resp_proportional * error
+            + resource.motor_parameters.resp_integral * _integrated_error
+            + resource.motor_parameters.resp_derivative * derivative
+    )
+    _prior_error = error
+    return output
+
+## Torque interpolation curve
+func _calculate_torque_curve(velocity_ratio: float) -> float:
+    if velocity_ratio <= 0.5:
+        return resource.motor_parameters.torque_powered
+
+    var t_low: float = resource.motor_parameters.torque_friction
+    var t_rate: float = 1.0
+    if resource.motor_parameters.torque_curve <= (1 - 1e-6):
+        t_rate -= pow(absf((2.0 * velocity_ratio) - 1.0), (1.0 / resource.motor_parameters.torque_curve))
+
+    return t_low + maxf(0.0, t_rate * (resource.motor_parameters.torque_powered - t_low))
 
 func reload_part() -> void:
     is_valid = false
@@ -690,6 +784,14 @@ func resource_modified(setting: StringName = &'') -> void:
 
     _ensure_mesh_bone_inst()
 
+    collider.shape = resource.collider_shape
+    collider.position = resource.collider_offset
+    collider.basis = resource.collider_rotation
+
+    # Could have been destroyed
+    if not bone_joint:
+        return
+
     if resource.break_enabled:
         bone_joint.set_meta(META_BREAK_FORCE, resource.break_max_force)
     else:
@@ -722,7 +824,3 @@ func resource_modified(setting: StringName = &'') -> void:
     bone_joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, resource.joint_angular_limit_z_lower)
     bone_joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, resource.joint_angular_limit_z_upper)
     #endregion angular
-
-    collider.shape = resource.collider_shape
-    collider.position = resource.collider_offset
-    collider.basis = resource.collider_rotation

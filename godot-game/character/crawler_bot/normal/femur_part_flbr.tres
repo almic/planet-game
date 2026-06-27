@@ -5,6 +5,7 @@
 [ext_resource type="Resource" uid="uid://crupo1xqfpu0m" path="res://character/crawler_bot/normal/femur_limitation_flbr.tres" id="3_yc203"]
 [ext_resource type="BoxMesh" uid="uid://buu5evxiifjrq" path="res://character/crawler_bot/normal/femur_box_mesh.tres" id="4_m3pxf"]
 [ext_resource type="PhysicsMaterial" uid="uid://dgom72xev8omg" path="res://material/physic/metal.tres" id="5_25px0"]
+[ext_resource type="Resource" uid="uid://bkrl1hrdjaqd8" path="res://character/crawler_bot/normal/femur_motor.tres" id="5_dhp56"]
 [ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="6_nh4o5"]
 
 [resource]
@@ -27,4 +28,4 @@ limitation = ExtResource("3_yc203")
 copy_ik_limitation_angle = true
 joint_angular_limit_z_upper = 0.2617993877991466
 joint_angular_limit_z_lower = -0.6108652381980182
-torque_powered = 20.0
+motor_parameters = ExtResource("5_dhp56")

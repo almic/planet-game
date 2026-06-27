@@ -7,6 +7,7 @@
 [ext_resource type="Resource" uid="uid://xbem30drgjxp" path="res://character/crawler_bot/normal/tarsus_beam_joint.tres" id="3_yhue1"]
 [ext_resource type="Resource" uid="uid://b8j34bj6qovyu" path="res://character/crawler_bot/normal/tarsus_limitation.tres" id="4_gtill"]
 [ext_resource type="BoxMesh" uid="uid://bg5sh58i7q6tc" path="res://character/crawler_bot/normal/tarsus_box_mesh.tres" id="4_yhue1"]
+[ext_resource type="Resource" uid="uid://cn7a03d8sukgt" path="res://character/crawler_bot/normal/tarsus_motor.tres" id="6_gtill"]
 
 [resource]
 resource_name = "TarsusPart"
@@ -28,7 +29,7 @@ limitation = ExtResource("4_gtill")
 copy_ik_limitation_angle = true
 joint_angular_limit_x_upper = 0.5672320068981543
 joint_angular_limit_x_lower = -0.9162978572970258
-torque_powered = 20.0
+motor_parameters = ExtResource("6_gtill")
 custom_enabled = true
 custom_joint_resource_list = Array[Resource]([ExtResource("3_yhue1")])
 metadata/_custom_type_script = "uid://beoy3te8b6dll"

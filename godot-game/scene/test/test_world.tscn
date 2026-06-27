@@ -339,12 +339,12 @@ transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 25.05, -25)
 size = Vector3(30, 0.1, 20)
 material = ExtResource("3_qyrsn")
 
-[node name="Characters" type="Node" parent="." unique_id=2116430924]
+[node name="Characters" type="Node3D" parent="." unique_id=272431613]
 process_mode = 1
 metadata/_edit_lock_ = true
 
 [node name="Player" parent="Characters" unique_id=1957397594 instance=ExtResource("1_fbyci")]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 12.5, 0.125, 19)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 26.52091457504585, 0, 40.84771457505568)
 metadata/_edit_group_ = true
 
 [node name="Camera3D" type="Camera3D" parent="Characters/Player" unique_id=1880891728]
@@ -352,7 +352,9 @@ transform = Transform3D(0, -1, 0, 0, 0, 1, -1, 0, 0, -0.2, 3.3, -4.1)
 size = 6.314
 
 [node name="CrawlerBot" parent="Characters" unique_id=461561025 instance=ExtResource("9_dunqf")]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 11.5, 0, 23.5)
+transform = Transform3D(0.7071067811865477, 0, -0.7071067811865474, 0, 1, 0, 0.7071067811865474, 0, 0.7071067811865477, 25, 0, 44)
+axis_lock_linear_y = true
+axis_lock_angular_y = true
 metadata/_edit_group_ = true
 
 [node name="Camera3D" type="Camera3D" parent="Characters/CrawlerBot" unique_id=1751609405]
@@ -361,7 +363,22 @@ projection = 1
 fov = 40.0
 size = 5.5
 
-[node name="DynamicWorld" type="Node" parent="." unique_id=1049443971]
+[node name="Marker3D" type="Marker3D" parent="Characters/CrawlerBot" unique_id=1224844974]
+transform = Transform3D(0.7843567133728444, -0.6203099923282714, 1.1257958315580296e-08, 2.5370897591137087e-08, 5.022938814880362e-08, 0.9999999403953536, -0.6203100390795782, -0.7843566763994889, 5.5135581822352016e-08, -0.17299999999522697, 0.8200000000069849, -0.672999999995227)
+rotation_edit_mode = 2
+
+[node name="Marker3D4" type="Marker3D" parent="Characters/CrawlerBot/Marker3D" unique_id=1542570381]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.31789999999455176, -0.948099999994156, 0)
+
+[node name="Marker3D2" type="Marker3D" parent="Characters/CrawlerBot" unique_id=1729054409]
+transform = Transform3D(0.8090154703802505, -0.4268199834080804, 0.4041267296428304, 8.352841327210729e-08, 0.6875392619933846, 0.7261470407562285, -0.5877871445937543, -0.5874642355929027, 0.5562300104719128, -0.36470000000554137, 0.8200000000069849, -0.9153999999980442)
+rotation_edit_mode = 2
+
+[node name="Marker3D3" type="Marker3D" parent="Characters/CrawlerBot" unique_id=384101079]
+transform = Transform3D(0.8090193782161188, -0.3701832278539523, -0.456565237778865, -1.2462584010065397e-08, -0.7767596274643362, 0.6297970604014205, -0.5877817659087624, -0.5095180288230373, -0.6284137555161229, -0.6753999999928055, 1.3205000000016298, -1.3429999999934807)
+rotation_edit_mode = 2
+
+[node name="DynamicWorld" type="Node3D" parent="." unique_id=1772513136]
 process_mode = 1
 metadata/_edit_lock_ = true
 

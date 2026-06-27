@@ -28,7 +28,7 @@ var ground_bone: StringName
 var debug_enable: bool = true
 
 ## The comfort region for leg
-@export var debug_rest_area: bool = false
+@export var debug_rest_area: bool = true
 var _debug_rest_circle: int = 0
 
 ## The step shape cast
@@ -37,11 +37,11 @@ var _debug_step_cast_shape: int = 0
 var _debug_step_cast_vector: int = 0
 
 ## The target position for the current step
-@export var debug_step_target: bool = false
+@export var debug_step_target: bool = true
 var _debug_target_sphere: int = 0
 
 ## The target IK position for the leg
-@export var debug_ik_target: bool = false
+@export var debug_ik_target: bool = true
 var _debug_ik_sphere: int = 0
 
 ## The ground contact normal of the leg
@@ -54,7 +54,7 @@ var _debug_ground_cast_vector: int = 0
 var _debug_ground_cast_shape: int = 0
 
 ## Render text at the leg giving the reason it takes a step
-@export var debug_step_reason: bool = false
+@export var debug_step_reason: bool = true
 var _debug_step_reason_text_id: int = 0
 var _debug_step_reason_text: String
 #endregion Debug
@@ -194,17 +194,16 @@ func setup(cast_exceptions: Array[RID]) -> void:
     # Teleport to root bone position, is a method to share with CrawlerCharacter
     # build tool
     apply_position()
+
     # Setup target node and position, same reason as above
     setup_target()
-
 
     cached_adjacent = get_adjacent()
     cached_diagonal = get_diagonal()
 
     comfort_distance = setting.rest_distance
-    target_rest_position = global_transform.inverse() * target.global_position
-    attachment_point = (body.global_transform.inverse() * global_transform).origin
-
+    target_rest_position = target.position
+    attachment_point = (body.global_transform.affine_inverse() * global_transform).origin
 
     ground_bone_idx = body.skeleton.find_bone(ground_bone)
     if ground_bone_idx == -1:
@@ -236,9 +235,9 @@ func apply_position() -> void:
     if not physical_bone_chain:
         return
 
-    var bone_xform: Transform3D = body.skeleton.global_transform * body.skeleton.get_bone_global_pose(body.skeleton.find_bone(physical_bone_chain.root_bone))
-    global_position = bone_xform.origin
-    global_basis = Basis.IDENTITY
+    var root_bone: int = body.skeleton.find_bone(physical_bone_chain.root_bone)
+    position = body.skeleton.get_bone_global_pose(root_bone).origin
+    basis = Basis.IDENTITY
 
 func setup_target() -> void:
     target_bone_idx = -1
@@ -260,7 +259,6 @@ func setup_target() -> void:
 
     body.leg_ik.setting_list[index].target_node = body.leg_ik.get_path_to(target)
     target.global_position = body.skeleton.global_transform * body.skeleton.get_bone_global_rest(target_bone_idx).origin
-    target_last_global_position = target.global_position
 
 func pose_updated() -> void:
     if use_new_leg_mode:
@@ -272,14 +270,13 @@ func pose_updated() -> void:
             * body.skeleton.get_bone_global_pose(body.skeleton.get_bone_parent(ground_bone_idx))
     ).basis.y
 
-    # Render before copying the IK result
-    if debug_enable and debug_ik_target:
-        _draw_ik_target()
-
     target.global_position = (
               body.skeleton.global_transform
             * body.skeleton.get_bone_global_pose(target_bone_idx).origin
     )
+    #if index == 1:
+        #print((target.global_position - target_last_global_position) / cached_step)
+    target_last_global_position = target.global_position
 
 func _new_pose_updated() -> void:
     pass
@@ -389,7 +386,8 @@ func _update_grounded() -> void:
 func _update_step_transform(body_basis: Basis) -> void:
     var target_transform: Transform3D = Transform3D.IDENTITY
     if body.has_desired_forward:
-        target_transform.origin += body_basis.inverse() * body.desired_direction * setting.move_offset
+        target_transform.origin += (body_basis.inverse() * body.desired_direction) * setting.move_offset
+        target_transform.origin.y = 0.0
 
         var is_front: bool = index < 2
         var is_back: bool = index + 2 >= body.legs.size()
@@ -397,13 +395,14 @@ func _update_step_transform(body_basis: Basis) -> void:
         var cos_theta: float = body.desired_direction.dot(-body_basis.z)
 
         if is_front:
-            cos_theta = maxf(cos_theta * 2.0 - 1.0, -1.0)
+            cos_theta = cos_theta * 2.0 - 1.0
         elif is_back:
-            cos_theta = minf(cos_theta * 2.0 + 1.0, 1.0)
+            cos_theta = cos_theta * 2.0 + 1.0
 
         if is_left:
             cos_theta *= -1.0
 
+        cos_theta = clampf(cos_theta, -1.0, 1.0)
         target_transform = target_transform.rotated_local(Vector3.UP, setting.move_spin * cos_theta)
 
     if step_transform != target_transform:
@@ -460,8 +459,6 @@ func update() -> void:
         return
     _update_target()
 
-    target_last_global_position = target.global_position
-
 func _new_update() -> void:
     pass
 
@@ -492,20 +489,18 @@ func _update_target() -> void:
     ):
         start_step()
 
-    if not is_stepping:
+    if debug_enable and debug_step_target:
+        _draw_step_target(not is_stepping)
 
+    if not is_stepping:
         target.position.y = _calculate_lift(target.position.y, body.max_speed * cached_step)
 
-        if debug_enable and debug_step_target:
-            _draw_step_target(true)
-
+        if debug_enable and debug_ik_target:
+            _draw_ik_target()
         return
 
-    if debug_enable:
-        if debug_step_target:
-            _draw_step_target()
-        if debug_step_reason:
-            _draw_step_reason()
+    if debug_enable and debug_step_reason:
+        _draw_step_reason()
 
     var leg_speed: float
 
@@ -520,7 +515,8 @@ func _update_target() -> void:
         )
     else:
         # Use very small leg speed while interpolating to rest
-        leg_speed = maxf(body.max_speed * 0.1, 0.05)
+        leg_speed = body.max_speed
+        #leg_speed = maxf(body.max_speed * 0.1, 0.05)
 
     # NOTE: In general, will be covering twice the comfort distance
     leg_speed *= maxf(comfort_distance * 2.0, 1.0)
@@ -534,6 +530,7 @@ func _update_target() -> void:
     var current_dist: float = (step_goal - step_current).length()
 
     var step_delta: float = leg_speed * cached_step * clampf(current_dist / setting.step_distance, 1.0, 2.0)
+    step_delta = current_dist * minf(step_delta / current_dist, 1.0)
     var new_step: Vector3 = _calculate_step_vector(step_current, step_goal, step_delta)
 
     current_dist = (step_goal - new_step).length()
@@ -560,6 +557,9 @@ func _update_target() -> void:
             _draw_step_reason(true)
     else:
         target.position = new_step
+
+    if debug_enable and debug_ik_target:
+        _draw_ik_target()
 
 func _calculate_step_vector(current: Vector3, goal: Vector3, step_delta: float) -> Vector3:
     if is_zero_approx(setting.leg_swing_amount):
