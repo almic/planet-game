@@ -5,6 +5,10 @@ class_name PhysicalMotorParameters extends Resource
 @export_range(0.1, 360.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s')
 var max_velocity: float = deg_to_rad(270.0)
 
+## Acceleration limit of the motor
+@export_range(0.1, 1440.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s\u00B2')
+var max_acceleration: float = deg_to_rad(720.0)
+
 @export_group('Torque', 'torque_')
 ## Rate of change for the torque, should generally be high enough to travel from
 ## unpowered to powered torque in fractions of a second.

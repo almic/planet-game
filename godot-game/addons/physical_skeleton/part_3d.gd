@@ -593,11 +593,18 @@ func _calculate_velocity(
         velocity: float,
         delta: float
 ) -> float:
+    var max_vel: float = resource.motor_parameters.max_velocity
     _angle_controller.update_parameters(resource.motor_parameters.angle_controller)
     var target_velocity: float = _angle_controller.compute(angle, target_angle, delta)
+    target_velocity = clampf(target_velocity, -max_vel, max_vel)
+    _angle_controller.set_output(target_velocity)
 
+    var max_accel: float = resource.motor_parameters.max_acceleration * delta
     _motor_controller.update_parameters(resource.motor_parameters.motor_controller)
     var acceleration: float = _motor_controller.compute(velocity, target_velocity, delta)
+    target_velocity = clampf(velocity + acceleration, -max_vel, max_vel)
+    acceleration = clampf(target_velocity - velocity, -max_accel, max_accel)
+    _motor_controller.set_output(acceleration)
 
     return velocity + acceleration
 

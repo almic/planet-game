@@ -36,7 +36,7 @@ func _init() -> void:
 
 func reset_memory() -> void:
     if mode == Mode.PID:
-        mem.resize(2)
+        mem.resize(3)
     elif mode == Mode.IIR:
         mem.resize(4)
     elif mode == Mode.IIR_LP:
@@ -51,6 +51,18 @@ func update_parameters(parameters: PhysicalControllerParameters) -> void:
     k_i = parameters.integral
     k_d = parameters.derivative
     k_lp = parameters.lowpass_interval
+
+## Overwrites the previous output, intended for systems where the output value
+## is clamped before being used, and helps stop run-away integral terms. This
+## must be called immediately after compute(), before parameters are changed.
+func set_output(output: float) -> void:
+    if mode == Mode.PID:
+        if k_i == 0.0:
+            return
+        var new_integral: float = (output - (k_p * mem[1]) - (k_d * mem[2])) / k_i
+        output = new_integral
+
+    mem[0] = output
 
 ## Given an input measure, target, and delta time, computes an output value
 func compute(input: float, target: float, delta: float) -> float:
@@ -71,6 +83,7 @@ func compute(input: float, target: float, delta: float) -> float:
         )
         mem[0] = integral
         mem[1] = error
+        mem[2] = derivative
 
     elif mode == Mode.IIR:
         if mem_reset:
