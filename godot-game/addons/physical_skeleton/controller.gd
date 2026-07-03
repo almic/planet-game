@@ -101,15 +101,16 @@ func compute(input: float, target: float, delta: float) -> float:
         mem[0] = mem[0] + (a0 * mem[1]) + (a1 * mem[2])
 
         # Lowpass filter for derivative
-        var a0d: float = k_d
-        var a1d: float = -2.0 * a0d
-        var a2d: float = a0d # why?
-        var alp: float = (k_p * k_lp) / (2.0 * k_d)
+        if k_d != 0.0:
+            var a0d: float = k_d
+            var a1d: float = -2.0 * a0d
+            var a2d: float = a0d # why?
+            var alp: float = (k_p * k_lp) / (2.0 * k_d)
 
-        mem[5] = mem[4]
-        mem[4] = (a0d * mem[1]) + (a1d * mem[2]) + (a2d * mem[3])
-        mem[7] = mem[6]
-        mem[6] = (alp / (alp + 1.0)) * (mem[4] + mem[5]) - ((alp - 1.0) / (alp + 1.0)) * mem[7]
+            mem[5] = mem[4]
+            mem[4] = (a0d * mem[1]) + (a1d * mem[2]) + (a2d * mem[3])
+            mem[7] = mem[6]
+            mem[6] = (alp / (alp + 1.0)) * (mem[4] + mem[5]) - ((alp - 1.0) / (alp + 1.0)) * mem[7]
 
         mem[0] = mem[0] + mem[6]
         output = mem[0]
