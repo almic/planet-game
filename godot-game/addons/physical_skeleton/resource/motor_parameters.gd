@@ -1,6 +1,9 @@
 class_name PhysicalMotorParameters extends Resource
 
 
+const MotorController = preload("uid://bdhxyktjceoqv")
+
+
 ## Velocity limit of the motor, also determines the point of friction-only motor
 @export_range(0.1, 360.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s')
 var max_velocity: float = deg_to_rad(270.0)
@@ -38,6 +41,9 @@ var torque_friction: float = 10.0:
         emit_changed()
 
 @export_group('Response', 'resp_')
+## Motor response mode
+@export var resp_mode: MotorController.Mode = MotorController.Mode.PID
+
 ## The proportional response constant for PID controller simulation. Modify this
 ## first to get the desired speed.
 @export_range(0.0, 10.0, 0.01, 'or_greater')
@@ -53,3 +59,7 @@ var resp_integral: float = 0.0
 ## after proportional to reduce oscillations.
 @export_range(0.0, 5.0, 0.01, 'or_greater')
 var resp_derivative: float = 1.0
+
+## The derivative lowpass filter time interval, only used in IIR-LP mode
+@export_range(3, 10, 1, 'prefer_slider')
+var resp_lowpass_interval: float = 3

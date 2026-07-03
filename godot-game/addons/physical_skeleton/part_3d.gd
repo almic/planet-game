@@ -2,6 +2,9 @@
 class_name PhysicalBonePart3D extends RigidBody3D
 
 
+const MotorController = preload("uid://bdhxyktjceoqv")
+
+
 const META_CUSTOM_INDEX: StringName = &'_part_custom_index'
 const META_BONE_JOINT: StringName = &'_part_bone_joint'
 const META_BONE_MESH: StringName = &'_part_bone_mesh'
@@ -93,6 +96,11 @@ var _ik_angle: float
 ## Current torque change, used to limit the maximum delta during iteration
 var _motor_torque_delta: float
 
+var _motor_controller: MotorController
+
+
+func _init() -> void:
+    _motor_controller = MotorController.new()
 
 func _ready() -> void:
     if _skip_ready:
@@ -537,7 +545,7 @@ func solve_motor_velocity(delta: float) -> bool:
         motor_velocity = bone_joint.get_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY)
 
     # Velocity
-    desired_motor_velocity = -1.0 * _calculate_velocity(_ik_angle, delta)
+    desired_motor_velocity = _calculate_velocity(_ik_angle, 0.0, delta)
     desired_motor_velocity -= rotation_error
     desired_motor_velocity = signf(desired_motor_velocity) * minf(absf(desired_motor_velocity), resource.motor_parameters.max_velocity)
     var velocity_delta: float = desired_motor_velocity - motor_velocity
@@ -576,19 +584,17 @@ func solve_motor_velocity(delta: float) -> bool:
 
     return velocity_delta != 0.0
 
-var _prior_error: float = 0.0
-var _integrated_error: float = 0.0
 ## Given an angle error and delta time, computes a desired velocity
-func _calculate_velocity(error: float, delta: float) -> float:
-    _integrated_error += error * delta
-    var derivative: float = (error - _prior_error) / delta
-    var output: float = (
-              resource.motor_parameters.resp_proportional * error
-            + resource.motor_parameters.resp_integral * _integrated_error
-            + resource.motor_parameters.resp_derivative * derivative
-    )
-    _prior_error = error
-    return output
+func _calculate_velocity(input: float, target: float, delta: float) -> float:
+    _motor_controller.mode = resource.motor_parameters.resp_mode
+    _motor_controller.k_p = resource.motor_parameters.resp_proportional
+    _motor_controller.k_i = resource.motor_parameters.resp_integral
+    _motor_controller.k_d = resource.motor_parameters.resp_derivative
+    _motor_controller.k_lp = resource.motor_parameters.resp_lowpass_interval
+
+    var vel: float = _motor_controller.compute(input, target, delta)
+
+    return vel
 
 ## Torque interpolation curve
 func _calculate_torque_curve(velocity_ratio: float) -> float:
