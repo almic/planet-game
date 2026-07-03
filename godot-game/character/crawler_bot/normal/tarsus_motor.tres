@@ -1,11 +1,15 @@
 [gd_resource type="Resource" script_class="PhysicalMotorParameters" format=3 uid="uid://cn7a03d8sukgt"]
 
 [ext_resource type="Script" uid="uid://cauv4ysnymf0u" path="res://addons/physical_skeleton/resource/motor_parameters.gd" id="1_7kqob"]
+[ext_resource type="Resource" uid="uid://bctfx3se7h0rh" path="res://character/crawler_bot/normal/tarsus_motor_angle.tres" id="1_8xgw2"]
+[ext_resource type="Resource" uid="uid://eu1tnoyhbaog" path="res://character/crawler_bot/normal/tarsus_motor_velocity.tres" id="2_rrjcm"]
 
 [resource]
 resource_name = "TarsusMotor"
 script = ExtResource("1_7kqob")
 torque_change_rate = 100.0
-torque_powered = 7.0
+torque_powered = 8.0
 torque_friction = 4.0
+angle_controller = ExtResource("1_8xgw2")
+motor_controller = ExtResource("2_rrjcm")
 metadata/_custom_type_script = "uid://cauv4ysnymf0u"

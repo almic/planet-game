@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="PhysicalMotorParameters" format=3 uid="uid://bkrl1hrdjaqd8"]
 
 [ext_resource type="Script" uid="uid://cauv4ysnymf0u" path="res://addons/physical_skeleton/resource/motor_parameters.gd" id="1_lgbbw"]
+[ext_resource type="Resource" uid="uid://cnxdpdlnolwo0" path="res://character/crawler_bot/normal/femur_motor_angle.tres" id="1_qnie8"]
+[ext_resource type="Resource" uid="uid://di3wvep786dkx" path="res://character/crawler_bot/normal/femur_motor_velocity.tres" id="2_4f2xk"]
 
 [resource]
 resource_name = "FemurMotor"
@@ -8,4 +10,6 @@ script = ExtResource("1_lgbbw")
 torque_change_rate = 100.0
 torque_powered = 20.0
 torque_friction = 8.0
+angle_controller = ExtResource("1_qnie8")
+motor_controller = ExtResource("2_4f2xk")
 metadata/_custom_type_script = "uid://cauv4ysnymf0u"

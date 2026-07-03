@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PhysicalControllerParameters" format=3 uid="uid://di3wvep786dkx"]
+
+[ext_resource type="Script" uid="uid://bddq06cxcp4p0" path="res://addons/physical_skeleton/resource/controller_parameters.gd" id="1_p4477"]
+
+[resource]
+resource_name = "FemurMotorVelocity"
+script = ExtResource("1_p4477")
+mode = 2
+proportional = 1.0
+integral = 1.0
+derivative = 0.5
+metadata/_custom_type_script = "uid://bddq06cxcp4p0"

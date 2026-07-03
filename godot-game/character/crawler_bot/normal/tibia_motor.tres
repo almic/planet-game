@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="PhysicalMotorParameters" format=3 uid="uid://b6hjp2n07pjft"]
 
 [ext_resource type="Script" uid="uid://cauv4ysnymf0u" path="res://addons/physical_skeleton/resource/motor_parameters.gd" id="1_8lfhx"]
+[ext_resource type="Resource" uid="uid://rinw7lv6lfrp" path="res://character/crawler_bot/normal/tibia_motor_angle.tres" id="1_dcv3n"]
+[ext_resource type="Resource" uid="uid://iy14f27txtui" path="res://character/crawler_bot/normal/tibia_motor_velocity.tres" id="2_ockil"]
 
 [resource]
 resource_name = "TibiaMotor"
@@ -8,4 +10,6 @@ script = ExtResource("1_8lfhx")
 torque_change_rate = 100.0
 torque_powered = 14.0
 torque_friction = 4.0
+angle_controller = ExtResource("1_dcv3n")
+motor_controller = ExtResource("2_ockil")
 metadata/_custom_type_script = "uid://cauv4ysnymf0u"

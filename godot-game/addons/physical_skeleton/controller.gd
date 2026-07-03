@@ -45,6 +45,13 @@ func reset_memory() -> void:
     mem.fill(0.0)
     mem_reset = true
 
+func update_parameters(parameters: PhysicalControllerParameters) -> void:
+    mode = parameters.mode
+    k_p = parameters.proportional
+    k_i = parameters.integral
+    k_d = parameters.derivative
+    k_lp = parameters.lowpass_interval
+
 ## Given an input measure, target, and delta time, computes an output value
 func compute(input: float, target: float, delta: float) -> float:
     if delta == 0.0:
@@ -56,7 +63,7 @@ func compute(input: float, target: float, delta: float) -> float:
         var error: float = target - input
         var integral: float = mem[0] + (error * delta)
         var prior_error: float = mem[1]
-        var derivative: float = (error - prior_error) / delta
+        var derivative: float = error - prior_error
         output = (
                   k_p * error
                 + k_i * integral
@@ -70,7 +77,7 @@ func compute(input: float, target: float, delta: float) -> float:
             mem_reset = false
             mem[0] = input
 
-        var a2: float = k_d / delta
+        var a2: float = k_d
         var a0: float = k_p + (k_i * delta) + a2
         var a1: float = -k_p - (2.0 * a2)
 
@@ -85,28 +92,26 @@ func compute(input: float, target: float, delta: float) -> float:
             mem_reset = false
             mem[0] = input
 
-        var a0: float = k_p + k_i * delta
+        var a0: float = k_p + (k_i * delta)
         var a1: float = -k_p
 
         mem[3] = mem[2]
         mem[2] = mem[1]
         mem[1] = target - input
-        output = mem[0] + (a0 * mem[1]) + (a1 * mem[2])
+        mem[0] = mem[0] + (a0 * mem[1]) + (a1 * mem[2])
 
         # Lowpass filter for derivative
-        var a0d: float = k_d / delta
+        var a0d: float = k_d
         var a1d: float = -2.0 * a0d
         var a2d: float = a0d # why?
-        var t: float = k_d / (k_p * k_lp)
-        var ad: float = delta / (2.0 * t)
+        var alp: float = (k_p * k_lp) / (2.0 * k_d)
 
         mem[5] = mem[4]
         mem[4] = (a0d * mem[1]) + (a1d * mem[2]) + (a2d * mem[3])
         mem[7] = mem[6]
-        mem[6] = (ad / (ad + 1.0)) * (mem[4] + mem[5]) - ((ad - 1.0) / (ad + 1.0)) * mem[7]
+        mem[6] = (alp / (alp + 1.0)) * (mem[4] + mem[5]) - ((alp - 1.0) / (alp + 1.0)) * mem[7]
 
-        output += mem[6]
-
-        mem[0] = output
+        mem[0] = mem[0] + mem[6]
+        output = mem[0]
 
     return output

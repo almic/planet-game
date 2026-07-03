@@ -1,9 +1,6 @@
 class_name PhysicalMotorParameters extends Resource
 
 
-const MotorController = preload("uid://bdhxyktjceoqv")
-
-
 ## Velocity limit of the motor, also determines the point of friction-only motor
 @export_range(0.1, 360.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s')
 var max_velocity: float = deg_to_rad(270.0)
@@ -40,26 +37,26 @@ var torque_friction: float = 10.0:
         torque_friction = value
         emit_changed()
 
-@export_group('Response', 'resp_')
-## Motor response mode
-@export var resp_mode: MotorController.Mode = MotorController.Mode.PID
+@export_group('Controller')
+## Controller parameters for target angle
+@export var angle_controller: PhysicalControllerParameters:
+    set(value):
+        _disconnect_changed(angle_controller)
+        angle_controller = value
+        _connect_changed(angle_controller)
 
-## The proportional response constant for PID controller simulation. Modify this
-## first to get the desired speed.
-@export_range(0.0, 10.0, 0.01, 'or_greater')
-var resp_proportional: float = 5.0
+## Controller parameters for motor velocity
+@export var motor_controller: PhysicalControllerParameters:
+    set(value):
+        _disconnect_changed(motor_controller)
+        motor_controller = value
+        _connect_changed(motor_controller)
 
-## The integral response constant for PID controller simulation. Modify this to
-## correct for errors in response. This should probably not be needed as errors
-## are not part of the simulation.
-@export_range(0.0, 10.0, 0.01, 'or_greater')
-var resp_integral: float = 0.0
 
-## The derivative response constant for PID controller simulation. Modify this
-## after proportional to reduce oscillations.
-@export_range(0.0, 5.0, 0.01, 'or_greater')
-var resp_derivative: float = 1.0
+func _connect_changed(res: Resource) -> void:
+    if res and (not res.changed.is_connected(emit_changed)):
+        res.changed.connect(emit_changed)
 
-## The derivative lowpass filter time interval, only used in IIR-LP mode
-@export_range(3, 10, 1, 'prefer_slider')
-var resp_lowpass_interval: float = 3
+func _disconnect_changed(res: Resource) -> void:
+    if res and res.changed.is_connected(emit_changed):
+        res.changed.disconnect(emit_changed)

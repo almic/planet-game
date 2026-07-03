@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PhysicalControllerParameters" format=3 uid="uid://rinw7lv6lfrp"]
+
+[ext_resource type="Script" uid="uid://bddq06cxcp4p0" path="res://addons/physical_skeleton/resource/controller_parameters.gd" id="1_nclol"]
+
+[resource]
+resource_name = "TibiaMotorAngle"
+script = ExtResource("1_nclol")
+integral = 0.5
+derivative = 0.8
+metadata/_custom_type_script = "uid://bddq06cxcp4p0"
