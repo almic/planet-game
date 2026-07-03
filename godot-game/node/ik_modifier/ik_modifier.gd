@@ -124,17 +124,17 @@ func _disconnect_setting_list() -> void:
             setting.joint_list_changed.disconnect(_update_joint_bone_names)
 
 func _update_chain_list() -> void:
-    if not skeleton:
-        return
-
     var count: int = setting_list.size()
     chain_bone_list.resize(count)
     for index in range(count):
         var setting: ChainResource = setting_list[index]
-        var root_bone: int = skeleton.find_bone(setting.root_bone)
-        var end_bone: int = skeleton.find_bone(setting.end_bone)
+        var root_bone: int = -1
+        var end_bone: int = -1
+
         if skeleton:
             setting.bone_name_hint = skeleton.get_concatenated_bone_names()
+            root_bone = skeleton.find_bone(setting.root_bone)
+            end_bone = skeleton.find_bone(setting.end_bone)
 
         if root_bone == -1 or end_bone == -1:
             if not Engine.is_editor_hint():
