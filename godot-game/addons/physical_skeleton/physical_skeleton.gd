@@ -247,6 +247,9 @@ func _process_modification_with_delta(delta: float) -> void:
             deactivate_bodies()
         return
 
+    if delta == 0.0:
+        return
+
     cached_delta = delta
 
     for chain in chain_list:
@@ -274,6 +277,9 @@ func deactivate_bodies() -> void:
 ## rotations onto the skeleton pose, and save the initial rotations, so it can
 ## correctly target what changed in the pose.
 func on_pose_finalized() -> void:
+    if cached_delta == 0.0:
+        return
+
     if not bodies_active:
         # Just update visual skeleton in editor
         if Engine.is_editor_hint():
@@ -281,7 +287,7 @@ func on_pose_finalized() -> void:
                 chain.on_pose_finalized()
         return
 
-    const ITERATIONS: int = 1
+    const ITERATIONS: int = 5
     for chain in chain_list:
         if not chain.is_valid:
             continue
@@ -292,7 +298,33 @@ func on_pose_finalized() -> void:
             continue
 
         chain.setup_velocity()
-        chain.solve_velocity(ITERATIONS, cached_delta)
+
+    var main_body_state := PhysicsServer3D.body_get_direct_state(main_body.get_rid())
+    var _body_angular: Vector3 = main_body_state.angular_velocity
+    var _body_xform: Transform3D = main_body_state.transform
+    for i in range(ITERATIONS):
+        var had_impulse: bool = false
+        var is_backwards: bool = i % 2 == 0
+        var do_state_update: bool = i < ITERATIONS - 1
+
+        for chain in chain_list:
+            var impulse = chain.solve_velocity(
+                    main_body_state, _body_angular, _body_xform,
+                    cached_delta,
+                    is_backwards,
+                    do_state_update
+            )
+            had_impulse = had_impulse || impulse
+
+        if not had_impulse:
+            break
+
+    # Clean up
+    main_body_state.angular_velocity = _body_angular
+    main_body_state.transform = _body_xform
+
+    for chain in chain_list:
+        chain.clean_part_state()
 
 func get_bone_part_map() -> Dictionary[int, PhysicalBonePart3D]:
     return _bone_part_map
