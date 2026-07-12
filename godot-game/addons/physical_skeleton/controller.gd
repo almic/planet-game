@@ -31,6 +31,7 @@ var mode: Mode = Mode.PID:
 var mem: PackedFloat64Array
 var mem_cache: PackedFloat64Array
 var mem_reset: bool = true
+var mem_cache_reset: bool = false
 
 func _init() -> void:
     reset_memory()
@@ -51,6 +52,7 @@ func reset_memory() -> void:
 func store_cache() -> void:
     mem_cache.resize(0)
     mem_cache.append_array(mem)
+    mem_cache_reset = mem_reset
 
 ## Loads the cache into current memory state, does nothing if memory state is
 ## a different size from the cache
@@ -60,6 +62,7 @@ func load_cache() -> void:
 
     mem.resize(0)
     mem.append_array(mem_cache)
+    mem_reset = mem_cache_reset
 
 ## Applies the parameters of a resource to this controller's internal parameters
 func update_parameters(parameters: PhysicalControllerParameters) -> void:

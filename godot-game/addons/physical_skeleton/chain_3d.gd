@@ -44,10 +44,6 @@ var part_count: int
 var _part_initial_angular: PackedVector3Array
 var _part_initial_basis: Array[Basis]
 
-var _has_cached_main_body: bool = false
-var _cached_main_body_angular: Vector3 = Vector3.ZERO
-var _cached_main_body_transform: Transform3D = Transform3D.IDENTITY
-
 
 func _ready() -> void:
     if _skip_ready:
@@ -163,7 +159,6 @@ func prepare_custom_joints(custom_joint_callable: Callable) -> bool:
 
     return true
 
-var last_end_pos: Vector3 = Vector3.INF
 func update() -> void:
     var power_active: bool = true
     is_using_power = false
@@ -271,97 +266,32 @@ func clean_part_state() -> void:
 
 ## Processes parts on the chain, accepting a main-body angular velocity and
 ## returning the estimated new velocity of the main-body.
-func solve_velocity(
-        main_body_state: PhysicsDirectBodyState3D,
-        initial_main_angular_velocity: Vector3,
-        initial_main_transform: Transform3D,
-        delta: float,
-        is_backwards: bool,
-        do_state_update: bool,
-) -> bool:
-
-    # Set main body to our cached output
-    if _has_cached_main_body:
-        _has_cached_main_body = false
-        main_body_state.angular_velocity = _cached_main_body_angular
-        main_body_state.transform = _cached_main_body_transform
-    else:
-        main_body_state.angular_velocity = initial_main_angular_velocity
-        main_body_state.transform = initial_main_transform
+func solve_velocity(delta: float) -> bool:
 
     if ik_setting == 0:
         breakpoint
 
-    var index: int
-    var step: int
-
-    if is_backwards:
-        index = part_count
-        step = -1
-    else:
-        index = -1
-        step = 1
-
-    var count: int = part_count
-    var had_impulse: bool = false
-    while count > 0:
-        count -= 1
-        index += step
-
-        var part: PhysicalBonePart3D = part_list[index]
-
-        # The rest will be unpowered when iterating forward, so break early
-        if not part.is_powered:
-            if step > 0:
-                break
-            continue
-
-        # The motor itself may be effectively destroyed, so no need to solve
-        if part.is_motor_broken:
-            continue
-
-        _update_part_iteration(part, delta)
-
-        var applied_impulse: bool = part.solve_motor_velocity(delta)
-        had_impulse = had_impulse || applied_impulse
-
-        continue
-        print(
-            (
-                'Part %d:\n'
-                + '  vel: %+.2f\n'
-                + '  des: %+.2f\n'
-                + '  trq:  %.2f'
-            ) % [
-                index,
-                rad_to_deg(part.actual_joint_velocity),
-                rad_to_deg(part.desired_motor_velocity),
-                part.desired_motor_torque
-            ]
-        )
-
-    if not do_state_update:
-        return had_impulse
-
-    # Reset parts and main body state
-    clean_part_state()
-    main_body_state.angular_velocity = initial_main_angular_velocity
-    main_body_state.transform = initial_main_transform
-
     # Apply motors to angular velocity and rotations, in reverse to match the
     # joint priorities
-    index = part_count
-    var vel_results: PackedVector3Array
+
+    var body_velocity: PackedVector3Array
+    body_velocity.resize(2)
+
+    var index: int = part_count
     while index > 0:
         index -= 1
+
         var part: PhysicalBonePart3D = part_list[index]
 
         var part_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(part.get_rid())
         var parent_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(part.bone_joint_data.parent)
-        _calculate_part_velocity(part, delta, vel_results)
 
-        parent_state.angular_velocity = vel_results[0]
-        part_state.angular_velocity = vel_results[1]
+        body_velocity[0] = parent_state.angular_velocity
+        body_velocity[1] = part_state.angular_velocity
+        _calculate_part_velocity(part, delta, body_velocity)
+
+        parent_state.angular_velocity = body_velocity[0]
+        part_state.angular_velocity = body_velocity[1]
 
     index = part_count
     while index > 0:
@@ -383,17 +313,39 @@ func solve_velocity(
         var joint_velocity: float = joint_axis.dot(body_state.angular_velocity)
         if absf(joint_velocity) > 1e-6:
             xform.basis = xform.basis.rotated(joint_axis, joint_velocity * delta)
-            had_impulse = true
 
         # This updates the inverse inertia, which is needed for the constraint
         body_state.transform = xform
+
+        var parent_tensor: Basis = parent_state.inverse_inertia_tensor
+        var body_tensor: Basis = body_state.inverse_inertia_tensor
+        var effective_mass: Basis
+        for k in range(3):
+            effective_mass[k] = body_tensor[k] + parent_tensor[k]
+
+        var det: float = effective_mass.determinant()
+        if det == 0.0:
+            # Some axis must be locked, so identity any missing axis
+            for k in range(3):
+                if effective_mass[k][k] == 0.0:
+                    effective_mass[k] = Vector3()
+                    effective_mass[k][k] = 1.0
+            det = effective_mass.determinant()
+
+            # Cannot proceed, though this should probably never happen in-game, it
+            # could happen in development in special cases. Either way, should still
+            # check because it would be a div-by-zero
+            if det == 0.0:
+                continue
+
+        effective_mass = effective_mass.inverse()
 
         # Rotation of joint
         var joint_to_parent: Quaternion = part.bone_joint_data.xform_rel_parent.basis.get_rotation_quaternion()
         var joint_to_body: Quaternion = part.bone_joint_data.xform_rel_body.basis.get_rotation_quaternion()
         var joint_parent: Quaternion = parent_state.transform.basis.get_rotation_quaternion()
         var joint_body: Quaternion = body_state.transform.basis.get_rotation_quaternion()
-        var joint_q: Quaternion = (joint_to_body * joint_body) * (joint_to_parent * joint_parent).inverse()
+        var joint_q: Quaternion = (joint_parent * joint_to_parent).inverse() * (joint_body * joint_to_body)
 
         # Constrain rotation
         var q_swing: Quaternion
@@ -418,14 +370,50 @@ func solve_velocity(
             q_twist = -q_twist
 
         if part.bone_rotation_axis == 0:
-            # X, twist
-            pass
-        elif part.bone_rotation_axis == 2:
-            # Z, swing
-            pass
+            q_swing = Quaternion()
+            var half_min: float = 0.5 * part.bone_joint.get_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT)
+            var half_max: float = 0.5 * part.bone_joint.get_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT)
+            var sin_half_min: float = sin(half_min)
+            var sin_half_max: float = sin(half_max)
+            var d_min: float = sin_half_min - q_twist.x
+            var d_max: float = q_twist.x - sin_half_max
+            if d_min > 0.0 or d_max > 0.0:
+                if _dist_to_min_shorter(d_min, d_max):
+                    q_twist = Quaternion(sin_half_min, 0, 0, cos(half_min))
+                else:
+                    q_twist = Quaternion(sin_half_max, 0, 0, cos(half_max))
         else:
-            # Y, swing
-            pass
+            q_twist = Quaternion()
+            if part.bone_rotation_axis == 2:
+                var half_min: float = 0.5 * part.bone_joint.get_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT)
+                var half_max: float = 0.5 * part.bone_joint.get_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT)
+                var sin_half_min: float = sin(half_min)
+                var sin_half_max: float = sin(half_max)
+                var d_min: float = sin_half_min - q_swing.z
+                var d_max: float = q_swing.z - sin_half_max
+                if d_min > 0.0 or d_max > 0.0:
+                    if _dist_to_min_shorter(d_min, d_max):
+                        q_swing = Quaternion(0, 0, sin_half_min, cos(half_min))
+                    else:
+                        q_swing = Quaternion(0, 0, sin_half_max, cos(half_max))
+                elif q_swing.y != 0.0:
+                    var z: float = q_swing.z
+                    q_swing = Quaternion(0, 0, z, sqrt(1.0 - (z * z)))
+            else:
+                var half_min: float = 0.5 * part.bone_joint.get_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT)
+                var half_max: float = 0.5 * part.bone_joint.get_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT)
+                var sin_half_min: float = sin(half_min)
+                var sin_half_max: float = sin(half_max)
+                var d_min: float = sin_half_min - q_swing.y
+                var d_max: float = q_swing.y - sin_half_max
+                if d_min > 0.0 or d_max > 0.0:
+                    if _dist_to_min_shorter(d_min, d_max):
+                        q_swing = Quaternion(0, sin_half_min, 0, cos(half_min))
+                    else:
+                        q_swing = Quaternion(0, sin_half_max, 0, cos(half_max))
+                elif q_swing.z != 0.0:
+                    var y: float = q_swing.y
+                    q_swing = Quaternion(0, y, 0, sqrt(1.0 - (y * y)))
 
         # Flip signs back
         if negate_swing:
@@ -434,31 +422,11 @@ func solve_velocity(
             q_twist = -q_twist
 
         # Constrain to angle limitation
-        var parent_tensor: Basis = parent_state.inverse_inertia_tensor
-        var body_tensor: Basis = body_state.inverse_inertia_tensor
-        var effective_mass: Basis
-        for k in range(3):
-            effective_mass[k] = body_tensor[k] + parent_tensor[k]
 
-        var det: float = effective_mass.determinant()
-        if det == 0.0:
-            # Some axis must be locked, so identity any missing axis
-            for k in range(3):
-                if effective_mass[k][k] == 0.0:
-                    effective_mass[k] = Vector3()
-                    effective_mass[k][k] = 1.0
-            det = effective_mass.determinant()
-
-            # Cannot proceed, though this should probably never happen in-game, it
-            # could happen in development in special cases. Either way, should still
-            # check because it would be a div-by-zero
-            if det == 0.0:
-                continue
-
-        effective_mass = effective_mass.inverse()
-
-        var constraint_q_inv: Quaternion = ((q_twist * q_swing) * joint_to_parent).inverse() * joint_to_body
-        var diff: Quaternion = joint_parent.inverse() * (constraint_q_inv * joint_body)
+        #var constraint_q_inv: Quaternion = (q_twist * (q_swing * joint_to_parent))
+        #constraint_q_inv = constraint_q_inv.inverse() * joint_to_body
+        #var diff: Quaternion = joint_parent.inverse() * (constraint_q_inv * joint_body)
+        var diff: Quaternion = (q_twist * (q_swing * (joint_parent * joint_to_parent))).inverse() * (joint_body * joint_to_body)
 
         if diff.w < 0.0:
             diff = -diff
@@ -476,7 +444,6 @@ func solve_velocity(
             xform = parent_state.transform
             xform.basis = xform.basis.rotated(joint_axis, -delta_len)
             parent_state.transform = xform
-            had_impulse = true
 
         var body_delta: Vector3 = body_state.inverse_inertia_tensor * lambda
         delta_len = joint_axis.dot(body_delta)
@@ -484,39 +451,52 @@ func solve_velocity(
             xform = body_state.transform
             xform.basis = xform.basis.rotated(joint_axis, delta_len)
             body_state.transform = xform
-            had_impulse = true
 
-    _cached_main_body_angular = main_body_state.angular_velocity
-    _cached_main_body_transform = main_body_state.transform
-    _has_cached_main_body = true
+    index = part_count
+    var had_impulse: bool = false
+    while index > 0:
+        index -= 1
+
+        var part: PhysicalBonePart3D = part_list[index]
+
+        # The motor itself may be effectively destroyed, so no need to solve
+        if (not part.is_powered) or part.is_motor_broken:
+            continue
+
+        _update_part_iteration(part, delta)
+
+        var applied_impulse: bool = part.solve_motor_velocity(delta)
+        had_impulse = had_impulse || applied_impulse
+
+        continue
+        print(
+            (
+                'Part %d:\n'
+                + '  vel: %+.2f\n'
+                + '  des: %+.2f\n'
+                + '  trq:  %.2f'
+            ) % [
+                index,
+                rad_to_deg(part.actual_joint_velocity),
+                rad_to_deg(part.desired_motor_velocity),
+                part.desired_motor_torque
+            ]
+        )
 
     return had_impulse
 
 func _update_part_iteration(part: PhysicalBonePart3D, delta: float) -> void:
     var part_index: int = part.part_index
     var part_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(part.get_rid())
-    var joint_velocity: Vector3
+    var parent_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(part.bone_joint_data.parent)
 
-    var vel_results: PackedVector3Array
-    if part_index - 1 >= 0:
-        # Estimated parent body angular velocity
-        _calculate_part_velocity(part_list[part_index - 1], delta, vel_results)
-        joint_velocity = vel_results[1]
-    else:
-        var parent_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(part.bone_joint_data.parent)
-        joint_velocity = parent_state.angular_velocity
-
-    if part_index + 1 < part_list.size():
-        # Estimated part body angular velocity
-        _calculate_part_velocity(part_list[part_index + 1], delta, vel_results)
-        joint_velocity -= vel_results[0]
-    else:
-        joint_velocity -= part_state.angular_velocity
+    var part_velocity: Vector3 = part_state.angular_velocity
+    var parent_velocity: Vector3 = parent_state.angular_velocity
 
     var joint_axis: Vector3 = part.bone_rotation_axis_vector
-    var joint_axis_velocity: float = joint_axis.dot(joint_velocity)
+    var joint_velocity: float = joint_axis.dot(parent_velocity - part_velocity)
 
-    part.joint_velocity = joint_axis_velocity
+    part.joint_velocity = joint_velocity
 
     var rot: Quaternion = (_part_initial_basis[part_index].inverse() * part_state.transform.basis).get_rotation_quaternion()
     rot = Quaternion(rot * joint_axis, joint_axis) * rot
@@ -529,14 +509,10 @@ func _update_part_iteration(part: PhysicalBonePart3D, delta: float) -> void:
 func _calculate_part_velocity(
         part: PhysicalBonePart3D,
         delta: float,
-        results: PackedVector3Array,
+        io_velocity: PackedVector3Array,
 ) -> void:
     var part_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(part.get_rid())
     var parent_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(part.bone_joint_data.parent)
-
-    results.resize(2)
-    results[0] = parent_state.angular_velocity
-    results[1] = part_state.angular_velocity
 
     var torque: float = part.desired_motor_torque * delta
     if torque < 1e-6:
@@ -548,11 +524,11 @@ func _calculate_part_velocity(
     var parent_inv_inertia: Vector3 = parent_state.inverse_inertia_tensor * joint_axis
     var effective_mass: float = 1.0 / joint_axis.dot(part_inv_inertia + parent_inv_inertia)
 
-    var lambda: float = effective_mass * (joint_axis.dot(parent_state.angular_velocity - part_state.angular_velocity) + part.desired_motor_velocity)
+    var lambda: float = effective_mass * (joint_axis.dot(io_velocity[0] - io_velocity[1]) - part.desired_motor_velocity)
     lambda = clampf(lambda, -torque, torque)
 
-    results[0] -= lambda * parent_inv_inertia
-    results[1] += lambda * part_inv_inertia
+    io_velocity[0] -= lambda * parent_inv_inertia
+    io_velocity[1] += lambda * part_inv_inertia
 
 func _dist_to_min_shorter(min_d: float, max_d: float) -> bool:
     min_d = absf(min_d)

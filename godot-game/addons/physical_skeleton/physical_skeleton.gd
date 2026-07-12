@@ -304,27 +304,18 @@ func on_pose_finalized() -> void:
     var _body_xform: Transform3D = main_body_state.transform
     for i in range(ITERATIONS):
         var had_impulse: bool = false
-        var is_backwards: bool = i % 2 == 0
-        var do_state_update: bool = i < ITERATIONS - 1
 
         for chain in chain_list:
-            var impulse = chain.solve_velocity(
-                    main_body_state, _body_angular, _body_xform,
-                    cached_delta,
-                    is_backwards,
-                    do_state_update
-            )
+            var impulse = chain.solve_velocity(cached_delta)
             had_impulse = had_impulse || impulse
+
+            # Clean state changes
+            chain.clean_part_state()
+            main_body_state.angular_velocity = _body_angular
+            main_body_state.transform = _body_xform
 
         if not had_impulse:
             break
-
-    # Clean up
-    main_body_state.angular_velocity = _body_angular
-    main_body_state.transform = _body_xform
-
-    for chain in chain_list:
-        chain.clean_part_state()
 
 func get_bone_part_map() -> Dictionary[int, PhysicalBonePart3D]:
     return _bone_part_map
