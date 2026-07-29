@@ -1,0 +1,68 @@
+[gd_resource type="Resource" script_class="PhysicalBonePartResource" format=3 uid="uid://dceq1r23kkx56"]
+
+[ext_resource type="Material" uid="uid://b40dbxkqwa5td" path="res://character/crawler_bot/normal/ghost_material.tres" id="1_4g4mb"]
+[ext_resource type="Script" uid="uid://def477t0ae837" path="res://addons/physical_skeleton/resource/joint_limitation.gd" id="2_j4ghn"]
+[ext_resource type="Material" uid="uid://b7tcfnn27e44y" path="res://material/dev/grid_red.tres" id="3_rmodr"]
+[ext_resource type="Script" uid="uid://bddq06cxcp4p0" path="res://addons/physical_skeleton/resource/controller_parameters.gd" id="4_dgo8i"]
+[ext_resource type="Script" uid="uid://cauv4ysnymf0u" path="res://addons/physical_skeleton/resource/motor_parameters.gd" id="5_u30xr"]
+[ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="6_yimoq"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_jc8px"]
+margin = 0.0
+radius = 0.05
+height = 0.2
+
+[sub_resource type="Resource" id="Resource_pcqjn"]
+script = ExtResource("2_j4ghn")
+angle = 0.8726646259971648
+rotation_offset = Quaternion(0, 0, 0.08715574274766, 0.99619469809175)
+metadata/_custom_type_script = "uid://def477t0ae837"
+
+[sub_resource type="BoxMesh" id="BoxMesh_1mf0w"]
+material = ExtResource("3_rmodr")
+size = Vector3(0.05999999999999808, 0.1999999999999936, 0.03999999999999872)
+
+[sub_resource type="Resource" id="Resource_6akut"]
+script = ExtResource("4_dgo8i")
+proportional = 16.0
+integral = 0.0
+derivative = 0.0
+metadata/_custom_type_script = "uid://bddq06cxcp4p0"
+
+[sub_resource type="Resource" id="Resource_gj6xc"]
+script = ExtResource("4_dgo8i")
+proportional = 1.2
+integral = 0.0
+derivative = 0.0
+metadata/_custom_type_script = "uid://bddq06cxcp4p0"
+
+[sub_resource type="Resource" id="Resource_jija2"]
+script = ExtResource("5_u30xr")
+max_acceleration = 18.84955592153876
+torque_change_rate = 100.0
+torque_powered = 8.0
+torque_friction = 2.0
+angle_controller = SubResource("Resource_6akut")
+motor_controller = SubResource("Resource_gj6xc")
+metadata/_custom_type_script = "uid://cauv4ysnymf0u"
+
+[resource]
+resource_name = "Femur"
+script = ExtResource("6_yimoq")
+mesh = SubResource("BoxMesh_1mf0w")
+mesh_offset = Vector3(0, 0.0999999999999968, 0)
+bone_enable_mesh = true
+bone_material_override = ExtResource("1_4g4mb")
+collider_shape = SubResource("CapsuleShape3D_jc8px")
+collider_offset = Vector3(0, 0.0999999999999968, 0)
+collision_mask = 51
+ik_enabled = true
+rotation_axis = 2
+limitation = SubResource("Resource_pcqjn")
+copy_ik_limitation_angle = true
+joint_angular_limit_z_upper = 0.2617993877991466
+joint_angular_limit_z_lower = -0.6108652381980182
+motor_parameters = SubResource("Resource_jija2")
+debug_enable = true
+debug_motor = true
+metadata/_custom_type_script = "uid://beoy3te8b6dll"

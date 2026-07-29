@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="PhysicalBonePartResource" format=3 uid="uid://dsft47wijpwns"]
+
+[ext_resource type="Material" uid="uid://b40dbxkqwa5td" path="res://character/crawler_bot/normal/ghost_material.tres" id="1_c220c"]
+[ext_resource type="Script" uid="uid://def477t0ae837" path="res://addons/physical_skeleton/resource/joint_limitation.gd" id="1_uuhtj"]
+[ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="1_wkii0"]
+[ext_resource type="Script" uid="uid://bddq06cxcp4p0" path="res://addons/physical_skeleton/resource/controller_parameters.gd" id="2_pyvtl"]
+[ext_resource type="Material" uid="uid://b7tcfnn27e44y" path="res://material/dev/grid_red.tres" id="3_40222"]
+[ext_resource type="Script" uid="uid://cauv4ysnymf0u" path="res://addons/physical_skeleton/resource/motor_parameters.gd" id="3_c220c"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_2u64d"]
+radius = 0.05
+height = 0.4
+
+[sub_resource type="Resource" id="Resource_jc8px"]
+script = ExtResource("1_uuhtj")
+angle = 0.8726646259971648
+metadata/_custom_type_script = "uid://def477t0ae837"
+
+[sub_resource type="BoxMesh" id="BoxMesh_40222"]
+material = ExtResource("3_40222")
+size = Vector3(0.05999999999999808, 0.3999999999999872, 0.03999999999999872)
+
+[sub_resource type="Resource" id="Resource_eai8g"]
+script = ExtResource("2_pyvtl")
+proportional = 16.0
+integral = 0.0
+derivative = 0.0
+metadata/_custom_type_script = "uid://bddq06cxcp4p0"
+
+[sub_resource type="Resource" id="Resource_rhqll"]
+script = ExtResource("2_pyvtl")
+proportional = 1.2
+integral = 0.0
+derivative = 0.0
+metadata/_custom_type_script = "uid://bddq06cxcp4p0"
+
+[sub_resource type="Resource" id="Resource_1mf0w"]
+script = ExtResource("3_c220c")
+max_acceleration = 18.84955592153876
+torque_change_rate = 100.0
+torque_powered = 10.0
+torque_friction = 2.0
+angle_controller = SubResource("Resource_eai8g")
+motor_controller = SubResource("Resource_rhqll")
+metadata/_custom_type_script = "uid://cauv4ysnymf0u"
+
+[resource]
+resource_name = "Tibia"
+script = ExtResource("1_wkii0")
+mesh = SubResource("BoxMesh_40222")
+mesh_offset = Vector3(0, 0.1999999999999936, 0)
+bone_enable_mesh = true
+bone_material_override = ExtResource("1_c220c")
+collider_shape = SubResource("CapsuleShape3D_2u64d")
+collider_offset = Vector3(0, 0.1999999999999936, 0)
+ik_enabled = true
+rotation_axis = 0
+limitation = SubResource("Resource_jc8px")
+copy_ik_limitation_angle = true
+joint_angular_limit_x_upper = 0.4363323129985824
+joint_angular_limit_x_lower = -0.4363323129985824
+motor_parameters = SubResource("Resource_1mf0w")
+debug_enable = true
+debug_motor = true
+metadata/_custom_type_script = "uid://beoy3te8b6dll"

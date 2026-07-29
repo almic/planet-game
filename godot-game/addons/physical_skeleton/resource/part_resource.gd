@@ -279,6 +279,16 @@ var joint_angular_limit_z_lower: float = 0:
 @export var custom_joint_resource_list: Array[Resource]
 #endregion Custom Joints
 
+#region Debug
+@export_group('Debug', 'debug')
+
+@export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
+var debug_enable: bool = false
+
+## Displays a graph showing motor output and measures
+@export var debug_motor: bool = false
+#endregion Debug
+
 
 func _connect_named_and_call(member: Resource, name: StringName) -> void:
     var binding: Callable = setting_changed.emit.bind(name)

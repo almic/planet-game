@@ -1,6 +1,9 @@
 extends Node2D
 
 
+const Chart = preload("uid://dqa5gk08lqrqd")
+
+
 var camera: Camera3D
 var last_transform: Transform3D
 
@@ -27,6 +30,8 @@ enum TYPE {
 var id_counter: int = 1
 var items: Dictionary = {}
 var font: Font
+var layers: Dictionary = {}
+var layer_add_queue: Array[CanvasLayer] = []
 
 
 func _init() -> void:
@@ -34,6 +39,11 @@ func _init() -> void:
     font.font_names = ['monospace', 'mono']
 
 func _process(delta: float) -> void:
+
+    if layer_add_queue.size() > 0 and get_parent().is_node_ready():
+        for layer in layer_add_queue:
+            add_sibling(layer, true)
+        layer_add_queue.clear()
 
     # Tick timed items
     for d in items.values():
@@ -98,14 +108,27 @@ func _draw() -> void:
             _draw_circle(coords, radius, axis, points, color)
         elif d.type == TYPE.POLYLINE:
             var poly: PackedVector3Array = d.get(&'poly')
-            var mod: bool = d.get(&'mod')
             var color: Color = d.get(&'color')
+            var points: bool = d.get(&'points')
 
-            _draw_polyline(poly, mod, color)
+            _draw_polyline(poly, color, points)
         else:
             push_error('DebugDraw: Unknown type id %d!' % d.type)
             items.erase(k)
 
+
+## Helper, adds a new canvas layer sibling to DebugDraw, and returns it by name.
+## If you plan to reuse the layer, consider saving to a static variable.
+func get_layer(layer_name: StringName) -> CanvasLayer:
+    if not layers.has(layer_name):
+        var layer: CanvasLayer = CanvasLayer.new()
+        layer.name = layer_name
+        layers.set(layer_name, layer)
+        if get_parent().is_node_ready():
+            add_sibling(layer, true)
+        else:
+            layer_add_queue.append(layer)
+    return layers.get(layer_name)
 
 func text(coordinates: Vector3, string: String, color: Color, size: float = 16.0, id: int = 0, time: float = 0.0) -> int:
     var d: Dictionary = {}
@@ -240,27 +263,29 @@ func _draw_circle(pos: Vector3, radius: float, axis: Vector3, points: int, color
         vec = axis.cross(Vector3.FORWARD)
     vec = vec.normalized()
 
+    var line_data: PackedVector3Array
+    line_data.resize(points + 1)
+    var index: int = 0
     for i in range(points + 1):
-        var a: Vector3 = pos + vec * radius
+        line_data[i] = pos + vec * radius
         vec = basis * vec
-        var b: Vector3 = pos + vec * radius
 
-        draw_segment(_clamp_segment(a, b), color)
+    _draw_polyline(line_data, color)
 
-func polyline(polygon: PackedVector3Array, modulate_order: bool, color: Color, id: int = 0, time: float = 0.0) -> int:
+func polyline(polygon: PackedVector3Array, draw_points: bool, color: Color, id: int = 0, time: float = 0.0) -> int:
     var d: Dictionary = {}
     id = _get_item(id, TYPE.POLYLINE, d)
 
     d.set(&'poly', polygon)
-    d.set(&'mod', modulate_order)
     d.set(&'color', color)
+    d.set(&'points', draw_points)
     d.set(&'t', time)
 
     items.set(id, d)
     queue_redraw()
     return id
 
-func _draw_polyline(polygon: PackedVector3Array, modulate_order: bool, color: Color) -> void:
+func _draw_polyline(polygon: PackedVector3Array, color: Color, draw_points: bool = false) -> void:
     var size: int = polygon.size()
     if size < 2:
         return
@@ -273,34 +298,126 @@ func _draw_polyline(polygon: PackedVector3Array, modulate_order: bool, color: Co
         Color.CORNFLOWER_BLUE,
     ]
 
-    for i in range(0, polygon.size()):
-        var a: Vector3 = polygon[i]
-        var b: Vector3 = polygon[(i + 1) % size]
+    var poly: PackedVector2Array
+    poly.resize(size)
+    var initial_point: Vector3
+    var index: int = 0
+    var is_in_frustum: bool = false
 
-        if modulate_order:
+    var point_index: int = -1
+
+    for point in polygon:
+
+        point_index += 1
+        if (
+                draw_points
+
+                # Skip last point if it overlaps the first point
+                and (
+                    point_index != size - 1 or (point - polygon[0]).length_squared() > 1e-4
+                )
+
+                # Ensure point is in front of the camera
+                and (not camera.is_position_behind(point))
+        ):
             var col: Color
-            if i == 0:
+            if point_index == 0:
                 col = Color.WHITE
             else:
-                col = POINT_COLORS[(i - 1) % POINT_COLORS.size()]
-            _draw_sphere(
-                a, 0.02, col * Color(1.0, 1.0, 1.0, 0.5)
+                col = POINT_COLORS[(point_index - 1) % POINT_COLORS.size()]
+
+            draw_circle(
+                    camera.unproject_position(point),
+                    5.0,
+                    col * Color(1.0, 1.0, 1.0, 0.5),
+                    true,
+                    1.0, true
             )
 
-        draw_segment(_clamp_segment(a, b), color)
+        var start_in_frustum: bool = is_in_frustum
+        is_in_frustum = camera.is_position_in_frustum(point)
 
-func _draw_face(pos: Vector3, rescale: Vector3, faces: PackedVector3Array, index: int, color: Color) -> void:
-    var a: Vector3 = pos + faces[index] * rescale
-    var b: Vector3 = pos + faces[index + 1] * rescale
-    var c: Vector3 = pos + faces[index + 2] * rescale
+        if index == 0:
+            initial_point = point
+            index = 1
+            continue
 
-    for s in [_clamp_segment(a,b), _clamp_segment(b,c), _clamp_segment(a,c)]:
-        if s.is_finite():
-            # print('drawing segment ', s)
-            draw_line(
-                Vector2(s.x, s.y), Vector2(s.z, s.w),
-                color, -1.0, true
-            )
+        if not start_in_frustum:
+            assert(index == 1, 'Previously left the frustum without a draw+reset, bad!')
+
+            var start: Vector3 = _clamp_to_frustum(initial_point, point)
+
+            # No intersection, ignore and start at the next point
+            if not start.is_finite():
+                initial_point = point
+                index = 1
+                continue
+
+            if is_in_frustum:
+                poly[0] = camera.unproject_position(start)
+                poly[1] = camera.unproject_position(point)
+
+                index = 2
+                initial_point = point
+                continue
+
+            var end: Vector3 = _clamp_to_frustum(point, initial_point)
+            if end.is_finite():
+                draw_line(
+                    camera.unproject_position(start),
+                    camera.unproject_position(end),
+                    color,
+                    1.0, true
+                )
+
+            # Reset for next
+            index = 1
+            initial_point = point
+
+            continue
+
+        if index == 1:
+            assert(start_in_frustum, 'Must have handled bad start already!')
+            poly[0] = camera.unproject_position(initial_point)
+
+        # Save and continue to next point
+        if is_in_frustum:
+            poly[index] = camera.unproject_position(point)
+            initial_point = point
+            index += 1
+            continue
+
+        # Left the frustum, must draw up to this point
+        # Exiting the region, draw up to this point
+        var end: Vector3 = _clamp_to_frustum(point, initial_point)
+        if end.is_finite():
+            poly[index] = camera.unproject_position(end)
+            draw_polyline(poly.slice(0, index + 1), color, 1.0, true)
+
+        initial_point = point
+        index = 1
+
+    if index > 1:
+        draw_polyline(poly.slice(0, index), color, 1.0, true)
+
+## Calculates the first point in the frustum from start -> end. Returns INF if
+## no intersection happens.
+func _clamp_to_frustum(start: Vector3, end: Vector3) -> Vector3:
+    return _intersect_planes(start, end, _get_outside_faces(start))
+
+func _get_outside_faces(point: Vector3) -> Array[Plane]:
+    var result: Array[Plane]
+    result.resize(3)
+    var count: int = 0
+    for idx in range(len(frustum)):
+        var face: Plane = frustum[idx]
+        if face.is_point_over(point):
+            result[count] = face
+            count += 1
+            if count >= 3:
+                break
+    result.resize(count)
+    return result
 
 ## Clamps a segment in 3D world coordinates to 2D screen space. Returns a vector
 ## with x = INF if the segment does not intersect the frustum.
@@ -342,16 +459,6 @@ func _clamp_segment(start: Vector3, end: Vector3) -> Vector4:
     e = camera.unproject_position(end)
 
     return Vector4(s.x, s.y, e.x, e.y)
-
-func draw_segment(segment: Vector4, color: Color, width: float = -1.0, antialiased: bool = true) -> void:
-    if not segment.is_finite():
-        return
-
-    draw_line(
-            Vector2(segment.x, segment.y),
-            Vector2(segment.z, segment.w),
-            color, width, antialiased
-    )
 
 ## Finds the intersection point on a plane in the list which is not over any of
 ## the other planes.

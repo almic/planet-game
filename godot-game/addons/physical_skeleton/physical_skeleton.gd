@@ -287,7 +287,6 @@ func on_pose_finalized() -> void:
                 chain.on_pose_finalized()
         return
 
-    const ITERATIONS: int = 5
     for chain in chain_list:
         if not chain.is_valid:
             continue
@@ -302,6 +301,8 @@ func on_pose_finalized() -> void:
     var main_body_state := PhysicsServer3D.body_get_direct_state(main_body.get_rid())
     var _body_angular: Vector3 = main_body_state.angular_velocity
     var _body_xform: Transform3D = main_body_state.transform
+
+    const ITERATIONS: int = 4
     for i in range(ITERATIONS):
         var had_impulse: bool = false
 
@@ -309,13 +310,18 @@ func on_pose_finalized() -> void:
             var impulse = chain.solve_velocity(cached_delta)
             had_impulse = had_impulse || impulse
 
-            # Clean state changes
-            chain.clean_part_state()
-            main_body_state.angular_velocity = _body_angular
+            chain.estimate_response(cached_delta)
+
+            # Clean main body transform changes only
             main_body_state.transform = _body_xform
 
         if not had_impulse:
             break
+
+    # Clean all state changes
+    for chain in chain_list:
+        chain.clean_part_state()
+    main_body_state.angular_velocity = _body_angular
 
 func get_bone_part_map() -> Dictionary[int, PhysicalBonePart3D]:
     return _bone_part_map
