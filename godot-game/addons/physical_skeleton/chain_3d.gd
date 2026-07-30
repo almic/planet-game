@@ -489,6 +489,7 @@ func _solve_part_position(part: PhysicalBonePart3D) -> void:
     var lambda: Vector3 = -1.0 * (effective_mass * error)
 
     # Only correct the joint axis rotation
+    # TODO: investigate full correction to see if it improves response
     var joint_axis: Vector3 = joint_body.inverse() * part.bone_rotation_axis_vector
     var parent_delta: Vector3 = parent_state.inverse_inertia_tensor * lambda
     var delta_len: float = joint_axis.dot(parent_delta)
@@ -561,6 +562,10 @@ func _calculate_part_velocity(
     io_velocity[0] -= lambda * parent_inv_inertia
     io_velocity[1] += lambda * part_inv_inertia
 
+    # TODO: This may be detrimental to the prediction? Turning it off makes the
+    #       result so much more stable, maybe?
+    return
+
     # Constrain the other axes of rotation
     for i in range(3):
         if i == part.bone_rotation_axis:
@@ -571,7 +576,7 @@ func _calculate_part_velocity(
         parent_inv_inertia = parent_state.inverse_inertia_tensor * axis
         effective_mass = 1.0 / axis.dot(part_inv_inertia + parent_inv_inertia)
 
-        lambda = effective_mass * (axis.dot(io_velocity[0] - io_velocity[1]) - part.desired_motor_velocity)
+        lambda = effective_mass * axis.dot(io_velocity[0] - io_velocity[1])
 
         io_velocity[0] -= lambda * parent_inv_inertia
         io_velocity[1] += lambda * part_inv_inertia
