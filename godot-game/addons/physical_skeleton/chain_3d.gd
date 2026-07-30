@@ -315,7 +315,7 @@ func solve_velocity(delta: float) -> bool:
         if (not part.is_powered) or part.is_motor_broken:
             continue
 
-        _update_part_iteration(part, delta)
+        _update_part_iteration(part)
 
         var applied_impulse: bool = part.solve_motor_velocity(delta)
         had_impulse = had_impulse || applied_impulse
@@ -356,7 +356,7 @@ func estimate_response(delta: float) -> void:
 
         # Run again to update velocity and angle estimations
         if part.resource.debug_enable and part.resource.debug_motor:
-            _update_part_iteration(part, delta)
+            _update_part_iteration(part)
 
 func _solve_part_position(part: PhysicalBonePart3D) -> void:
     # NOTE: Assume perfectly rigid constraints, only rotate on the allowed axis
@@ -504,7 +504,7 @@ func _solve_part_position(part: PhysicalBonePart3D) -> void:
         xform.basis = xform.basis.rotated(joint_axis, delta_len)
         body_state.transform = xform
 
-func _update_part_iteration(part: PhysicalBonePart3D, delta: float) -> void:
+func _update_part_iteration(part: PhysicalBonePart3D) -> void:
     var part_index: int = part.part_index
     var part_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(part.get_rid())
     var parent_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(part.bone_joint_data.parent)
