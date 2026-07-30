@@ -228,11 +228,11 @@ func _update_legs() -> void:
         target_timer += cached_state.step
 
         var shift: Vector3
-        if target_shift == 1 and target_timer > 4.0:
+        if target_shift == 1 and target_timer > 6.0:
             target_timer = 0.0
             target_shift = 0
             shift.z = 0.15
-        elif target_shift == 0 and target_timer > 2.0:
+        elif target_shift == 0 and target_timer > 3.0:
             target_shift = 1
             shift.z = -0.15
 

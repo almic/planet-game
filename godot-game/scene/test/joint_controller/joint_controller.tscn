@@ -108,6 +108,7 @@ material = ExtResource("1_45dli")
 
 [node name="TestBody" type="RigidBody3D" parent="." unique_id=1481467921]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5999999999999808, 0)
+collision_mask = 51
 mass = 25.0
 custom_integrator = true
 continuous_cd = true
@@ -280,6 +281,7 @@ metadata/_edit_lock_ = true
 
 [node name="Tibia" type="RigidBody3D" parent="TestBody/skeleton/ChainRootNode/FrontRight" unique_id=511127492]
 transform = Transform3D(0.7071067811865475, 0.4545194776720437, -0.541675220419702, -1.5700924586837754e-16, 0.7660444431189782, 0.6427876096865391, 0.7071067811865476, -0.4545194776720434, 0.5416752204197021, 0.28284271247461906, 0.5000000000000002, -0.682842712474619)
+collision_mask = 51
 mass = 3.333333333333333
 continuous_cd = true
 script = ExtResource("9_n7m1m")

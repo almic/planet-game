@@ -53,6 +53,7 @@ bone_enable_mesh = true
 bone_material_override = ExtResource("1_c220c")
 collider_shape = SubResource("CapsuleShape3D_2u64d")
 collider_offset = Vector3(0, 0.1999999999999936, 0)
+collision_mask = 51
 ik_enabled = true
 rotation_axis = 0
 limitation = SubResource("Resource_jc8px")
