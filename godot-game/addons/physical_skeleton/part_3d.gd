@@ -82,18 +82,19 @@ var _signal_should_break: bool = false
 ## Set by the chain, the computed velocity of the joint on the rotation axis
 var joint_velocity: float:
     set(value):
-        if _debug_motor_next_frame and _debug_motor_chart:
-            _debug_motor_chart.insert(_debug_motor_velocity_in_id, value)
-            _debug_motor_chart.insert(_debug_motor_velocity_out_id, joint_velocity)
-            _debug_motor_chart.insert(_debug_motor_velocity_target_id, desired_motor_velocity)
-            var velocity_error: float = clampf((value - joint_velocity) / deg_to_rad(5.0), -1.0, 1.0)
+        if _debug_motor_velocity and _debug_motor_chart:
+            _debug_motor_velocity = false
+            var velocity_error: float = desired_motor_velocity - value
             _debug_motor_chart.insert(_debug_motor_velocity_error_id, velocity_error)
+            var velocity_pred_error: float = clampf((value - joint_velocity) / deg_to_rad(5.0), -1.0, 1.0)
+            _debug_motor_chart.insert(_debug_motor_velocity_pred_id, velocity_error)
         joint_velocity = value
 ## Set by the chain, the computed angle of the joint on the rotation axis
 var joint_angle: float:
     set(value):
-        if _debug_motor_next_frame and _debug_motor_chart:
-            var angle_error: float = _ik_angle - joint_angle
+        if _debug_motor_angle and _debug_motor_chart:
+            _debug_motor_angle = false
+            var angle_error: float = _ik_angle - value
             _debug_motor_chart.insert(_debug_motor_angle_error_id, angle_error)
             var angle_pred_error: float = clampf((value - joint_angle) / deg_to_rad(1.0), -1.0, 1.0)
             _debug_motor_chart.insert(_debug_motor_angle_pred_id, angle_pred_error)
@@ -124,11 +125,10 @@ var _motor_controller: Controller
 var _debug_layer: CanvasLayer = null
 
 var _debug_motor_chart: DebugDraw.Chart = null
-var _debug_motor_next_frame: bool = false
-var _debug_motor_velocity_in_id: int = 0
-var _debug_motor_velocity_out_id: int = 0
+var _debug_motor_angle: bool = false
+var _debug_motor_velocity: bool = false
 var _debug_motor_velocity_error_id: int = 0
-var _debug_motor_velocity_target_id: int = 0
+var _debug_motor_velocity_pred_id: int = 0
 var _debug_motor_angle_error_id: int = 0
 var _debug_motor_angle_pred_id: int = 0
 
@@ -579,7 +579,8 @@ func setup_motor_velocity(skeleton: Skeleton3D, bone_idx: int) -> void:
         _ik_angle = -_ik_angle
 
     if resource.debug_enable and resource.debug_motor:
-        _debug_motor_next_frame = true
+        _debug_motor_angle = true
+        _debug_motor_velocity = true
 
 func solve_motor_velocity(delta: float) -> bool:
 
@@ -589,9 +590,6 @@ func solve_motor_velocity(delta: float) -> bool:
     #  2. Calculate the desired velocity according to the target_rotation.
     #  3. Calculate the change in velocity.
     #  4. Add this change to the current target velocity
-
-    if _debug_motor_next_frame:
-        _debug_motor_next_frame = false
 
     var motor_torque: float
     var motor_velocity: float
@@ -935,18 +933,14 @@ func _setup_debug_motor_chart() -> void:
     var velocity_scale: Vector4 = Vector4(INF, INF, -deg_270, deg_270)
     _debug_motor_angle_error_id = _debug_motor_chart.create_series("Angle Error", angle_scale)
     _debug_motor_angle_pred_id = _debug_motor_chart.create_series("Angle Prediction", error_scale)
-    _debug_motor_velocity_in_id = _debug_motor_chart.create_series("Velocity", velocity_scale)
-    _debug_motor_velocity_out_id = _debug_motor_chart.create_series("Velocity Prediction", velocity_scale)
-    _debug_motor_velocity_error_id = _debug_motor_chart.create_series("Velocity Error", error_scale)
-    _debug_motor_velocity_target_id = _debug_motor_chart.create_series("Velocity Target", velocity_scale)
+    _debug_motor_velocity_error_id = _debug_motor_chart.create_series("Velocity Error", velocity_scale)
+    _debug_motor_velocity_pred_id = _debug_motor_chart.create_series("Velocity Prediction", error_scale)
 
     for chart_id in [
             _debug_motor_angle_error_id,
             _debug_motor_angle_pred_id,
-            _debug_motor_velocity_in_id,
-            _debug_motor_velocity_out_id,
             _debug_motor_velocity_error_id,
-            _debug_motor_velocity_target_id
+            _debug_motor_velocity_pred_id
     ]:
         _debug_motor_chart.set_data_limit(chart_id, 100)
 

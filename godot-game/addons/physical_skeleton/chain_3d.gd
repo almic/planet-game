@@ -247,8 +247,36 @@ func setup_velocity() -> void:
 
         var part_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(part.get_rid())
         var parent_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(part.bone_joint_data.parent)
+
         _part_initial_angular[index] = part_state.angular_velocity
         _part_initial_basis[index] = part_state.transform.basis
+
+        # Provide initial velocity and angle results, only for debug charts
+        if part.resource.debug_enable and part.resource.debug_motor:
+            var parent_velocity: Vector3
+            if index > 0:
+                parent_velocity = _part_initial_angular[index - 1]
+            else:
+                parent_velocity = parent_state.angular_velocity
+
+            part.joint_velocity = joint_axis.dot(parent_velocity - _part_initial_angular[index])
+
+            var joint_to_parent: Basis = part.bone_joint_data.xform_rel_parent.basis
+            var joint_to_body: Basis = part.bone_joint_data.xform_rel_body.basis
+            var joint_parent: Basis = parent_state.transform.basis
+            var joint_body: Basis = part_state.transform.basis
+            var rot: Quaternion =  (
+                    (joint_parent * joint_to_parent).inverse()
+                    * (joint_body * joint_to_body)
+            ).get_rotation_quaternion()
+            # Put joint axis into body space
+            var body_joint_axis: Vector3 = joint_body.inverse() * joint_axis
+            rot = Quaternion(rot * body_joint_axis, body_joint_axis) * rot
+            var angle: float = rot.get_angle()
+            if rot.get_axis().dot(body_joint_axis) < 0.0:
+                angle = -angle
+
+            part.joint_angle = angle
 
         # Warm start angular velocity from current lambda
         var part_inv_inertia: Vector3 = part_state.inverse_inertia_tensor * joint_axis
