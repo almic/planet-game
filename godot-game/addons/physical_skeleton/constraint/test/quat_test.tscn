@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://btvsk222dulw0"]
+
+[ext_resource type="Script" uid="uid://bf4gndnuloq84" path="res://addons/physical_skeleton/constraint/test/quat_test.gd" id="1_rp7x5"]
+
+[node name="QuatTest" type="Node3D" unique_id=1623214618]
+script = ExtResource("1_rp7x5")
+q1 = Vector4(0.3967555589878491, 0.3993097011446505, 0.30286066718942717, -0.06649726836507797)
+q2 = Vector4(-0.0717533724902909, -0.13755853971322862, -0.4441127299623995, -0.8341659702787038)
