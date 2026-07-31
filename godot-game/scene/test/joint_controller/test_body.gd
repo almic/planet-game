@@ -138,8 +138,17 @@ func _construct_skeleton() -> void:
     skeleton.set_bone_parent(b_fr_tarsus, b_fr_tibia)
     skeleton.set_bone_rest(b_fr_tarsus,
         Transform3D(
-            Quaternion.from_euler(Vector3(deg_to_rad(-90.0), 0.0, 0.0)),
+            Quaternion.from_euler(Vector3(deg_to_rad(-100.0), 0.0, 0.0)),
             Vector3(0.0, 0.4, 0.0)
+        )
+    )
+
+    var b_fr_tarsus_leaf: int = skeleton.add_bone('FrontRightTarsus_leaf')
+    skeleton.set_bone_parent(b_fr_tarsus_leaf, b_fr_tarsus)
+    skeleton.set_bone_rest(b_fr_tarsus_leaf,
+        Transform3D(
+            Basis.IDENTITY,
+            Vector3(0.0, 0.9, 0.0)
         )
     )
 

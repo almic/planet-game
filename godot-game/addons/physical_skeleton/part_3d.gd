@@ -86,7 +86,7 @@ var joint_velocity: float:
             _debug_motor_velocity = false
             var velocity_error: float = desired_motor_velocity - value
             _debug_motor_chart.insert(_debug_motor_velocity_error_id, velocity_error)
-            var velocity_pred_error: float = clampf((value - joint_velocity) / deg_to_rad(5.0), -1.0, 1.0)
+            var velocity_pred_error: float = clampf((value - joint_velocity) / deg_to_rad(0.5), -1.0, 1.0)
             _debug_motor_chart.insert(_debug_motor_velocity_pred_id, velocity_error)
         joint_velocity = value
 ## Set by the chain, the computed angle of the joint on the rotation axis
@@ -96,7 +96,7 @@ var joint_angle: float:
             _debug_motor_angle = false
             var angle_error: float = _ik_angle - value
             _debug_motor_chart.insert(_debug_motor_angle_error_id, angle_error)
-            var angle_pred_error: float = clampf((value - joint_angle) / deg_to_rad(1.0), -1.0, 1.0)
+            var angle_pred_error: float = clampf((value - joint_angle) / deg_to_rad(0.5), -1.0, 1.0)
             _debug_motor_chart.insert(_debug_motor_angle_pred_id, angle_pred_error)
         joint_angle = value
 
@@ -926,7 +926,8 @@ func _setup_debug_motor_chart() -> void:
     _debug_motor_chart = DebugDraw.Chart.new()
     _debug_motor_chart.name = name
 
-    var error_scale: Vector4 = Vector4(INF, INF, -1.0, 1.0)
+    var deg_1: float = deg_to_rad(1.0)
+    var error_scale: Vector4 = Vector4(INF, INF, -deg_1, deg_1)
     var deg_10: float = deg_to_rad(10.0)
     var angle_scale: Vector4 = Vector4(INF, INF, -deg_10, deg_10)
     var deg_270: float = deg_to_rad(45.0)

@@ -3,13 +3,14 @@
 [ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="1_xhvj3"]
 [ext_resource type="Resource" uid="uid://dceq1r23kkx56" path="res://scene/test/joint_controller/res/part_fr_femur.tres" id="2_33sys"]
 [ext_resource type="Resource" uid="uid://dsft47wijpwns" path="res://scene/test/joint_controller/res/part_fr_tibia.tres" id="3_02bs7"]
+[ext_resource type="Resource" uid="uid://buu1qygyshy4m" path="res://scene/test/joint_controller/res/part_fr_tarsus.tres" id="4_xhvj3"]
 [ext_resource type="Script" uid="uid://bumtikmwn5lpl" path="res://addons/physical_skeleton/resource/chain_resource.gd" id="5_ugojk"]
 
 [resource]
 resource_name = "FrontRight"
 script = ExtResource("5_ugojk")
 root_bone = &"FrontRightFemur"
-end_bone = &"FrontRightTarsus"
+end_bone = &"FrontRightTarsus_leaf"
 rest_correction_rate = 0.0
-part_list = Array[ExtResource("1_xhvj3")]([ExtResource("2_33sys"), ExtResource("3_02bs7")])
+part_list = Array[ExtResource("1_xhvj3")]([ExtResource("2_33sys"), ExtResource("3_02bs7"), ExtResource("4_xhvj3")])
 metadata/_custom_type_script = "uid://bumtikmwn5lpl"
