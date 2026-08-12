@@ -295,94 +295,19 @@ func on_pose_finalized() -> void:
                 chain.on_pose_finalized()
         return
 
-    #var main_body_state := PhysicsServer3D.body_get_direct_state(main_body.get_rid())
-    #var _body_angular: Vector3 = main_body_state.angular_velocity
-    #var _body_linear: Vector3 = main_body_state.linear_velocity
-    #var _body_xform: Transform3D = main_body_state.transform
-
     # Initialization
     for chain in chain_list:
         if not chain.is_valid:
             continue
-
         chain.on_pose_finalized()
-
-        if not chain.is_using_power:
-            continue
-
-        chain.setup_velocity()
 
     # Apply basic forces, needs stuff from velocity setup so run after
     for chain in chain_list:
         chain.apply_forces(cached_delta)
 
-    # Cache initial state to be restored after iteration
-    #for chain in chain_list:
-        #chain.cache_state()
-
-    # Main body constant forces
-    #main_body_state.linear_velocity += main_body_state.total_gravity * cached_delta
-
-    # Warm start constraints, also gives body warm velocity needed for iteration
-    # All chains work on main body together
-    #for chain in chain_list:
-        #chain.warm_start(cached_delta)
-
-    #var _body_warm_angular: Vector3 = main_body_state.angular_velocity
-    #var _body_warm_linear: Vector3 = main_body_state.linear_velocity
-
-    #const ITERATIONS: int = 1
-    #const ACCURACY: float = 1.0
-    #var velocity_steps: int = ceili(cached_velocity_step * ACCURACY)
-    #var position_steps: int = ceili(cached_position_step * ACCURACY)
-    #var baumgarte: float = 1.0 - pow(pow(1.0 - cached_baumgarte, cached_position_step), 1.0 / position_steps)
-
-    #for i in range(ITERATIONS):
-        #var had_update: bool = false
-#
-        #for chain in chain_list:
-            #var update: bool = chain.update_velocity(cached_delta)
-            #had_update = had_update || update
-
-        #if not had_update:
-            #break
-#
-        #main_body_state.angular_velocity = _body_warm_angular
-        #main_body_state.linear_velocity = _body_warm_linear
-        #main_body_state.transform = _body_xform
-#
-        #for chain in chain_list:
-            #chain.restore_warm_state()
-#
-        #for step in range(velocity_steps):
-            #for chain in chain_list:
-                #chain.solve_velocity(cached_delta)
-#
-        #for chain in chain_list:
-            #chain.integrate_velocity(cached_delta)
-#
-        ## Move the main body
-        #var xform: Transform3D = main_body_state.transform
-        #xform.origin += main_body_state.linear_velocity * cached_delta
-        #var angular: Vector3 = main_body_state.angular_velocity * cached_delta
-        #var length: float = angular.length()
-        #if length > 1e-6:
-            #xform.basis = xform.basis.rotated(angular / length, length).orthonormalized()
-#
-        #main_body_state.transform = xform
-#
-        #for step in range(position_steps):
-            #for chain in chain_list:
-                #chain.solve_position(baumgarte)
-
-    # Clean all state changes
+    # Set motor parameters
     for chain in chain_list:
-        chain.finalize()
-
-    # Clean main body state changes
-    #main_body_state.transform = _body_xform
-    #main_body_state.angular_velocity = _body_angular
-    #main_body_state.linear_velocity = _body_linear
+        chain.finalize_motors()
 
 func get_bone_part_map() -> Dictionary[int, PhysicalBonePart3D]:
     return _bone_part_map

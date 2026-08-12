@@ -29,14 +29,14 @@ var torque_powered_max: float = 50.0:
 ## Torque zero speed relative to max velocity. This defines the velocity where
 ## the motor torque becomes zero and is only affected by external forces.
 @export_range(0.0, 1.0, 0.01, 'or_greater', 'suffix:+ 1.0')
-var torque_zero_speed: float = 0.2:
+var torque_zero_speed: float = 0.5:
     set(value):
         torque_zero_speed = value
         emit_changed()
 
 ## Torque curve,
 @export_exp_easing('positive_only', 'attenuation')
-var torque_curve: float = 0.2:
+var torque_curve: float = 0.5:
     set(value):
         torque_curve = value
         emit_changed()

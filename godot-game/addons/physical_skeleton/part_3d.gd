@@ -79,35 +79,12 @@ var _cached_com: Vector3
 var joint_force_exceeded_emit: Callable
 var _signal_should_break: bool = false
 
-## Set by the chain, the computed velocity of the joint on the rotation axis
-var joint_velocity: float:
-    set(value):
-        if _debug_motor_velocity and _debug_motor_chart:
-            _debug_motor_velocity = false
-            var velocity_error: float = clampf(desired_motor_velocity - value, -100.0, 100.0)
-            _debug_motor_chart.insert(_debug_motor_velocity_error_id, velocity_error)
-            var velocity_pred_error: float = clampf((value - joint_velocity) / deg_to_rad(0.5), -1.0, 1.0)
-            _debug_motor_chart.insert(_debug_motor_velocity_pred_id, velocity_pred_error)
-        joint_velocity = value
-## Set by the chain, the computed angle of the joint on the rotation axis
-var joint_angle: float:
-    set(value):
-        if _debug_motor_angle and _debug_motor_chart:
-            _debug_motor_angle = false
-            var angle_error: float = clampf(_ik_angle - value, -100.0, 100.0)
-            _debug_motor_chart.insert(_debug_motor_angle_error_id, angle_error)
-            var angle_pred_error: float = clampf((value - joint_angle) / deg_to_rad(0.5), -1.0, 1.0)
-            _debug_motor_chart.insert(_debug_motor_angle_pred_id, angle_pred_error)
-        joint_angle = value
-
 ## The bone rotation in global space
 var bone_rotation: Basis
 ## Local axis index of the bone rotation
 var bone_rotation_axis: int
 ## Global-space bone rotation axis
 var bone_rotation_axis_vector: Vector3
-## Calculated desired motor velocity, used for constraints
-var desired_motor_velocity: float
 ## Calculated motor torque, used for constraints
 var desired_motor_torque: float
 
@@ -116,26 +93,15 @@ var _ik_angle: float
 ## Target orientation for the joint
 var _ik_target: Quaternion
 
-## Current velocity change, used to limit the maximum delta during iteration
-var _motor_velocity_delta: float
-
-var _angle_controller: Controller
-var _motor_controller: Controller
-
 var _debug_layer: CanvasLayer = null
 
 var _debug_motor_chart: DebugDraw.Chart = null
 var _debug_motor_angle: bool = false
 var _debug_motor_velocity: bool = false
-var _debug_motor_velocity_error_id: int = 0
-var _debug_motor_velocity_pred_id: int = 0
 var _debug_motor_angle_error_id: int = 0
-var _debug_motor_angle_pred_id: int = 0
+var _debug_motor_velocity_id: int = 0
+var _debug_motor_torque_id: int = 0
 
-
-func _init() -> void:
-    _angle_controller = Controller.new()
-    _motor_controller = Controller.new()
 
 func _ready() -> void:
     if _skip_ready:
@@ -416,7 +382,7 @@ func update(skeleton: Skeleton3D, bone_idx: int) -> void:
             bone_joint_data.joint = null
 
         if bone_joint:
-            _update_motor()
+            _update_motor_state()
 
         is_using_power = is_motor_powered
 
@@ -450,7 +416,7 @@ func _update_joint(joint_data: JointData) -> void:
     var body_diff: Transform3D = joint_parent.affine_inverse() * joint_body
     joint_data.offset = body_diff
 
-func _update_motor() -> void:
+func _update_motor_state() -> void:
     var motor_should_be_powered: bool = is_powered and (not is_motor_broken)
     if is_motor_powered == motor_should_be_powered:
         return
@@ -477,32 +443,18 @@ func _update_motor() -> void:
     # NOTE: X and Z are most common, so these should be the faster paths
     if motor_axis == 0:
         bone_joint.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, true)
-        bone_joint.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_VELOCITY_ANGULAR, true)
-        bone_joint.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_ACCELERATION_ANGULAR, true)
+        bone_joint.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_VELOCITY_ANGULAR, is_motor_powered)
+        bone_joint.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_ACCELERATION_ANGULAR, is_motor_powered)
     elif motor_axis == 2:
         bone_joint.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, true)
-        bone_joint.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_VELOCITY_ANGULAR, true)
-        bone_joint.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_ACCELERATION_ANGULAR, true)
+        bone_joint.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_VELOCITY_ANGULAR, is_motor_powered)
+        bone_joint.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_ACCELERATION_ANGULAR, is_motor_powered)
     else:
         bone_joint.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, true)
-        bone_joint.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_VELOCITY_ANGULAR, true)
-        bone_joint.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_ACCELERATION_ANGULAR, true)
-
-    desired_motor_torque = resource.motor_parameters.torque_powered_max
-    desired_motor_velocity = 0.0
-
-    bone_joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, desired_motor_torque)
-    bone_joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, desired_motor_torque)
-    bone_joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, desired_motor_torque)
-
-    bone_joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, 0.0)
-    bone_joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, 0.0)
-    bone_joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, 0.0)
+        bone_joint.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_VELOCITY_ANGULAR, is_motor_powered)
+        bone_joint.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_ACCELERATION_ANGULAR, is_motor_powered)
 
 func _should_break(joint: Joint3D, displacement: Transform3D) -> bool:
-    #if get_parent().name != 'FrontLeftChain':
-        #return true
-
     var total_force: float = 0
     if joint is BeamPivotJoint3D:
         total_force = joint.get_total_applied_force()
@@ -520,8 +472,6 @@ func _should_break(joint: Joint3D, displacement: Transform3D) -> bool:
             return _signal_should_break
         return true
 
-    #print('error: %s\nangle: %s' % [displacement.origin, displacement.basis.get_euler()])
-
     return false
 
 func set_should_break() -> void:
@@ -529,15 +479,10 @@ func set_should_break() -> void:
 
 func on_pose_finalized(skeleton: Skeleton3D, bone_idx: int) -> void:
     _ensure_mesh_bone_inst()
-    if not mesh_bone_inst:
-        return
+    if mesh_bone_inst:
+        var bone_xform: Transform3D = skeleton.global_transform * skeleton.get_bone_global_pose(bone_idx)
+        mesh_bone_inst.global_transform = bone_xform.translated_local(resource.mesh_offset)
 
-    var bone_xform: Transform3D = skeleton.global_transform * skeleton.get_bone_global_pose(bone_idx)
-
-    mesh_bone_inst.global_transform = bone_xform.translated_local(resource.mesh_offset)
-    #mesh_bone_inst.basis = Basis(resource.mesh_rotation) * mesh_bone_inst.basis
-
-func setup_motor_velocity(skeleton: Skeleton3D, bone_idx: int) -> void:
     var axis: int = resource.rotation_axis
     if axis < 0 or axis > 2:
         push_error(
@@ -548,19 +493,9 @@ func setup_motor_velocity(skeleton: Skeleton3D, bone_idx: int) -> void:
         )
         return
 
-    _angle_controller.update_parameters(resource.motor_parameters.angle_controller)
-    _motor_controller.update_parameters(resource.motor_parameters.motor_controller)
-
-    _angle_controller.store_cache()
-    _motor_controller.store_cache()
-
     bone_rotation = skeleton.global_basis * skeleton.get_bone_global_pose(bone_idx).basis
     bone_rotation_axis = axis
     bone_rotation_axis_vector = bone_rotation[axis]
-
-    # Load velocity from initial joint velocity for iteration
-    desired_motor_velocity = INF
-    _motor_velocity_delta = 0.0
 
     var rest: Transform3D = skeleton.get_bone_rest(bone_idx)
     var pose: Quaternion = skeleton.get_bone_pose_rotation(bone_idx)
@@ -581,60 +516,7 @@ func setup_motor_velocity(skeleton: Skeleton3D, bone_idx: int) -> void:
         _ik_angle = -_ik_angle
 
     if resource.debug_enable and resource.debug_motor and _debug_motor_chart:
-        #_debug_motor_angle = true
-        #_debug_motor_velocity = true
-        var joint_to_parent: Basis = bone_joint_data.xform_rel_parent.basis
-        var joint_to_body: Basis = bone_joint_data.xform_rel_body.basis
-
-        var parent_state := PhysicsServer3D.body_get_direct_state(bone_joint_data.parent)
-        var joint_parent: Basis = parent_state.transform.basis
-        var joint_body: Basis = transform.basis
-        var rot: Quaternion =  (
-                (joint_parent * joint_to_parent).inverse()
-                * (joint_body * joint_to_body)
-        ).get_rotation_quaternion()
-        if rot.w < 0.0:
-            rot = -rot
-        # Put joint axis into body space
-        var joint_axis = joint_body.inverse() * bone_rotation_axis_vector
-        rot = Quaternion(rot * joint_axis, joint_axis) * rot
-        var angle: float = rot.get_angle()
-        if rot.get_axis().dot(joint_axis) < 0.0:
-            angle = -angle
-
-        var angle_error: float = clampf(_ik_angle - angle, -100.0, 100.0)
-        _debug_motor_chart.insert(_debug_motor_angle_error_id, angle_error)
-
-func update_motor_velocity(delta: float) -> bool:
-    # Velocity
-    var max_accel: float = resource.motor_parameters.max_acceleration * delta
-    var max_vel: float = resource.motor_parameters.max_velocity
-
-    _angle_controller.load_cache()
-    _motor_controller.load_cache()
-
-    # NOTE: because of how angles work, we need an inverted velocity response
-    var target_velocity: float = -_angle_controller.compute(joint_angle, _ik_angle, delta)
-    target_velocity = clampf(target_velocity, -max_vel, max_vel)
-
-    var acceleration: float = _motor_controller.compute(joint_velocity, target_velocity, delta)
-    var new_acceleration: float = clampf(_motor_velocity_delta + acceleration, -max_accel, max_accel)
-    acceleration = new_acceleration - _motor_velocity_delta
-    _motor_velocity_delta = new_acceleration
-
-    if is_inf(desired_motor_velocity):
-        desired_motor_velocity = joint_velocity
-
-    desired_motor_velocity = clampf(desired_motor_velocity + acceleration, -max_vel, max_vel)
-
-    _angle_controller.set_output(-desired_motor_velocity, delta)
-    _motor_controller.set_output(acceleration, delta)
-
-    # Torque
-    desired_motor_torque = _calculate_torque(joint_velocity)
-
-    print(part_index, acceleration)
-    return acceleration != 0.0
+        _debug_joint_angle()
 
 func apply_motor_parameters() -> void:
     bone_joint.set_angular_target_rotation(_ik_target)
@@ -652,7 +534,7 @@ func apply_motor_parameters() -> void:
     var part_velocity: Vector3 = part_state.angular_velocity
     var parent_velocity: Vector3 = parent_state.angular_velocity
 
-    joint_velocity = bone_rotation_axis_vector.dot(parent_velocity - part_velocity)
+    var joint_velocity: float = bone_rotation_axis_vector.dot(parent_velocity - part_velocity)
 
     desired_motor_torque = _calculate_torque(joint_velocity)
 
@@ -665,6 +547,11 @@ func apply_motor_parameters() -> void:
     else:
         bone_joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, desired_motor_torque)
         #bone_joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, desired_motor_velocity)
+
+    if resource.debug_enable and resource.debug_motor and _debug_motor_chart:
+        _debug_motor_chart.insert(_debug_motor_velocity_id, joint_velocity)
+        var torque_ratio: float = desired_motor_torque / resource.motor_parameters.torque_powered_max
+        _debug_motor_chart.insert(_debug_motor_torque_id, torque_ratio)
 
 ## Torque interpolation curve
 func _calculate_torque(velocity: float) -> float:
@@ -903,19 +790,27 @@ func _setup_debug_motor_chart() -> void:
 
     var error_scale: Vector4 = Vector4(INF, INF, -1.0, 1.0)
     var deg_12: float = deg_to_rad(12.0)
-    var angle_scale: Vector4 = Vector4(INF, INF, -deg_12, deg_12)
-    var deg_270: float = deg_to_rad(45.0)
-    var velocity_scale: Vector4 = Vector4(INF, INF, -deg_270, deg_270)
-    _debug_motor_angle_error_id = _debug_motor_chart.create_series("Angle Error", angle_scale)
-    _debug_motor_angle_pred_id = _debug_motor_chart.create_series("Angle Prediction", error_scale)
-    _debug_motor_velocity_error_id = _debug_motor_chart.create_series("Velocity Error", velocity_scale)
-    _debug_motor_velocity_pred_id = _debug_motor_chart.create_series("Velocity Prediction", error_scale)
+    var deg_270: float = deg_to_rad(270.0)
+
+    _debug_motor_angle_error_id = _debug_motor_chart.create_series(
+            "Angle Error",
+            Vector4(INF, INF, -deg_12, deg_12)
+    )
+
+    _debug_motor_velocity_id = _debug_motor_chart.create_series(
+            "Velocity",
+            Vector4(INF, INF, -deg_270, deg_270)
+    )
+
+    _debug_motor_torque_id = _debug_motor_chart.create_series(
+            "Torque",
+            Vector4(INF, INF, -0.2, 1.2)
+    )
 
     for chart_id in [
             _debug_motor_angle_error_id,
-            _debug_motor_angle_pred_id,
-            _debug_motor_velocity_error_id,
-            _debug_motor_velocity_pred_id
+            _debug_motor_velocity_id,
+            _debug_motor_torque_id,
     ]:
         _debug_motor_chart.set_data_limit(chart_id, 100)
 
@@ -932,3 +827,28 @@ func _setup_debug_motor_chart() -> void:
         _debug_layer.add_child(motor_chart_grid, true)
 
     motor_chart_grid.add_child(_debug_motor_chart, true)
+
+func _debug_joint_angle() -> void:
+    var joint_to_parent: Quaternion = bone_joint_data.xform_rel_parent.basis.get_rotation_quaternion()
+    var joint_to_body: Quaternion = bone_joint_data.xform_rel_body.basis.get_rotation_quaternion()
+
+    var parent_state := PhysicsServer3D.body_get_direct_state(bone_joint_data.parent)
+    var joint_parent: Quaternion = parent_state.transform.basis.get_rotation_quaternion()
+    var joint_body: Quaternion = transform.basis.get_rotation_quaternion()
+    var rot: Quaternion =  (
+            (joint_parent * joint_to_parent).inverse()
+            * (joint_body * joint_to_body)
+    ).normalized()
+
+    if rot.w < 0.0:
+        rot = -rot
+
+    # Put joint axis into body space
+    var joint_axis = joint_body.inverse() * bone_rotation_axis_vector
+    rot = Quaternion(rot * joint_axis, joint_axis) * rot
+    var angle: float = rot.get_angle()
+    if rot.get_axis().dot(joint_axis) < 0.0:
+        angle = -angle
+
+    var angle_error: float = clampf(_ik_angle - angle, -100.0, 100.0)
+    _debug_motor_chart.insert(_debug_motor_angle_error_id, angle_error)
