@@ -15,6 +15,9 @@ var input_debug_context: GUIDEMappingContext = preload("uid://b65tjpa028uia")
 
 var debug_mode: bool = true
 
+## Number of physics updates actually made, excluding pause time
+var ticked_physics: int = 0
+
 
 ## If the mouse is currently within the game window
 var mouse_in_window: bool = false
@@ -24,6 +27,9 @@ var show_cursor: bool = false
 
 ## If the mouse should be captured the next time it enters the window
 var capture_mouse_on_enter: bool = false
+
+## If the mouse is able to be captured, this superseeds all other settings
+var allow_mouse_capture: bool = true
 
 ## If the game scene should pause when the mouse exits the window
 var allow_pause_on_exit: bool = true
@@ -44,7 +50,8 @@ func _ready() -> void:
     root.focus_entered.connect(on_focus_entered)
     root.focus_exited.connect(on_focus_exited)
 
-    Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+    if allow_mouse_capture:
+        Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
     process_mode = Node.PROCESS_MODE_ALWAYS
 
     if Engine.physics_ticks_per_second != PHYSICS_TICKS:
@@ -73,6 +80,10 @@ func _process(_delta: float) -> void:
             print('Stepping one tick!')
             pause_next_tick = true
 
+func _physics_process(_d: float) -> void:
+    if not get_tree().paused:
+        ticked_physics += 1
+
 func on_step_physics() -> void:
     if pause_next_tick:
         if is_paused():
@@ -83,15 +94,10 @@ func on_step_physics() -> void:
 
 func on_mouse_entered() -> void:
     mouse_in_window = true
-
-    if capture_mouse_on_enter:
-        capture_mouse_on_enter = false
-        capture_mouse()
+    on_focus_entered()
 
 func on_mouse_exited() -> void:
     mouse_in_window = false
-
-    # Ensure this method is called
     on_focus_exited()
 
 func on_focus_entered() -> void:
@@ -107,11 +113,14 @@ func on_focus_exited() -> void:
         Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
         capture_mouse_on_enter = true
 
-        # Also pause, just a nice thing to do
-        if allow_pause_on_exit:
-            pause()
+    # Also pause, just a nice thing to do
+    if allow_pause_on_exit:
+        pause()
 
 func capture_mouse() -> void:
+    if not allow_mouse_capture:
+        return
+
     if show_cursor or not mouse_in_window:
         return
 
@@ -134,7 +143,7 @@ func pause() -> void:
 
 ## Unpauses the game, capturing the mouse if needed
 func unpause() -> void:
-    if not show_cursor:
+    if (not show_cursor) and allow_mouse_capture:
         Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
     get_tree().paused = false
 
