@@ -88,6 +88,11 @@ var force_ground_movement: bool = true
 ## When true, CharacterController will not call '_handle_input()' automatically
 var manual_input_handling: bool = false
 
+## Stores the delta time for the current physics update
+var delta_time: float
+## Stores the reference to this body state for the current physics update
+var phys_state: PhysicsDirectBodyState3D
+
 var desired_direction: Vector3 = Vector3.ZERO
 var desired_speed: float = 0.0
 var desired_incline_effect: float = 1.0
@@ -163,6 +168,8 @@ func _handle_input() -> void:
 
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
+    phys_state = state
+    delta_time = state.step
 
     if not manual_input_handling:
         _handle_input()
