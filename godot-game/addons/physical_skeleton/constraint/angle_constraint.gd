@@ -23,14 +23,18 @@ func apply_velocity_step(
 
     return true
 
+func set_total_lambda(total_lambda: float) -> void:
+    _total_lambda = total_lambda
+
 func setup(
         parent: PhysicsDirectBodyState3D,
         body: PhysicsDirectBodyState3D,
         world_axis: Vector3,
         bias: float = 0.0
 ) -> void:
-    _inv_i1 = parent.inverse_inertia_tensor * world_axis
-    _inv_i2 = body.inverse_inertia_tensor * world_axis
+
+    _inv_i1 = _mult_world_inertia_vector(parent, world_axis)
+    _inv_i2 = _mult_world_inertia_vector(body, world_axis)
 
     var inv_effective_mass: float = world_axis.dot(_inv_i1 + _inv_i2)
     if inv_effective_mass == 0.0:
@@ -65,4 +69,12 @@ func solve_velocity(
     lambda = new_lambda - _total_lambda
     _total_lambda = new_lambda
 
-    return apply_velocity_step(parent, body, lambda)
+    var result: bool = apply_velocity_step(parent, body, lambda)
+    var joint_velocity: float = axis.dot(parent.angular_velocity - body.angular_velocity)
+    return result
+
+func _mult_world_inertia_vector(body: PhysicsDirectBodyState3D, v: Vector3) -> Vector3:
+    var rotation: Basis = body.principal_inertia_axes
+    var result: Vector3 = rotation * (body.inverse_inertia_diagonal * (rotation.transposed() * v))
+
+    return result

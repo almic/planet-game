@@ -1,7 +1,8 @@
 class_name PhysicalMotorParameters extends Resource
 
 
-## Velocity limit of the motor, also determines the point of friction-only motor
+## Velocity limit of the motor, which it will not try to exceed in normal
+## operation.
 @export_range(0.1, 360.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s')
 var max_velocity: float = deg_to_rad(270.0)
 
@@ -9,37 +10,37 @@ var max_velocity: float = deg_to_rad(270.0)
 @export_range(0.1, 1440.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s\u00B2')
 var max_acceleration: float = deg_to_rad(720.0)
 
-@export_group('Torque', 'torque_')
-## Rate of change for the torque, should generally be high enough to travel from
-## unpowered to powered torque in fractions of a second.
-@export_range(0.1, 1000.0, 0.1, 'or_less', 'or_greater', 'suffix:/s')
-var torque_change_rate: float = 500.0:
-    set(value):
-        torque_change_rate = value
-        emit_changed()
+## Motor velocity damping. Each physics tick the angular velocity between the two
+## bodies on the motor axis is reduced by (joint_velocity * damping * delta)
+## according to their relative mass.
+@export_range(0.0, 1.0, 0.001)
+var damping: float = 0.08
+
+
+@export_group('Torque Curve', 'torque_')
 
 ## Torque drive limit when the joint is powered
 @export_range(0.0, 1000.0, 0.01, 'or_greater', 'hide_control', 'suffix:kg\u22C5m\u00B2/s\u00B2 (Nm)')
-var torque_powered: float = 50.0:
+var torque_powered_max: float = 50.0:
     set(value):
-        torque_powered = value
+        torque_powered_max = value
         emit_changed()
 
-## Torque curve, only matters while powered and near maximum velocity. Motor
-## always uses powered torque while less than half the velocity limit.
+## Torque zero speed relative to max velocity. This defines the velocity where
+## the motor torque becomes zero and is only affected by external forces.
+@export_range(0.0, 1.0, 0.01, 'or_greater', 'suffix:+ 1.0')
+var torque_zero_speed: float = 0.2:
+    set(value):
+        torque_zero_speed = value
+        emit_changed()
+
+## Torque curve,
 @export_exp_easing('positive_only', 'attenuation')
-var torque_curve: float = 0.05:
+var torque_curve: float = 0.2:
     set(value):
         torque_curve = value
         emit_changed()
 
-## Torque drive friction, used when a motor is unpowered or rotating too fast.
-## Set to zero to make the motor frictionless.
-@export_range(0.0, 50.0, 0.01, 'or_greater', 'hide_control', 'suffix:kg\u22C5m\u00B2/s\u00B2 (Nm)')
-var torque_friction: float = 10.0:
-    set(value):
-        torque_friction = value
-        emit_changed()
 
 @export_group('Controller')
 ## Controller parameters for target angle

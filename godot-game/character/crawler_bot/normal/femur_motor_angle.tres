@@ -5,6 +5,5 @@
 [resource]
 resource_name = "FemurMotorAngle"
 script = ExtResource("1_kymxn")
-integral = 0.5
-derivative = 0.8
+integral = 0.0
 metadata/_custom_type_script = "uid://bddq06cxcp4p0"

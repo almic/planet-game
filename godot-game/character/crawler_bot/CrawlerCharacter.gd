@@ -42,12 +42,6 @@ var rotation_overshoot: float = 0.2
 
 @export var leg_ik: IKModifier
 
-
-@export_group('Physical Skeleton')
-
-@export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
-var enable_physical_skeleton: bool = true
-
 @export var physical_skeleton: PhysicalSkeleton
 
 #region IK Parameters
@@ -141,9 +135,6 @@ var _debug_leg_gravity_vec: int = 0
 #endregion Debug
 
 var legs: Array[CrawlerLeg]
-"""
-var leg_distance_constraint_list: Array[DistanceJoint3D]
-"""
 
 var target_position: Vector3 = Vector3.INF
 var target_direction: Vector3 = Vector3.INF
@@ -163,7 +154,6 @@ var linear_leg_accel: Vector3
 var angular_leg_accel: Vector3
 
 var _is_update_ik_queued: bool = false
-var _cached_body_state: PhysicsDirectBodyState3D
 
 func editor_rebuild_crawler() -> void:
     var dialog: Window
@@ -311,9 +301,8 @@ func rebuild_crawler(remove_unowned_nodes: bool = false, editor_mode: bool = fal
 func _ready() -> void:
     super._ready()
 
-    if enable_physical_skeleton:
-        physical_skeleton.skeleton = skeleton
-        physical_skeleton.joint_force_exceeded.connect(on_joint_force_exceeded)
+    physical_skeleton.skeleton = skeleton
+    physical_skeleton.joint_force_exceeded.connect(on_joint_force_exceeded)
 
     _load_legs(true)
     _update_body_mass()
@@ -321,8 +310,7 @@ func _ready() -> void:
 
     if Engine.is_editor_hint():
         # Allow physical skeleton to match bone meshes to IK results
-        if enable_physical_skeleton:
-            leg_ik.modification_processed.connect(physical_skeleton.on_pose_finalized)
+        leg_ik.modification_processed.connect(physical_skeleton.on_pose_finalized)
         return
 
     var count: int = legs.size()
@@ -344,18 +332,9 @@ func _ready() -> void:
 
     # Should be off for the editor, on in-game
     leg_ik.active = true
-
-    if enable_physical_skeleton:
-        physical_skeleton.active = true
-        physical_skeleton.modification_processed.connect(_update_legs)
-        leg_ik.modification_processed.connect(physical_skeleton.on_pose_finalized)
-    else:
-        # Must run this method, for some reason Skeleton3D respects custom
-        # modifiers "active" flag on load, while IterateIK3D definitely still
-        # processes once even though it is also disabled
-        physical_skeleton.setup_body.call_deferred()
-        leg_ik.modification_processed.connect(_on_leg_pose_updated)
-        leg_ik.use_prior_work = true
+    physical_skeleton.active = true
+    physical_skeleton.modification_processed.connect(_update_legs)
+    leg_ik.modification_processed.connect(physical_skeleton.on_pose_finalized)
 
     desired_surface_friction = 0.0
 
@@ -395,9 +374,6 @@ func _load_legs(is_initialization: bool = false) -> void:
     legs.assign(find_children('', 'CrawlerLeg'))
 
     var count: int = legs.size()
-    """
-    leg_distance_constraint_list.resize(count)
-    """
     for i in range(count):
         var leg: CrawlerLeg = legs[i]
         leg.body = self
@@ -406,31 +382,20 @@ func _load_legs(is_initialization: bool = false) -> void:
         if not is_initialization:
             continue
 
-        if enable_physical_skeleton:
-            if leg.physical_bone_chain:
-                physical_skeleton.prepare_custom_joints(leg.physical_bone_chain, leg.prepare_custom_joint)
-            else:
-                continue
-                push_error(
-                    (
-                        'CrawlerCharacter at %s has a CrawlerLeg at %s which is '
-                        + 'missing a physical bone chain resource. Please give it '
-                        + 'a resource or delete the leg node.'
-                    ) % [get_nice_path(), get_nice_path(leg)]
-                )
+        if leg.physical_bone_chain:
+            physical_skeleton.prepare_custom_joints(leg.physical_bone_chain, leg.prepare_custom_joint)
+        else:
+            continue
+            push_error(
+                (
+                    'CrawlerCharacter at %s has a CrawlerLeg at %s which is '
+                    + 'missing a physical bone chain resource. Please give it '
+                    + 'a resource or delete the leg node.'
+                ) % [get_nice_path(), get_nice_path(leg)]
+            )
 
         if Engine.is_editor_hint():
             continue
-
-        """
-        # Create distance constraint for the leg
-        var dc := DistanceJoint3D.new()
-        dc.set_param(DistanceJoint3D.PARAM_LIMITS_SPRING_STIFFNESS, 44.847)
-        dc.set_param(DistanceJoint3D.PARAM_LIMITS_SPRING_DAMPING, 17.844)
-        dc.set_param(DistanceJoint3D.PARAM_DISTANCE_MAX, 0.0)
-        leg_distance_constraint_list[i] = dc
-        add_child(dc)
-        """
 
 func _queue_update_ik_settings() -> void:
     if _is_update_ik_queued:
@@ -446,10 +411,6 @@ func _update_ik_settings() -> void:
     leg_ik.iterations = ik_max_iterations
     leg_ik.min_distance = ik_min_distance
     leg_ik.angular_delta_limit = ik_angular_delta_limit
-
-func _on_leg_pose_updated() -> void:
-    for leg in legs:
-        leg.pose_updated()
 
 func damage(source: Object, amount: float, hit_point: Vector3) -> void:
     print('Took %f damage from %s at position %s' % [amount, source.name, str(hit_point)])
@@ -541,23 +502,11 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
     ground_position = Vector3.ZERO
     ground_velocity = Vector3.ZERO
 
-    # NOTE: different order of operations when in virtual mode
-    if enable_physical_skeleton:
-        _cached_body_state = state
-    else:
-        for leg in legs:
-            leg.pre_update(state)
-        _update_legs()
-
     # This kicks off several callbacks:
-    # PHYSICS:
-    #     1. Matches skeleton pose to physical joints
-    #     2. Calls '_update_legs()' which provides the current pose and calculates new targets
-    #     3. IterateIK moves joints towards targets
-    #     4. PhysicalSkeleton calculates joint motor velocities for the next physics step
-    # VIRTUAL:
-    #     1. IterateIK moves joints towards targets
-    #     2. Calls '_on_leg_pose_updated()' which copies the IK results to leg targets
+    #   1. Matches skeleton pose to physical joints
+    #   2. Calls '_update_legs()' which provides the current pose and calculates new targets
+    #   3. IterateIK moves joints towards targets
+    #   4. PhysicalSkeleton calculates joint motor velocities for the next physics step
     skeleton.advance(state.step, true)
 
     if grounded_leg_count > 0:
@@ -578,25 +527,19 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
         ground_position = Vector3.INF
 
 func _update_legs() -> void:
-    # NOTE: this is called before IK, so virtual cannot copy the pose yet
-    if enable_physical_skeleton:
-        if _cached_body_state:
-            for leg in legs:
-                leg.pre_update(_cached_body_state)
-            _cached_body_state = null
+    for leg in legs:
+        leg.on_pose_updated()
 
-        for chain in physical_skeleton.chain_list:
-            if not chain.is_ik_enabled:
-                continue
+    for chain in physical_skeleton.chain_list:
+        if not chain.is_ik_enabled:
+            continue
 
-            # Disable IK behavior on the chain and update legs
-            if chain.is_any_motor_broken:
-                chain.is_ik_enabled = false # mark disabled to skip in the future
-                # NOTE: setting node path to empty effectively disables that ik setting
-                leg_ik.setting_list[chain.ik_setting].target_node = NodePath("")
-                # TODO: tell CrawlerLegs about this so they can change behavior
-
-        _on_leg_pose_updated()
+        # Disable IK behavior on the chain and update legs
+        if chain.is_any_motor_broken:
+            chain.is_ik_enabled = false # mark disabled to skip in the future
+            # NOTE: setting node path to empty effectively disables that ik setting
+            leg_ik.setting_list[chain.ik_setting].target_node = NodePath("")
+            # TODO: tell CrawlerLegs about this so they can change behavior
 
     for leg in legs:
         leg.check_early_step()
@@ -612,27 +555,6 @@ func _update_legs() -> void:
             ground_normal += leg.ground_normal
             ground_position += leg.ground_point
             ground_velocity += leg.ground_velocity
-
-        """
-        # Update distance constraint
-        if not enable_physical_skeleton:
-            continue
-
-        var dc: DistanceJoint3D = leg_distance_constraint_list[leg.index]
-        dc.global_position = leg.target.global_position
-        if dc.node_b:
-            dc.force_update_joint()
-        else:
-            var bone: int = skeleton.get_bone_parent(leg.target_bone_idx)
-            for joint_data in physical_skeleton.joints:
-                if joint_data.bone_idx != bone:
-                    continue
-                # NOTE: this will update the joint
-                dc.node_b = joint_data.body.get_path()
-                var node_b_pos: Vector3 = skeleton.get_bone_rest(leg.target_bone_idx).origin
-                dc.set_point_param(DistanceJoint3D.POINT_PARAM_B, node_b_pos)
-                break
-        """
 
 
 func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:

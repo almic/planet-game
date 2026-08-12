@@ -232,8 +232,6 @@ size = Vector3(0.4, 0.2, 0.3)
 
 [node name="CrawlerBot" type="RigidBody3D" unique_id=461561025 node_paths=PackedStringArray("skeleton", "leg_ik", "physical_skeleton")]
 collision_mask = 51
-axis_lock_linear_x = true
-axis_lock_linear_z = true
 mass = 21.0
 physics_material_override = ExtResource("1_ro1ip")
 custom_integrator = true
@@ -242,8 +240,9 @@ script = ExtResource("1_3kbc3")
 skeleton = NodePath("big_crawler/Skeleton3D")
 leg_ik = NodePath("big_crawler/Skeleton3D/IKModifier")
 physical_skeleton = NodePath("big_crawler/Skeleton3D/PhysicalSkeleton")
-ik_min_distance = 0.0
-ik_angular_delta_limit = 4.71238898038469
+ik_max_iterations = 10
+ik_min_distance = 0.05
+ik_angular_delta_limit = 17.453292519943297
 body_leg_mass_ratio = 14.0
 body_height_offset = 0.9
 body_leg_lift_ratio = 0.4
@@ -260,7 +259,7 @@ shape = SubResource("CapsuleShape3D_3kbc3")
 [node name="big_crawler" parent="." unique_id=1739686264 instance=ExtResource("2_2g2re")]
 metadata/_edit_lock_ = true
 
-[node name="Skeleton3D" parent="big_crawler" index="0" unique_id=2028449087]
+[node name="Skeleton3D" parent="big_crawler" index="0" unique_id=235375328]
 modifier_callback_mode_process = 2
 metadata/_edit_lock_ = true
 
@@ -317,10 +316,9 @@ visibility_parent = NodePath("")
 active = true
 influence = 1.0
 script = ExtResource("5_2n4j6")
-iterations = 4
-min_distance = 0.0
-angular_delta_limit = 4.71238898038469
-error_correction = 0.8
+min_distance = 0.05
+angular_delta_limit = 17.453292519943297
+use_prior_work = true
 setting_list = Array[ExtResource("6_hitf2")]([SubResource("Resource_a6782"), SubResource("Resource_gw1yc"), SubResource("Resource_dh0pb"), SubResource("Resource_8uln7"), SubResource("Resource_70uui"), SubResource("Resource_mxslf")])
 metadata/_custom_type_script = "uid://dfs1kud1hcgq1"
 metadata/_edit_lock_ = true
@@ -351,7 +349,7 @@ setting = ExtResource("6_8gnh6")
 metadata/_custom_type_script = "uid://bco1liolqoebw"
 
 [node name="FR_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/FR_Leg" unique_id=313845362]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1316897994972135, -0.8200002637279464, -1.5361897448335555)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1316897994972137, -0.8200002637279464, -1.5361897448335555)
 gizmo_extents = 0.1
 
 [node name="ML_Leg" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=1724073026 node_paths=PackedStringArray("target")]

@@ -86,6 +86,13 @@ func _ready() -> void:
     physical_skeleton.modification_processed.connect(_update_legs)
     leg_ik.modification_processed.connect(physical_skeleton.on_pose_finalized)
 
+func _physics_process(_d: float) -> void:
+    if Engine.is_editor_hint():
+        return
+
+    #if InputManager.ticked_physics == 361:
+    #    InputManager.pause()
+
 func _construct_skeleton() -> void:
     # Clear and build bone structure
     skeleton.clear_bones()
@@ -160,7 +167,7 @@ func rebuild_physical_skeleton() -> void:
     var leg_ik_index: int = -1
     for chain_setting in chain_setting_list:
         physical_skeleton.remove_chain(chain_setting, true)
-        var chain: PhysicalBoneChain3D = physical_skeleton.build_chain(chain_setting, Callable())
+        var chain: PhysicalBoneChain3D = physical_skeleton.build_chain(chain_setting, build_custom_joint)
         if chain.is_ik_enabled:
             leg_ik_index += 1
             leg_ik.set_setting_count(leg_ik_index + 1)
@@ -176,6 +183,36 @@ func rebuild_physical_skeleton() -> void:
             leg_ik.setting_list[leg_ik_index].target_node = leg_ik.get_path_to(target)
 
     _update_body_mass.call_deferred()
+
+## Callback for building custom joints. This should set the transform of the
+## joint before returning it, which will be used as a local transform from the
+## bone in global pose space. Returning null will be interpreted as an error.
+func build_custom_joint(
+        _chain: PhysicalBoneChain3D,
+        part: PhysicalBonePart3D,
+        main_body: RigidBody3D,
+        parent_body: RigidBody3D,
+        joint_resource: Resource,
+) -> Joint3D:
+    # For now, this is the only custom joint type we make
+    var beam_res := joint_resource as BeamPivotJoint3DSetting
+    if not beam_res:
+        return null
+
+    var beam_joint := BeamPivotJoint3D.new()
+    beam_joint.set_meta(&'_custom_type_script', ResourceUID.id_to_text(ResourceLoader.get_resource_uid((beam_joint.get_script() as Script).resource_path)))
+    beam_joint.setting = beam_res
+    beam_joint.name = beam_joint.setting.resource_name
+
+    if beam_res.attach_to_main_body:
+        beam_joint.node_a = main_body.get_path()
+        beam_joint.body_A_offset = main_body.global_transform.affine_inverse() * global_position
+    else:
+        beam_joint.node_a = parent_body.get_path()
+
+    beam_joint.node_b = part.get_path()
+
+    return beam_joint
 
 func _update_body_mass() -> void:
     """
@@ -237,13 +274,13 @@ func _update_legs() -> void:
         target_timer += cached_state.step
 
         var shift: Vector3
-        if target_shift == 1 and target_timer > 6.0:
+        if target_shift == 1 and target_timer > 8.0:
             target_timer = 0.0
             target_shift = 0
-            shift.z = 0.15
-        elif target_shift == 0 and target_timer > 3.0:
+            shift.z = -0.4
+        elif target_shift == 0 and target_timer > 4.0:
             target_shift = 1
-            shift.z = -0.15
+            shift.z = 0.4
 
         if not shift.is_zero_approx():
             for ik_setting in leg_ik.setting_list:

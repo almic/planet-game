@@ -41,6 +41,9 @@ func apply_velocity_step(
 
     return true
 
+func set_total_lambda(total_lambda: Vector3) -> void:
+    _total_lambda = total_lambda
+
 func setup(
         parent: PhysicsDirectBodyState3D,
         body: PhysicsDirectBodyState3D,
@@ -95,17 +98,23 @@ func solve_position(
         body: PhysicsDirectBodyState3D,
         baumgarte: float
 ) -> bool:
-    var separation: Vector3 = body.transform.origin - parent.transform.origin + _r2 - _r1
+    var body_com: Vector3 = body.transform.origin + body.center_of_mass
+    var parent_com: Vector3 = parent.transform.origin + parent.center_of_mass
+    var separation: Vector3 = body_com - parent_com + _r2 - _r1
     if separation == Vector3.ZERO:
         return false
 
     var lambda: Vector3 = _effective_mass * -baumgarte * separation
 
-    parent.transform.origin -= parent.inverse_mass * lambda
-    _sub_rotation(parent, _inv_r1 * lambda)
+    var xform: Transform3D = parent.transform
+    xform.origin -= parent.inverse_mass * lambda
+    xform.basis = _sub_rotation(xform.basis, _inv_r1 * lambda)
+    parent.transform = xform
 
-    body.transform.origin += body.inverse_mass * lambda
-    _add_rotation(body, _inv_r2 * lambda)
+    xform = body.transform
+    xform.origin += body.inverse_mass * lambda
+    xform.basis = _add_rotation(xform.basis, _inv_r2 * lambda)
+    body.transform = xform
 
     return true
 
@@ -117,22 +126,26 @@ func _cross(v: Vector3) -> Basis:
     )
 
 func _add(a: Basis, b: Basis) -> Basis:
-    for i in range(3):
-        a[i] = a[i] + b[i]
-    return a
+    var c: Basis
+    c.x = a.x + b.x
+    c.y = a.y + b.y
+    c.z = a.z + b.z
+    return c
 
 func _add_rotation(
-        body: PhysicsDirectBodyState3D,
+        basis: Basis,
         rotation: Vector3
-) -> void:
+) -> Basis:
     var length: float = rotation.length()
     if length > 1e-6:
-        body.transform.basis = body.transform.basis.rotated(rotation / length, length).orthonormalized()
+        return basis.rotated(rotation / length, length).orthonormalized()
+    return basis
 
 func _sub_rotation(
-        body: PhysicsDirectBodyState3D,
+        basis: Basis,
         rotation: Vector3
-) -> void:
+) -> Basis:
     var length: float = rotation.length()
     if length > 1e-6:
-        body.transform.basis = body.transform.basis.rotated(rotation / length, -length).orthonormalized()
+        return basis.rotated(rotation / length, -length).orthonormalized()
+    return basis

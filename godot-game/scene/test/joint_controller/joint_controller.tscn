@@ -6,14 +6,16 @@
 [ext_resource type="Script" uid="uid://bumtikmwn5lpl" path="res://addons/physical_skeleton/resource/chain_resource.gd" id="3_45dli"]
 [ext_resource type="Script" uid="uid://dfs1kud1hcgq1" path="res://node/ik_modifier/ik_modifier.gd" id="3_duk45"]
 [ext_resource type="Resource" uid="uid://dap0wvpmdr706" path="res://scene/test/joint_controller/res/chain_fr.tres" id="4_eai8g"]
-[ext_resource type="Script" uid="uid://co33qil70ybm6" path="res://node/ik_modifier/chain_resource.gd" id="4_ocslh"]
 [ext_resource type="Script" uid="uid://ba78jnlpxs7ph" path="res://addons/physical_skeleton/physical_skeleton.gd" id="4_pcqjn"]
-[ext_resource type="Script" uid="uid://c5ct6mxt0vyod" path="res://node/ik_modifier/joint_resource.gd" id="5_45dli"]
 [ext_resource type="Script" uid="uid://bby5w01y4paxl" path="res://addons/physical_skeleton/chain_3d.gd" id="8_jvypi"]
+[ext_resource type="Script" uid="uid://co33qil70ybm6" path="res://node/ik_modifier/chain_resource.gd" id="8_n7m1m"]
+[ext_resource type="Script" uid="uid://c5ct6mxt0vyod" path="res://node/ik_modifier/joint_resource.gd" id="9_68fuv"]
 [ext_resource type="Script" uid="uid://bgi016jncnd26" path="res://addons/physical_skeleton/part_3d.gd" id="9_n7m1m"]
 [ext_resource type="Resource" uid="uid://dceq1r23kkx56" path="res://scene/test/joint_controller/res/part_fr_femur.tres" id="12_jvypi"]
-[ext_resource type="Resource" uid="uid://dsft47wijpwns" path="res://scene/test/joint_controller/res/part_fr_tibia.tres" id="13_68fuv"]
+[ext_resource type="Resource" uid="uid://dsft47wijpwns" path="res://scene/test/joint_controller/res/part_fr_tibia.tres" id="13_gj6xc"]
 [ext_resource type="Resource" uid="uid://buu1qygyshy4m" path="res://scene/test/joint_controller/res/part_fr_tarsus.tres" id="14_68fuv"]
+[ext_resource type="Script" uid="uid://dfvyp4ujh55gf" path="res://node/beam_joint/beam_joint.gd" id="15_dri2p"]
+[ext_resource type="Resource" uid="uid://ca66hl2snynxa" path="res://scene/test/joint_controller/res/beam_tarsus_main.tres" id="16_6akut"]
 [ext_resource type="PackedScene" uid="uid://cetgr3wj5qd6v" path="res://character/player/player.tscn" id="17_dri2p"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_jvypi"]
@@ -48,32 +50,32 @@ material = SubResource("StandardMaterial3D_gbknq")
 radius = 0.01
 height = 0.02
 
-[sub_resource type="Resource" id="Resource_gj6xc"]
+[sub_resource type="Resource" id="Resource_jija2"]
 resource_name = "JointResource"
-script = ExtResource("5_45dli")
+script = ExtResource("9_68fuv")
 rotation_axis = 2
 limitation_angle = 0.8726646259971648
 limitation_rotation_offset = Quaternion(0, 0, 0.08715574274766, 0.99619469809175)
 
-[sub_resource type="Resource" id="Resource_dri2p"]
+[sub_resource type="Resource" id="Resource_82k3j"]
 resource_name = "JointResource"
-script = ExtResource("5_45dli")
+script = ExtResource("9_68fuv")
 limitation_angle = 0.8726646259971648
 
-[sub_resource type="Resource" id="Resource_6akut"]
+[sub_resource type="Resource" id="Resource_qy7ad"]
 resource_name = "JointResource"
-script = ExtResource("5_45dli")
+script = ExtResource("9_68fuv")
 limitation_angle = 1.4835298641951802
 limitation_rotation_offset = Quaternion(0.08715574274766, 0, 0, 0.99619469809175)
 
-[sub_resource type="Resource" id="Resource_jija2"]
+[sub_resource type="Resource" id="Resource_ak5dp"]
 resource_name = "ChainResource"
-script = ExtResource("4_ocslh")
+script = ExtResource("8_n7m1m")
 root_bone = &"FrontRightFemur"
 end_bone = &"FrontRightTarsus_leaf"
 target_node = NodePath("../TargetFrontRight")
 rest_correction = 0.0
-joint_list = Array[ExtResource("5_45dli")]([SubResource("Resource_gj6xc"), SubResource("Resource_dri2p"), SubResource("Resource_6akut")])
+joint_list = Array[ExtResource("9_68fuv")]([SubResource("Resource_jija2"), SubResource("Resource_82k3j"), SubResource("Resource_qy7ad")])
 
 [sub_resource type="BoxMesh" id="BoxMesh_1mf0w"]
 material = ExtResource("2_it2y3")
@@ -124,15 +126,17 @@ material = ExtResource("1_45dli")
 [node name="TestBody" type="RigidBody3D" parent="." unique_id=1481467921]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5999999999999808, 0)
 collision_mask = 51
-mass = 25.0
+mass = 29.1044776119403
 custom_integrator = true
 continuous_cd = true
 script = ExtResource("1_nuxmm")
+body_leg_mass_ratio = 32.5
 chain_setting_list = Array[ExtResource("3_45dli")]([ExtResource("4_eai8g")])
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="TestBody" unique_id=1519720364]
 transform = Transform3D(1, 0, 0, 0, 6.123233995736766e-17, -1, 0, 1, 6.123233995736766e-17, -3.2014214e-09, 0.49999999679857865, -3.2014214e-09)
 shape = SubResource("CapsuleShape3D_vmej4")
+debug_color = Color(0, 0.627451, 0.45882353, 1)
 metadata/_edit_lock_ = true
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="TestBody" unique_id=943609720]
@@ -209,7 +213,7 @@ bones/6/position = Vector3(0, 0.9, 0)
 bones/6/rotation = Quaternion(0, 0, 0, 1)
 bones/6/scale = Vector3(1, 1, 1)
 
-[node name="physical" type="SkeletonModifier3D" parent="TestBody/skeleton" unique_id=829324944]
+[node name="physical" type="SkeletonModifier3D" parent="TestBody/skeleton" unique_id=687530936]
 unique_name_in_owner = false
 process_mode = 0
 process_priority = 0
@@ -227,9 +231,10 @@ visibility_parent = NodePath("")
 active = false
 influence = 1.0
 script = ExtResource("4_pcqjn")
+metadata/_custom_type_script = "uid://ba78jnlpxs7ph"
 
 [node name="TargetFrontRight" type="Marker3D" parent="TestBody/skeleton" unique_id=1640602918]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8737180279926444, 0.11697777883956728, -1.2737180325201378)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8959999968064949, 0.07869999679678585, -1.2960000032035168)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="TestBody/skeleton/TargetFrontRight" unique_id=1754287690]
 mesh = SubResource("SphereMesh_vmej4")
@@ -252,16 +257,17 @@ visibility_parent = NodePath("")
 active = true
 influence = 1.0
 script = ExtResource("3_duk45")
-min_distance = 0.0
+min_distance = 0.05
 angular_delta_limit = 17.453292519943297
-setting_list = Array[ExtResource("4_ocslh")]([SubResource("Resource_jija2")])
+use_prior_work = true
+setting_list = Array[ExtResource("8_n7m1m")]([SubResource("Resource_ak5dp")])
 
 [node name="ChainRootNode" type="Node3D" parent="TestBody/skeleton" unique_id=1789668624]
 metadata/_physical_skeleton_owned = true
 metadata/_physical_chain_root = true
 metadata/_edit_lock_ = true
 
-[node name="FrontRight" type="Node3D" parent="TestBody/skeleton/ChainRootNode" unique_id=412307090 node_paths=PackedStringArray("ik_node")]
+[node name="FrontRight" type="Node3D" parent="TestBody/skeleton/ChainRootNode" unique_id=1009358613 node_paths=PackedStringArray("ik_node")]
 script = ExtResource("8_jvypi")
 resource = ExtResource("4_eai8g")
 ik_node = NodePath("../../ik_modifier")
@@ -271,10 +277,10 @@ metadata/_custom_type_script = "uid://bby5w01y4paxl"
 metadata/_edit_lock_ = true
 metadata/_physical_chain_resource_id = 7191786056387628521
 
-[node name="Femur" type="RigidBody3D" parent="TestBody/skeleton/ChainRootNode/FrontRight" unique_id=702970734]
+[node name="Femur" type="RigidBody3D" parent="TestBody/skeleton/ChainRootNode/FrontRight" unique_id=2132932409]
 transform = Transform3D(0.7071067811865474, 0.7071067811865477, -4.3297802811774677e-17, 0, 6.123233995736766e-17, 1, 0.7071067811865477, -0.7071067811865474, 4.3297802811774646e-17, 0.14142135623730953, 0.5000000000000002, -0.5414213562373096)
 collision_mask = 51
-mass = 0.6666666666666666
+mass = 0.11940298507462686
 continuous_cd = true
 script = ExtResource("9_n7m1m")
 resource = ExtResource("12_jvypi")
@@ -282,17 +288,17 @@ metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
 metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Femur" unique_id=1723474978]
+[node name="PartMesh" type="MeshInstance3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Femur" unique_id=663122290]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0999999999999968, 0)
 mesh = SubResource("BoxMesh_1mf0w")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Femur" unique_id=343470674]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Femur" unique_id=1786948063]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0999999999999968, 0)
 shape = SubResource("CapsuleShape3D_jc8px")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Femur" unique_id=1708009339]
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Femur" unique_id=1507683100]
 node_a = NodePath("../../../../..")
 node_b = NodePath("..")
 angular_limit_z/upper_angle = 0.2617993877991466
@@ -301,29 +307,29 @@ metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
 metadata/_edit_lock_ = true
 
-[node name="Tibia" type="RigidBody3D" parent="TestBody/skeleton/ChainRootNode/FrontRight" unique_id=511127492]
+[node name="Tibia" type="RigidBody3D" parent="TestBody/skeleton/ChainRootNode/FrontRight" unique_id=1496978911]
 transform = Transform3D(0.7071067811865475, 0.4545194776720437, -0.541675220419702, -1.5700924586837754e-16, 0.7660444431189782, 0.6427876096865391, 0.7071067811865476, -0.4545194776720434, 0.5416752204197021, 0.28284271247461906, 0.5000000000000002, -0.682842712474619)
 collision_mask = 51
-mass = 1.3333333333333333
+mass = 0.23880597014925373
 continuous_cd = true
 script = ExtResource("9_n7m1m")
-resource = ExtResource("13_68fuv")
+resource = ExtResource("13_gj6xc")
 part_index = 1
 metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
 metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Tibia" unique_id=1427339911]
+[node name="PartMesh" type="MeshInstance3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Tibia" unique_id=230836705]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1999999999999936, 0)
 mesh = SubResource("BoxMesh_40222")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Tibia" unique_id=884341234]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Tibia" unique_id=924556437]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1999999999999936, 0)
 shape = SubResource("CapsuleShape3D_2u64d")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Tibia" unique_id=1041319716]
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Tibia" unique_id=177144079]
 node_a = NodePath("../../Femur")
 node_b = NodePath("..")
 angular_limit_x/upper_angle = 0.4363323129985824
@@ -332,10 +338,10 @@ metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
 metadata/_edit_lock_ = true
 
-[node name="Tarsus" type="RigidBody3D" parent="TestBody/skeleton/ChainRootNode/FrontRight" unique_id=158437084]
+[node name="Tarsus" type="RigidBody3D" parent="TestBody/skeleton/ChainRootNode/FrontRight" unique_id=175726563]
 transform = Transform3D(0.7071067811865476, 0.4545194776720437, 0.5416752204197018, -9.381338752702732e-17, -0.766044443118978, 0.6427876096865394, 0.7071067811865475, -0.45451947767204376, -0.5416752204197018, 0.4646505035434365, 0.8064177772475914, -0.8646505035434364)
 collision_mask = 51
-mass = 3.0
+mass = 0.5373134328358209
 continuous_cd = true
 script = ExtResource("9_n7m1m")
 resource = ExtResource("14_68fuv")
@@ -344,17 +350,17 @@ metadata/_physical_skeleton_owned = true
 metadata/_custom_type_script = "uid://bgi016jncnd26"
 metadata/_edit_lock_ = true
 
-[node name="PartMesh" type="MeshInstance3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Tarsus" unique_id=1889037300]
+[node name="PartMesh" type="MeshInstance3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Tarsus" unique_id=1907294237]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4499999999999856, 0)
 mesh = SubResource("BoxMesh_6yjn3")
 metadata/_physical_skeleton_owned = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Tarsus" unique_id=659847777]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Tarsus" unique_id=210104176]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4499999999999856, 0)
 shape = SubResource("CapsuleShape3D_g64l7")
 metadata/_physical_skeleton_owned = true
 
-[node name="BoneJoint" type="Generic6DOFJoint3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Tarsus" unique_id=1504961079]
+[node name="BoneJoint" type="Generic6DOFJoint3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Tarsus" unique_id=2095569401]
 node_a = NodePath("../../Tibia")
 node_b = NodePath("..")
 angular_limit_x/upper_angle = 0.5672320068981543
@@ -362,6 +368,17 @@ angular_limit_x/lower_angle = -0.9162978572970258
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
 metadata/_edit_lock_ = true
+
+[node name="Beam Tarsus Main" type="Generic6DOFJoint3D" parent="TestBody/skeleton/ChainRootNode/FrontRight/Tarsus" unique_id=717288347]
+transform = Transform3D(-3.8857806e-16, -3.469447e-18, -1, -0.6869763845468415, -0.7266797417535116, 3.8857806e-16, -0.7266797417535116, 0.6869763845468415, 2.7755576e-16, 1.6653345e-16, 0.4499999999999858, 0)
+node_a = NodePath("../../Femur")
+node_b = NodePath("..")
+exclude_nodes_from_collision = false
+script = ExtResource("15_dri2p")
+setting = ExtResource("16_6akut")
+metadata/_custom_type_script = "uid://dfvyp4ujh55gf"
+metadata/_physical_skeleton_owned = true
+metadata/_part_custom_index = 0
 
 [node name="TestBodyFixedPoint" type="Generic6DOFJoint3D" parent="TestBody" unique_id=1809157180]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.499999999999984, 0)
@@ -392,4 +409,9 @@ angular_spring_z/stiffness = 1184.352528130723
 angular_spring_z/damping = 339.29200658769764
 
 [node name="Player" parent="." unique_id=1957397594 instance=ExtResource("17_dri2p")]
-transform = Transform3D(-0.7071067811865474, 0, 0.7071067811865475, 0, 1, 0, -0.7071067811865475, 0, -0.7071067811865474, 1.2741252636295246, 0, -1.657133366555568)
+transform = Transform3D(-0.7071067811865474, 0, 0.7071067811865475, 0, 1, 0, -0.7071067811865475, 0, -0.7071067811865474, 1.4464414212333203, 0, -1.829449524159364)
+visible = false
+
+[node name="Marker3D" type="Marker3D" parent="." unique_id=474446454]
+transform = Transform3D(0.706991345157387, 0.437057607512283, -0.5560070913110621, 0.00511486623115581, 0.7830039688810227, 0.6219956775251769, 0.7072037019246901, -0.4425894626312353, 0.5513415380250327, 0, 0, 0)
+rotation_edit_mode = 2

@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="1_0xsl8"]
 [ext_resource type="Material" uid="uid://b40dbxkqwa5td" path="res://character/crawler_bot/normal/ghost_material.tres" id="1_o0pay"]
+[ext_resource type="Resource" uid="uid://ca66hl2snynxa" path="res://scene/test/joint_controller/res/beam_tarsus_main.tres" id="2_3wm7h"]
 [ext_resource type="Script" uid="uid://def477t0ae837" path="res://addons/physical_skeleton/resource/joint_limitation.gd" id="2_xlpl7"]
 [ext_resource type="Material" uid="uid://b7tcfnn27e44y" path="res://material/dev/grid_red.tres" id="3_3wm7h"]
 [ext_resource type="Script" uid="uid://bddq06cxcp4p0" path="res://addons/physical_skeleton/resource/controller_parameters.gd" id="4_7fjq5"]
@@ -25,22 +26,20 @@ size = Vector3(0.05999999999999808, 0.8999999999999712, 0.03999999999999872)
 script = ExtResource("4_7fjq5")
 proportional = 16.0
 integral = 0.0
-derivative = 0.0
+derivative = 8.0
 metadata/_custom_type_script = "uid://bddq06cxcp4p0"
 
 [sub_resource type="Resource" id="Resource_xlpl7"]
 script = ExtResource("4_7fjq5")
-proportional = 1.2
+proportional = 1.4
 integral = 0.0
-derivative = 0.0
+derivative = 2.0
 metadata/_custom_type_script = "uid://bddq06cxcp4p0"
 
 [sub_resource type="Resource" id="Resource_kxxuy"]
 script = ExtResource("5_0nm33")
 max_acceleration = 18.84955592153876
-torque_change_rate = 100.0
-torque_powered = 10.0
-torque_friction = 2.0
+torque_powered_max = 4.0
 angle_controller = SubResource("Resource_o0pay")
 motor_controller = SubResource("Resource_xlpl7")
 metadata/_custom_type_script = "uid://cauv4ysnymf0u"
@@ -62,6 +61,8 @@ copy_ik_limitation_angle = true
 joint_angular_limit_x_upper = 0.5672320068981543
 joint_angular_limit_x_lower = -0.9162978572970258
 motor_parameters = SubResource("Resource_kxxuy")
+custom_enabled = true
+custom_joint_resource_list = Array[Resource]([ExtResource("2_3wm7h")])
 debug_enable = true
 debug_motor = true
 metadata/_custom_type_script = "uid://beoy3te8b6dll"

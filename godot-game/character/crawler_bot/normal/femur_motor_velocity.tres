@@ -5,8 +5,5 @@
 [resource]
 resource_name = "FemurMotorVelocity"
 script = ExtResource("1_p4477")
-mode = 2
-proportional = 1.0
-integral = 1.0
-derivative = 0.5
+integral = 0.0
 metadata/_custom_type_script = "uid://bddq06cxcp4p0"

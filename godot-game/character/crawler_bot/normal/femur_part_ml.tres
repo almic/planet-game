@@ -29,3 +29,5 @@ copy_ik_limitation_angle = true
 joint_angular_limit_z_upper = 0.5148721293383332
 joint_angular_limit_z_lower = -0.2705260340591152
 motor_parameters = ExtResource("5_tt0gu")
+debug_enable = true
+debug_motor = true

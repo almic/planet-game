@@ -26,22 +26,20 @@ size = Vector3(0.05999999999999808, 0.1999999999999936, 0.03999999999999872)
 script = ExtResource("4_dgo8i")
 proportional = 16.0
 integral = 0.0
-derivative = 0.0
+derivative = 8.0
 metadata/_custom_type_script = "uid://bddq06cxcp4p0"
 
 [sub_resource type="Resource" id="Resource_gj6xc"]
 script = ExtResource("4_dgo8i")
-proportional = 1.2
+proportional = 1.4
 integral = 0.0
-derivative = 0.0
+derivative = 2.0
 metadata/_custom_type_script = "uid://bddq06cxcp4p0"
 
 [sub_resource type="Resource" id="Resource_jija2"]
 script = ExtResource("5_u30xr")
 max_acceleration = 18.84955592153876
-torque_change_rate = 100.0
-torque_powered = 8.0
-torque_friction = 2.0
+torque_powered_max = 10.0
 angle_controller = SubResource("Resource_6akut")
 motor_controller = SubResource("Resource_gj6xc")
 metadata/_custom_type_script = "uid://cauv4ysnymf0u"
@@ -62,6 +60,7 @@ limitation = SubResource("Resource_pcqjn")
 copy_ik_limitation_angle = true
 joint_angular_limit_z_upper = 0.2617993877991466
 joint_angular_limit_z_lower = -0.6108652381980182
+motor_enabled = false
 motor_parameters = SubResource("Resource_jija2")
 debug_enable = true
 debug_motor = true

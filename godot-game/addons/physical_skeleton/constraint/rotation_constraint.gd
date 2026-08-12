@@ -117,6 +117,11 @@ func set_limits(
         _swing_cos.z = cos(_swing_half.z)
         _swing_cos.w = cos(_swing_half.w)
 
+func set_total_lambda(total_lambda: Vector3) -> void:
+    limit_x.set_total_lambda(total_lambda.x)
+    limit_y.set_total_lambda(total_lambda.y)
+    limit_z.set_total_lambda(total_lambda.z)
+
 func setup(
         parent: PhysicsDirectBodyState3D,
         body: PhysicsDirectBodyState3D,
@@ -138,7 +143,7 @@ func setup(
         if _flags & Flag.SwingZLocked:
             limit_z.setup(parent, body, axis.z)
         elif clamped_axis & (Clamp.SwingZMin | Clamp.SwingZMax) != 0:
-            if clamped_axis & Clamp.SwingYMin != 0:
+            if clamped_axis & Clamp.SwingZMin != 0:
                 axis.z = -axis.z
             limit_z.setup(parent, body, axis.z)
         else:
@@ -332,7 +337,7 @@ func solve_velocity(
         var max_angle: float = 0.0
         if _twist_sin_cos.x == _twist_sin_cos.y:
             max_angle = FLT_MAX
-        solve_impulse = limit_y.solve_velocity(parent, body, axis.x, -FLT_MAX, max_angle)
+        solve_impulse = limit_x.solve_velocity(parent, body, axis.x, -FLT_MAX, max_angle)
         impulse = impulse || solve_impulse
 
     return impulse
@@ -375,13 +380,19 @@ func solve_position(
     if diff.w < 0.0:
         diff = -diff
 
-    var error: Vector3 = 2.0 * diff.get_euler()
+    var error: Vector3 = 2.0 * Vector3(diff.x, diff.y, diff.z)
     if error == Vector3.ZERO:
         return false
 
     var lambda: Vector3 = effective_mass * error * -baumgarte
-    _sub_rotation(parent, parent.inverse_inertia_tensor * lambda)
-    _add_rotation(body, body.inverse_inertia_tensor * lambda)
+
+    var xform: Transform3D = parent.transform
+    xform.basis = _sub_rotation(xform.basis, parent.inverse_inertia_tensor * lambda)
+    parent.transform = xform
+
+    xform = body.transform
+    xform.basis = _add_rotation(xform.basis, body.inverse_inertia_tensor * lambda)
+    body.transform = xform
 
     return true
 
@@ -391,17 +402,19 @@ func _add(a: Basis, b: Basis) -> Basis:
     return a
 
 func _add_rotation(
-        body: PhysicsDirectBodyState3D,
+        basis: Basis,
         rotation: Vector3
-) -> void:
+) -> Basis:
     var length: float = rotation.length()
     if length > 1e-6:
-        body.transform.basis = body.transform.basis.rotated(rotation / length, length).orthonormalized()
+        return basis.rotated(rotation / length, length).orthonormalized()
+    return basis
 
 func _sub_rotation(
-        body: PhysicsDirectBodyState3D,
+        basis: Basis,
         rotation: Vector3
-) -> void:
+) -> Basis:
     var length: float = rotation.length()
     if length > 1e-6:
-        body.transform.basis = body.transform.basis.rotated(rotation / length, -length).orthonormalized()
+        return basis.rotated(rotation / length, -length).orthonormalized()
+    return basis

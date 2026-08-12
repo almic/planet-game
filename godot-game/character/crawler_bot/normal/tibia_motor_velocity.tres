@@ -5,5 +5,5 @@
 [resource]
 resource_name = "TibiaMotorVelocity"
 script = ExtResource("1_lnkwp")
-mode = 2
+integral = 0.0
 metadata/_custom_type_script = "uid://bddq06cxcp4p0"

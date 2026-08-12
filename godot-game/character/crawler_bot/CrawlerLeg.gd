@@ -114,8 +114,6 @@ var time_since_last_step: float = 0.0
 ## The leg is currently lifting up to avoid contact with the ground, and so it
 ## should likely be excluded from friction and ground normal calculations.
 var is_lifting: bool = false
-## The leg should be forced to remain lifted, excluding it from most motions
-var force_lifting: bool = false
 
 ## The leg is in a comfortable position. This is used to signal that the leg
 ## wants to move to a better position.
@@ -130,7 +128,8 @@ var step_origin: Vector3 = Vector3.INF
 
 var comfort_distance: float
 var dist_sqr_to_rest: float
-var leg_normal: Vector3 = Vector3.ZERO
+var leg_normal: Vector3
+var leg_end_position: Vector3
 
 var ground_bone_idx: int = -1
 var ground_cast: ShapeCast3D
@@ -154,7 +153,6 @@ var target_bone_idx: int = -1
 
 var cached_adjacent: Array[CrawlerLeg]
 var cached_diagonal: Array[CrawlerLeg]
-var cached_step: float
 
 
 ## Target step height
@@ -260,54 +258,32 @@ func setup_target() -> void:
     body.leg_ik.setting_list[index].target_node = body.leg_ik.get_path_to(target)
     target.global_position = body.skeleton.global_transform * body.skeleton.get_bone_global_rest(target_bone_idx).origin
 
-func pose_updated() -> void:
-    if use_new_leg_mode:
-        _new_pose_updated()
-        return
-
+## Cache leg pose data, update timers, transforms, ground data
+func on_pose_updated() -> void:
     leg_normal = (
               body.skeleton.global_transform
             * body.skeleton.get_bone_global_pose(body.skeleton.get_bone_parent(ground_bone_idx))
     ).basis.y
 
-    target.global_position = (
+    leg_end_position = (
               body.skeleton.global_transform
             * body.skeleton.get_bone_global_pose(target_bone_idx).origin
     )
-    #if index == 1:
-        #print((target.global_position - target_last_global_position) / cached_step)
-    target_last_global_position = target.global_position
 
-func _new_pose_updated() -> void:
-    pass
+
 
 # TODO: This method needs to have a lot of stuff moved into the "update" method
 #       instead, as this method does not know anything about the true leg
 #       transforms because they haven't been updated yet
 func pre_update(state: PhysicsDirectBodyState3D) -> void:
-    if use_new_leg_mode:
-        _new_pre_update(state)
-        return
-
-    cached_step = state.step
-
-    if force_lifting:
-        is_lifting = true
-
-    # time_since_moved += state.step
-    time_since_start_step += cached_step
-    time_since_last_step += cached_step
 
     _update_grounded()
-
-    if is_grounded:
-        time_since_grounded += state.step
-
-    _update_step_transform(state.transform.basis)
+    _update_timers()
+    _update_step_transform()
 
     # Run in pre-update to get ahead of the comfort distances
     if body.is_stepping:
-        comfort_distance = move_toward(comfort_distance, setting.step_distance, cached_step * 2.0)
+        comfort_distance = move_toward(comfort_distance, setting.step_distance, body.delta_time * 2.0)
 
     var local_rest: Vector3 = step_transform * target_rest_position
     target_global_rest = global_transform * local_rest
@@ -383,7 +359,16 @@ func _update_grounded() -> void:
         if debug_enable and debug_ground_normal:
             _draw_ground_normal(true)
 
-func _update_step_transform(body_basis: Basis) -> void:
+func _update_timers() -> void:
+    # time_since_moved += body.delta_time
+    time_since_start_step += body.delta_time
+    time_since_last_step += body.delta_time
+
+    if is_grounded:
+        time_since_grounded += body.delta_time
+
+func _update_step_transform() -> void:
+    var body_basis: Basis = body.phys_state.transform.basis
     var target_transform: Transform3D = Transform3D.IDENTITY
     if body.has_desired_forward:
         target_transform.origin += (body_basis.inverse() * body.desired_direction) * setting.move_offset
@@ -407,10 +392,10 @@ func _update_step_transform(body_basis: Basis) -> void:
 
     if step_transform != target_transform:
         # Force at least 2cm/sec of travel each interpolation
-        var min_weight: float = minf(2.0 * cached_step / step_transform.origin.distance_squared_to(target_transform.origin), 1.0)
+        var min_weight: float = minf(2.0 * body.delta_time / step_transform.origin.distance_squared_to(target_transform.origin), 1.0)
         # TODO: improve interpolation by comparing the body's rel ground velocity to desired direction.
         #       Should interpolate only while it is positive, and reach max rate when at or beyond desired speed
-        step_transform = step_transform.interpolate_with(target_transform, maxf(cached_step * setting.move_interp_rate * body.acceleration, min_weight))
+        step_transform = step_transform.interpolate_with(target_transform, maxf(body.delta_time * setting.move_interp_rate * body.acceleration, min_weight))
 
         if step_transform.is_equal_approx(target_transform):
             step_transform = target_transform
@@ -446,7 +431,7 @@ func check_early_step() -> void:
         return
 
     allow_step_sync = false
-    if force_lifting or (not shape_cast.is_colliding()):
+    if not shape_cast.is_colliding():
         return
 
     # NOTE: The method call 'can_start_step' may enable 'allow_step_sync'
@@ -469,18 +454,12 @@ func post_update() -> void:
 
     if not body.is_stepping:
         var t: float = lerpf(setting.rest_distance, setting.step_distance, (body.ground_direction.dot(body.ground_velocity)) / body.max_speed)
-        comfort_distance = move_toward(comfort_distance, t, cached_step * 2.0)
+        comfort_distance = move_toward(comfort_distance, t, body.delta_time * 2.0)
 
 func _new_post_update() -> void:
     pass
 
 func _update_target() -> void:
-    # Prevent stepping when force lifting is enabled
-    if force_lifting:
-        is_stepping = false
-        target.position.y = _calculate_lift(target.position.y, body.max_speed * cached_step)
-        return
-
     if (
             (not is_moving)
         and (not is_stepping)
@@ -493,7 +472,7 @@ func _update_target() -> void:
         _draw_step_target(not is_stepping)
 
     if not is_stepping:
-        target.position.y = _calculate_lift(target.position.y, body.max_speed * cached_step)
+        target.position.y = _calculate_lift(target.position.y, body.max_speed * body.delta_time)
 
         if debug_enable and debug_ik_target:
             _draw_ik_target()
@@ -529,7 +508,7 @@ func _update_target() -> void:
 
     var current_dist: float = (step_goal - step_current).length()
 
-    var step_delta: float = leg_speed * cached_step * clampf(current_dist / setting.step_distance, 1.0, 2.0)
+    var step_delta: float = leg_speed * body.delta_time * clampf(current_dist / setting.step_distance, 1.0, 2.0)
     step_delta = current_dist * minf(step_delta / current_dist, 1.0)
     var new_step: Vector3 = _calculate_step_vector(step_current, step_goal, step_delta)
 
@@ -637,8 +616,6 @@ func can_start_step() -> bool:
             return false
 
         for leg in get_adjacent():
-            if leg.force_lifting:
-                continue
             # Adjacent legs must not be moving or stepping
             if leg.is_moving or leg.is_stepping:
                 return false
@@ -670,8 +647,6 @@ func can_start_step() -> bool:
         return false
 
     for leg in get_diagonal():
-        if leg.force_lifting:
-            continue
         if (not leg.apply_ground_forces) or leg.time_since_grounded < leg.setting.step_delay:
             return false
 
