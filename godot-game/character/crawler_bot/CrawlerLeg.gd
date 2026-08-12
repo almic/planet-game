@@ -79,7 +79,7 @@ var has_initialized: bool = false
 var attachment_point: Vector3 = Vector3.ZERO
 
 ## The floor step target raycast
-var shape_cast: ShapeCast3D
+var step_cast: ShapeCast3D
 
 ## Transform used for moving step cast and rest point
 var step_transform: Transform3D = Transform3D.IDENTITY
@@ -210,10 +210,10 @@ func setup(cast_exceptions: Array[RID]) -> void:
         )
         return
 
-    shape_cast = ShapeCast3D.new()
-    shape_cast.name = 'StepCast'
-    shape_cast.enabled = false # Manually update the cast
-    add_child(shape_cast, false, Node.INTERNAL_MODE_FRONT)
+    step_cast = ShapeCast3D.new()
+    step_cast.name = 'StepCast'
+    step_cast.enabled = false # Manually update the cast
+    add_child(step_cast, false, Node.INTERNAL_MODE_FRONT)
 
     ground_cast = ShapeCast3D.new()
     ground_cast.name = 'GroundCast'
@@ -222,7 +222,7 @@ func setup(cast_exceptions: Array[RID]) -> void:
     add_child(ground_cast, false, Node.INTERNAL_MODE_FRONT)
 
     for rid in cast_exceptions:
-        shape_cast.add_exception_rid(rid)
+        step_cast.add_exception_rid(rid)
         ground_cast.add_exception_rid(rid)
 
     setting_modified()
@@ -296,9 +296,9 @@ func pre_update(state: PhysicsDirectBodyState3D) -> void:
     if debug_enable and debug_rest_area:
         _draw_rest_area()
 
-    _update_shape_cast(state.transform.basis)
-    if shape_cast.is_colliding():
-        next_step_target_global = shape_cast.get_collision_point(0)
+    _update_step_cast(state.transform.basis)
+    if step_cast.is_colliding():
+        next_step_target_global = step_cast.get_collision_point(0)
 
         if is_stepping:
             step_target_global = next_step_target_global
@@ -400,15 +400,15 @@ func _update_step_transform() -> void:
         if step_transform.is_equal_approx(target_transform):
             step_transform = target_transform
 
-func _update_shape_cast(body_basis: Basis) -> void:
+func _update_step_cast(body_basis: Basis) -> void:
 
     # Rotate in direction of motion
-    var old_shape_cast_xform: Transform3D = shape_cast.transform
+    var old_step_cast_xform: Transform3D = step_cast.transform
     if body.has_desired_forward and not is_zero_approx(setting.step_cast_angle):
         var rot_axis: Vector3 = body_basis.inverse() * body.desired_direction.cross(body_basis.y)
         rot_axis = rot_axis.normalized()
         var angle: float = setting.step_cast_angle# * (1.0 - absf(state.transform.basis.tdoty(body.desired_direction)))
-        var point: Vector3 = target_rest_position - shape_cast.position
+        var point: Vector3 = target_rest_position - step_cast.position
 
         # NOTE: Think of making a "transform sandwich", order the lines as if you are looking at
         #       the side profile of a "transform sandwich".
@@ -417,21 +417,21 @@ func _update_shape_cast(body_basis: Basis) -> void:
         xform = xform.rotated(rot_axis, angle)
         xform = xform.translated(target_rest_position)
 
-        shape_cast.transform = xform
-    shape_cast.transform = step_transform * shape_cast.transform
-    shape_cast.force_shapecast_update()
+        step_cast.transform = xform
+    step_cast.transform = step_transform * step_cast.transform
+    step_cast.force_shapecast_update()
 
     if debug_enable and debug_step_cast:
         _draw_step_cast()
 
-    shape_cast.transform = old_shape_cast_xform
+    step_cast.transform = old_step_cast_xform
 
 func check_early_step() -> void:
     if use_new_leg_mode:
         return
 
     allow_step_sync = false
-    if not shape_cast.is_colliding():
+    if not step_cast.is_colliding():
         return
 
     # NOTE: The method call 'can_start_step' may enable 'allow_step_sync'
@@ -463,7 +463,7 @@ func _update_target() -> void:
     if (
             (not is_moving)
         and (not is_stepping)
-        and shape_cast.is_colliding()
+        and step_cast.is_colliding()
         and should_sync_step()
     ):
         start_step()
@@ -596,7 +596,7 @@ func _calculate_lift(current: float, delta: float) -> float:
         baseline = step_height
     elif is_grounded:
         baseline = (ground_point * global_transform).y
-    elif shape_cast.is_colliding():
+    elif step_cast.is_colliding():
         baseline = (next_step_target_global * global_transform).y
     else:
         baseline = target_rest_position.y
@@ -790,30 +790,30 @@ func setting_modified() -> void:
     ground_cast.collision_mask = setting.ground_collision_mask
     ground_cast.shape = setting.ground_cast_shape
 
-    shape_cast.collision_mask = setting.step_cast_collision_mask
-    shape_cast.shape = setting.step_cast_shape
-    shape_cast.target_position = Vector3.UP * (setting.step_cast_end - setting.step_cast_start)
-    shape_cast.global_position = body.skeleton.global_transform * body.skeleton.get_bone_global_rest(target_bone_idx).origin
-    shape_cast.position += Vector3.UP * setting.step_cast_start
+    step_cast.collision_mask = setting.step_cast_collision_mask
+    step_cast.shape = setting.step_cast_shape
+    step_cast.target_position = Vector3.UP * (setting.step_cast_end - setting.step_cast_start)
+    step_cast.global_position = body.skeleton.global_transform * body.skeleton.get_bone_global_rest(target_bone_idx).origin
+    step_cast.position += Vector3.UP * setting.step_cast_start
 
 func _draw_step_cast() -> void:
-    var shape_origin: Vector3 = shape_cast.target_position
+    var shape_origin: Vector3 = step_cast.target_position
     var shape_color: Color
-    if shape_cast.is_colliding():
-        shape_origin *= shape_cast.get_closest_collision_unsafe_fraction()
+    if step_cast.is_colliding():
+        shape_origin *= step_cast.get_closest_collision_unsafe_fraction()
         shape_color = Color.OLIVE_DRAB
     else:
         shape_color = Color.DARK_SLATE_GRAY
 
     _debug_step_cast_vector = DebugDraw.vector(
-            shape_cast.global_position,
-            shape_cast.global_basis * shape_origin,
+            step_cast.global_position,
+            step_cast.global_basis * shape_origin,
             shape_color,
             _debug_step_cast_vector
     )
     _debug_step_cast_shape = DebugDraw.sphere(
-            shape_cast.global_transform * shape_origin,
-            (shape_cast.shape as SphereShape3D).radius,
+            step_cast.global_transform * shape_origin,
+            (step_cast.shape as SphereShape3D).radius,
             shape_color,
             _debug_step_cast_shape
     )
@@ -830,7 +830,7 @@ func _draw_step_target(clear: bool = false) -> void:
         return
     _debug_target_sphere = DebugDraw.sphere(
             global_transform * step_target,
-            (shape_cast.shape as SphereShape3D).radius,
+            (step_cast.shape as SphereShape3D).radius,
             Color.FIREBRICK * Color(1.0, 1.0, 1.0, 0.3),
             _debug_target_sphere,
             1.0
