@@ -22,22 +22,23 @@ size = Vector3(0.05999999999999808, 0.3999999999999872, 0.03999999999999872)
 
 [sub_resource type="Resource" id="Resource_eai8g"]
 script = ExtResource("2_pyvtl")
-proportional = 16.0
+proportional = 20.0
 integral = 0.0
-derivative = 8.0
+derivative = 14.0
 metadata/_custom_type_script = "uid://bddq06cxcp4p0"
 
 [sub_resource type="Resource" id="Resource_rhqll"]
 script = ExtResource("2_pyvtl")
-proportional = 1.4
+proportional = 2.0
 integral = 0.0
-derivative = 2.0
+derivative = 1.0
 metadata/_custom_type_script = "uid://bddq06cxcp4p0"
 
 [sub_resource type="Resource" id="Resource_1mf0w"]
 script = ExtResource("3_c220c")
+max_velocity = 6.283185307179586
 max_acceleration = 18.84955592153876
-torque_powered_max = 6.0
+torque_powered_max = 10.0
 angle_controller = SubResource("Resource_eai8g")
 motor_controller = SubResource("Resource_rhqll")
 metadata/_custom_type_script = "uid://cauv4ysnymf0u"
@@ -58,7 +59,6 @@ limitation = SubResource("Resource_jc8px")
 copy_ik_limitation_angle = true
 joint_angular_limit_x_upper = 0.4363323129985824
 joint_angular_limit_x_lower = -0.4363323129985824
-motor_enabled = false
 motor_parameters = SubResource("Resource_1mf0w")
 debug_enable = true
 debug_motor = true

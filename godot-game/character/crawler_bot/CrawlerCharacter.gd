@@ -11,6 +11,12 @@ var _btn_rebuild_crawler = editor_rebuild_crawler
 var _btn_step_skeleton = editor_step_skeleton
 
 
+@export var skeleton: Skeleton3D
+
+@export var leg_ik: IKModifier
+
+@export var physical_skeleton: PhysicalSkeleton
+
 ## Whole body mass of the crawler. This is used with 'Leg Mass Ratio' to
 ## disperse the mass between the main body and the individual leg segments.
 @export_range(0.01, 100.0, 0.01, 'or_greater')
@@ -21,6 +27,30 @@ var total_mass: float = 30.0:
 
 @export_custom(PROPERTY_HINT_NONE, '', PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY)
 var _single_leg_mass: float = 0.0
+
+
+@export_group('Leg Mass')
+
+## How many legs are equivalent to the mass of the central body. When greater
+## than the total number of legs, more than 50% of the total mass will be
+## concentrated in the main body.
+@export_range(1.0, 16.0, 0.01, 'or_greater')
+var body_leg_mass_ratio: float = 5.0:
+    set(value):
+        body_leg_mass_ratio = value
+        _update_body_mass()
+
+## Leg segment ratios. The first ratio determines how much of the total leg mass
+## the first segment gets, the second determines how much of the remainder the
+## second segment gets, and so on. The last segment will always get the full
+## remainder of the mass, regardless of the value here.
+@export var leg_segment_ratio: PackedFloat32Array:
+    set(value):
+        leg_segment_ratio = value
+        _update_body_mass()
+
+#region Movement Parameters
+@export_group('Movement Parameters')
 
 @export_range(0.01, 8.0, 0.01, 'or_greater')
 var max_speed: float = 3.0
@@ -37,12 +67,7 @@ var rotation_rate: float = deg_to_rad(180.0)
 
 @export_range(0.1, 1.0, 0.01, 'or_greater')
 var rotation_overshoot: float = 0.2
-
-@export var skeleton: Skeleton3D
-
-@export var leg_ik: IKModifier
-
-@export var physical_skeleton: PhysicalSkeleton
+#endregion Movement Parameters
 
 #region IK Parameters
 @export_group('IK Parameters', 'ik')
@@ -75,15 +100,6 @@ var ik_angular_delta_limit: float = deg_to_rad(180.0):
 
 #region Leg Parameters
 @export_group('Leg Parameters', 'body')
-
-## How many legs are equivalent to the mass of the central body. When greater
-## than the total number of legs, more than 50% of the total mass will be
-## concentrated in the main body.
-@export_range(1.0, 16.0, 0.01, 'or_greater')
-var body_leg_mass_ratio: float = 5.0:
-    set(value):
-        body_leg_mass_ratio = value
-        _update_body_mass()
 
 ## How far off the ground to keep the body's center of mass
 @export_range(0.0, 0.5, 0.01, 'or_greater', 'suffix:m')
@@ -452,28 +468,25 @@ func _update_body_mass() -> void:
     # Now for the hard part, distribute leg_mass to bone bodies in physical chains
     var bone_part_map: Dictionary[int, PhysicalBonePart3D] = physical_skeleton.get_bone_part_map()
     for chain in physical_skeleton.chain_list:
-        var bone_total_length: float = 0.0
-        var end_bone: int = skeleton.find_bone(chain.resource.end_bone)
-        for index in range(chain.part_count):
-            var bone_idx: int
-            if index + 1 < chain.part_count:
-                bone_idx = chain.bone_list[index + 1]
-            else:
-                bone_idx = end_bone
-            bone_total_length += skeleton.get_bone_rest(bone_idx).origin.length()
+        var remaining_mass: float = leg_mass
+        var mass_ratio: float = 1.0
         for index in range(chain.part_count):
             var bone_for_body: int = chain.bone_list[index]
             var body: PhysicalBonePart3D = bone_part_map.get(bone_for_body)
             if not body:
                 push_error("Bone %s does not have an associated RigidBody3D! Fix!!" % skeleton.get_bone_name(bone_for_body))
                 return
-            var bone_for_length: int
-            if index + 1 < chain.part_count:
-                bone_for_length = chain.bone_list[index + 1]
-            else:
-                bone_for_length = end_bone
-            var length: float = skeleton.get_bone_rest(bone_for_length).origin.length()
-            body.mass = leg_mass * (length / bone_total_length)
+
+            # Give last body the remaining mass
+            if index == chain.part_count - 1:
+                body.mass = remaining_mass
+                break
+
+            if index < leg_segment_ratio.size():
+                mass_ratio = leg_segment_ratio[index]
+
+            body.mass = remaining_mass * mass_ratio
+            remaining_mass -= body.mass
 
 func _update_leg_modes() -> void:
     for leg in legs:

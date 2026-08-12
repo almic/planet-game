@@ -126,11 +126,13 @@ material = ExtResource("1_45dli")
 [node name="TestBody" type="RigidBody3D" parent="." unique_id=1481467921]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5999999999999808, 0)
 collision_mask = 51
-mass = 29.1044776119403
+mass = 7.2
 custom_integrator = true
 continuous_cd = true
 script = ExtResource("1_nuxmm")
-body_leg_mass_ratio = 32.5
+total_mass = 18.0
+body_leg_mass_ratio = 4.0
+leg_segment_ratio = PackedFloat32Array(0.7, 0.5)
 chain_setting_list = Array[ExtResource("3_45dli")]([ExtResource("4_eai8g")])
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="TestBody" unique_id=1519720364]
@@ -280,7 +282,7 @@ metadata/_physical_chain_resource_id = 7191786056387628521
 [node name="Femur" type="RigidBody3D" parent="TestBody/skeleton/ChainRootNode/FrontRight" unique_id=2132932409]
 transform = Transform3D(0.7071067811865474, 0.7071067811865477, -4.3297802811774677e-17, 0, 6.123233995736766e-17, 1, 0.7071067811865477, -0.7071067811865474, 4.3297802811774646e-17, 0.14142135623730953, 0.5000000000000002, -0.5414213562373096)
 collision_mask = 51
-mass = 0.11940298507462686
+mass = 1.259999978542328
 continuous_cd = true
 script = ExtResource("9_n7m1m")
 resource = ExtResource("12_jvypi")
@@ -310,7 +312,7 @@ metadata/_edit_lock_ = true
 [node name="Tibia" type="RigidBody3D" parent="TestBody/skeleton/ChainRootNode/FrontRight" unique_id=1496978911]
 transform = Transform3D(0.7071067811865475, 0.4545194776720437, -0.541675220419702, -1.5700924586837754e-16, 0.7660444431189782, 0.6427876096865391, 0.7071067811865476, -0.4545194776720434, 0.5416752204197021, 0.28284271247461906, 0.5000000000000002, -0.682842712474619)
 collision_mask = 51
-mass = 0.23880597014925373
+mass = 0.27
 continuous_cd = true
 script = ExtResource("9_n7m1m")
 resource = ExtResource("13_gj6xc")
@@ -341,7 +343,7 @@ metadata/_edit_lock_ = true
 [node name="Tarsus" type="RigidBody3D" parent="TestBody/skeleton/ChainRootNode/FrontRight" unique_id=175726563]
 transform = Transform3D(0.7071067811865476, 0.4545194776720437, 0.5416752204197018, -9.381338752702732e-17, -0.766044443118978, 0.6427876096865394, 0.7071067811865475, -0.45451947767204376, -0.5416752204197018, 0.4646505035434365, 0.8064177772475914, -0.8646505035434364)
 collision_mask = 51
-mass = 0.5373134328358209
+mass = 0.27
 continuous_cd = true
 script = ExtResource("9_n7m1m")
 resource = ExtResource("14_68fuv")

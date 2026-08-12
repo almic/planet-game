@@ -232,7 +232,7 @@ size = Vector3(0.4, 0.2, 0.3)
 
 [node name="CrawlerBot" type="RigidBody3D" unique_id=461561025 node_paths=PackedStringArray("skeleton", "leg_ik", "physical_skeleton")]
 collision_mask = 51
-mass = 21.0
+mass = 7.2
 physics_material_override = ExtResource("1_ro1ip")
 custom_integrator = true
 continuous_cd = true
@@ -240,10 +240,12 @@ script = ExtResource("1_3kbc3")
 skeleton = NodePath("big_crawler/Skeleton3D")
 leg_ik = NodePath("big_crawler/Skeleton3D/IKModifier")
 physical_skeleton = NodePath("big_crawler/Skeleton3D/PhysicalSkeleton")
+total_mass = 18.0
+body_leg_mass_ratio = 4.0
+leg_segment_ratio = PackedFloat32Array(0.7, 0.5)
 ik_max_iterations = 10
 ik_min_distance = 0.05
 ik_angular_delta_limit = 17.453292519943297
-body_leg_mass_ratio = 14.0
 body_height_offset = 0.9
 body_leg_lift_ratio = 0.4
 acceleration = 6.0
@@ -441,7 +443,7 @@ metadata/_physical_chain_resource_id = 7449241343109883283
 [node name="FemurPartFLBR" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain" unique_id=248771776]
 transform = Transform3D(0.784356720308211, -0.6203100316030258, 3.798303473408194e-17, 0, 6.123233995736766e-17, 1, -0.6203100316030258, -0.784356720308211, 4.802799734575831e-17, -0.1729999629310944, 0.820000018584341, -0.6729999905830053)
 collision_mask = 51
-mass = 0.1693513317819407
+mass = 1.259999978542328
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -472,7 +474,7 @@ metadata/_part_break_force = 500.0
 [node name="TibiaPartFLBR" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain" unique_id=1044189352]
 transform = Transform3D(0.8090155752860068, -0.4268200494888425, 0.40412676761010735, 8.760612206988665e-08, 0.6875393259617616, 0.7261471443557697, -0.5877872054958698, -0.587464314329295, 0.5562300607167572, -0.3646779557319027, 0.8200000546614017, -0.9153690385853962)
 collision_mask = 51
-mass = 0.398954095192671
+mass = 0.27
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -516,7 +518,7 @@ metadata/_part_custom_index = 0
 [node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain" unique_id=1375078630]
 transform = Transform3D(0.8090041097513164, -0.3701833075643623, -0.4565924541713195, 9.512787460920884e-17, -0.776778044701873, 0.6297744590479476, -0.5878029860467534, -0.5094901255862019, -0.628416630528407, -0.6753789166644286, 1.3204898589641512, -1.3430101113619606)
 collision_mask = 51
-mass = 0.9316945730253883
+mass = 0.27
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -569,7 +571,7 @@ metadata/_physical_chain_resource_id = 1197917457155212566
 [node name="FemurPartFRBL" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain" unique_id=2020828828]
 transform = Transform3D(0.784356720308211, 0.6203100316030258, -3.798303473408194e-17, 0, 6.123233995736766e-17, 1, 0.6203100316030258, -0.784356720308211, 4.802799734575831e-17, 0.1729999629310944, 0.820000018584341, -0.6729999905830053)
 collision_mask = 51
-mass = 0.1693513317819407
+mass = 1.259999978542328
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -601,7 +603,7 @@ metadata/_part_break_force = 500.0
 [node name="TibiaPartFRBL" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain" unique_id=581069954]
 transform = Transform3D(0.8090155752860068, 0.4268200494888425, -0.40412676761010735, -8.760612206988665e-08, 0.6875393259617616, 0.7261471443557697, 0.5877872054958698, -0.587464314329295, 0.5562300607167572, 0.3646779557319027, 0.8200000546614017, -0.9153690385853962)
 collision_mask = 51
-mass = 0.398954095192671
+mass = 0.27
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -646,7 +648,7 @@ metadata/_part_custom_index = 0
 [node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain" unique_id=53620226]
 transform = Transform3D(0.8090041097513164, 0.3701833075643626, 0.4565924541713195, 9.512787460920884e-17, -0.776778044701873, 0.6297744590479476, 0.5878029860467536, -0.5094901255862017, -0.628416630528407, 0.6753789166644286, 1.3204898589641512, -1.3430101113619606)
 collision_mask = 51
-mass = 0.9316945730253883
+mass = 0.27
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -700,7 +702,7 @@ metadata/_physical_chain_resource_id = 4662517947417727382
 [node name="FemurPartML" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain" unique_id=1599538232]
 transform = Transform3D(-1.7159081505107705e-07, -0.9999999999999852, 6.123233995736676e-17, 0, 6.123233995736766e-17, 1, -0.9999999999999852, 1.7159081505107705e-07, -1.050690712076935e-23, -0.15000001963246493, 0.8199999775042561, 2.8673026472508733e-08)
 collision_mask = 51
-mass = 0.16941220034407717
+mass = 1.259999978542328
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -732,7 +734,7 @@ metadata/_part_break_force = 500.0
 [node name="TibiaPartML" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain" unique_id=828272095]
 transform = Transform3D(-1.5110055404063198e-07, -0.7261474529281385, 0.6875390000617814, -4.670409521403128e-08, 0.6875390000617936, 0.7261474529281411, -0.9999999999999876, 7.761039553039057e-08, -1.3780158361486116e-07, -0.4591290561935918, 0.8199999785885815, 8.171672966359552e-08)
 collision_mask = 51
-mass = 0.39893574452293734
+mass = 0.27
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -777,7 +779,7 @@ metadata/_part_custom_index = 0
 [node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain" unique_id=69714252]
 transform = Transform3D(-1.368669619638421e-07, -0.6297980380444905, -0.7767589273869285, -9.649914254140837e-08, -0.7767589273869239, 0.6297980380445037, -0.999999999999986, 1.6115511457216213e-07, 4.5537663924186296e-08, -0.9877238355997564, 1.3204898790910904, 1.3821276852050953e-07)
 collision_mask = 51
-mass = 0.9316520551329857
+mass = 0.27
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -831,7 +833,7 @@ metadata/_physical_chain_resource_id = 6898837170122338674
 [node name="FemurPartMR" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain" unique_id=1490706312]
 transform = Transform3D(-1.7159081527312165e-07, 0.9999999999999852, -6.123233995736676e-17, 0, 6.123233995736766e-17, 1, 0.9999999999999852, 1.7159081527312165e-07, -1.050690713436566e-23, 0.15000001963246493, 0.8199999775042561, 2.8673026472508733e-08)
 collision_mask = 51
-mass = 0.16941213897201585
+mass = 1.259999978542328
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -863,7 +865,7 @@ metadata/_part_break_force = 500.0
 [node name="TibiaPartMR" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain" unique_id=2132433891]
 transform = Transform3D(-2.3306157440105537e-07, 0.7261476508884414, -0.6875387909850208, 1.3326762223459422e-07, 0.6875387909850559, 0.7261476508884332, 0.999999999999964, 7.761045489506478e-08, -2.57010843913914e-07, 0.45912887033093175, 0.819999973843162, 8.171669811224349e-08)
 collision_mask = 51
-mass = 0.3989356943088548
+mass = 0.27
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -908,7 +910,7 @@ metadata/_part_custom_index = 0
 [node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain" unique_id=1783021454]
 transform = Transform3D(-1.71590832121912e-07, 0.6297981833744478, 0.7767588095530144, 6.834496957278197e-08, -0.7767588095530166, 0.6297981833744647, 0.9999999999999828, 1.61155151558384e-07, 9.024115280950788e-08, 0.9877236102791952, 1.3204895893891364, 1.3821276663002286e-07)
 collision_mask = 51
-mass = 0.9316521667191293
+mass = 0.27
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -962,7 +964,7 @@ metadata/_physical_chain_resource_id = 7238387431258634720
 [node name="FemurPartFRBL" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain" unique_id=1421177412]
 transform = Transform3D(-0.7843566826215239, -0.6203100792563007, 3.798303765200348e-17, 0, 6.123233995736766e-17, 1, -0.6203100792563007, 0.7843566826215239, -4.802799503811427e-17, -0.17299997386683233, 0.8199999798820695, 0.6729999845784954)
 collision_mask = 51
-mass = 0.16935128093785082
+mass = 1.259999978542328
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -994,7 +996,7 @@ metadata/_part_break_force = 500.0
 [node name="TibiaPartFRBL" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain" unique_id=858393494]
 transform = Transform3D(-0.8090156043519785, -0.4268200230661771, 0.40412673732975263, -4.1036908625726514e-08, 0.6875392746972367, 0.7261471928946609, -0.5877871654901979, 0.5874643935240549, -0.5562300193502803, -0.36467799947204615, 0.8200000244055524, 0.9153689627790244)
 collision_mask = 51
-mass = 0.3989540255151091
+mass = 0.27
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -1039,7 +1041,7 @@ metadata/_part_custom_index = 0
 [node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain" unique_id=1818249888]
 transform = Transform3D(-0.8090195666491559, -0.3701833353726407, -0.4565650435493273, 9.737117231135362e-08, -0.7767596098371478, 0.6297971963462783, -0.5877817118444589, 0.5095182104086459, 0.628413758986202, -0.6753788157819457, 1.3204899754233028, 1.3430099557389998)
 collision_mask = 51
-mass = 0.9316946935470399
+mass = 0.27
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -1093,7 +1095,7 @@ metadata/_physical_chain_resource_id = 9154753575659480673
 [node name="FemurPartFLBR" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain" unique_id=818857900]
 transform = Transform3D(-0.7843566826215239, 0.6203100792563007, -3.798303765200348e-17, 0, 6.123233995736766e-17, 1, 0.6203100792563007, 0.7843566826215239, -4.802799503811427e-17, 0.17299997386683233, 0.8199999798820695, 0.6729999845784954)
 collision_mask = 51
-mass = 0.16935128093785082
+mass = 1.259999978542328
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -1125,7 +1127,7 @@ metadata/_part_break_force = 500.0
 [node name="TibiaPartFLBR" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain" unique_id=2077067836]
 transform = Transform3D(-0.8090156043519785, 0.4268200230661771, -0.40412673732975263, 4.1036908625726514e-08, 0.6875392746972367, 0.7261471928946609, 0.5877871654901979, 0.5874643935240549, -0.5562300193502803, 0.36467799947204615, 0.8200000244055524, 0.9153689627790244)
 collision_mask = 51
-mass = 0.3989540255151091
+mass = 0.27
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
@@ -1170,7 +1172,7 @@ metadata/_part_custom_index = 0
 [node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain" unique_id=970750144]
 transform = Transform3D(-0.8090195666491559, 0.3701833353726407, 0.4565650435493273, -9.737117231135362e-08, -0.7767596098371478, 0.6297971963462783, 0.5877817118444589, 0.5095182104086459, 0.628413758986202, 0.6753788157819457, 1.3204899754233028, 1.3430099557389998)
 collision_mask = 51
-mass = 0.9316946935470399
+mass = 0.27
 physics_material_override = ExtResource("18_2n4j6")
 continuous_cd = true
 script = ExtResource("19_hitf2")
