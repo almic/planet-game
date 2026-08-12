@@ -128,8 +128,7 @@ func _update_joint() -> void:
         set_param_z(PARAM_LINEAR_UPPER_LIMIT, 0.0)
 
     # Restrict all rotations
-    # NOTE: I don't understand, but these must be flipped to stay with
-    #       the common "positive is counter-clockwise" thing in Godot
+    # NOTE: Godot flips and inverts these, but I actually think this way makes sense
     set_flag_x(FLAG_ENABLE_ANGULAR_LIMIT, true)
     set_param_x(PARAM_ANGULAR_LOWER_LIMIT, -setting.pitch_upper)
     set_param_x(PARAM_ANGULAR_UPPER_LIMIT, setting.pitch_lower)
