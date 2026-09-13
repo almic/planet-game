@@ -42,7 +42,6 @@ var air_control: float = 0.5
 ## Shape cast to use for colliding with the ground, like a spring. Set up the
 ## shape cast such that its extent is equal to the step-down height.
 @export var spring: SpringCast
-@export var spring_active: bool = true
 
 
 @export_group('Debug', 'debug')
@@ -63,11 +62,6 @@ var _normal_debug_vec: int = 0
 @export var debug_friction: bool = false
 var _friction_debug_vec: int = 0
 var _friction_movement_debug_vec: int = 0
-
-@export var debug_spring: bool = false
-var _spring_debug_force_vec: int = 0
-var _spring_debug_shape: int = 0
-var _spring_debug_line: int = 0
 
 
 var is_on_floor: bool = false
@@ -97,12 +91,8 @@ var desired_direction: Vector3 = Vector3.ZERO
 var desired_speed: float = 0.0
 var desired_incline_effect: float = 1.0
 var desired_jump_power: float = 0.0
-## Additional offset for the spring height
-var desired_height_offset: float = 0.0
 ## Multiplier to gravity acceleration
 var desired_gravity: float = 1.0
-## Multiplier for surface friction
-var desired_surface_friction: float = 1.0
 
 
 ## The body's direction of motion
@@ -126,24 +116,20 @@ var ground_normal: Vector3
 ## Ground contact point in global space, is INF when no ground is detected
 var ground_position: Vector3
 
-## Velocity of this body along the plane of the ground
+## Velocity of this body along the plane defined by the ground normal
 var ground_velocity: Vector3
 
 ## Direction of this body along the plane of the ground
 var ground_direction: Vector3
 
-## Calculated ground friction vector
+## Calculated ground friction force
 var ground_friction: Vector3
 
-## Relative contact velocity with the ground
+## Relative contact velocity with the ground, including velocity into the surface
 var ground_rel_con_velocity: Vector3
 
 ## Calculated wall slide normal, only use when is_slipping is true
 var wall_slide_normal: Vector3
-
-
-var _friction_coef: float
-var _combined_restitution: float
 
 
 func _ready() -> void:
@@ -152,13 +138,9 @@ func _ready() -> void:
     custom_integrator = true
 
     # Setup spring
-    if (not Engine.is_editor_hint()) and spring:
-        spring.enabled = false
-        spring.body_rid = get_rid()
+    if spring:
+        spring.pick_collisions_function = pick_ground
 
-        # At least 1 result is needed for ground slope detection
-        if spring.max_results == 0:
-            spring.max_results = 1
 
 ## Implement per controller, called when input should be read for movement.
 ## If your controller has a camera connect to mouse movement, you should handle
@@ -189,6 +171,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
     _calculate_ground_vectors(state)
 
+    state.linear_velocity += gravity * state.step
+
     # "Air drag"
     # (1/2) * Density * v^2 * Area * Coefficient
     var air_friction: Vector3 = Vector3.ZERO
@@ -204,53 +188,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                 * lerpf(0.0143, 0.65, lateral_ratio)
         ) * state.inverse_mass # NOTE: Proportional to mass!!!
 
-    if desired_surface_friction > 0.0 and (not has_desired_forward) and (not is_slipping) and deceleration > 0.0 and not ground_velocity.is_zero_approx():
-        # Stop quickly
-
-        # TODO: Stopping friction is causing weird interactions on slopes.
-        #       This must be addressed by trying new ways to calculate it here.
-        var lateral_ground: Vector3 = ground_rel_con_velocity.slide(local_up)
-        var ground_speed: float = lateral_ground.length()
-
-        var max_stop_speed: float = ground_speed / state.step
-        var stop_len: float = minf(deceleration, max_stop_speed)
-
-        ground_friction += (-ground_direction) * stop_len * desired_surface_friction
-
-    # NOTE: Computes and applies spring and ground friction forces from current state
-    if spring_active and spring:
-        spring.solve_forces(state.step, desired_height_offset, _combined_restitution)
-
-    if debug_enabled and debug_spring and spring_active and spring:
-        _spring_debug_force_vec = DebugDraw.vector(
-            spring.global_position,
-            2.0 * spring.total_force / mass,
-            Color.DARK_SLATE_BLUE,
-            _spring_debug_force_vec,
-            0.1
-        )
-        var color: Color = Color.LIGHT_GREEN
-        var length: float = spring.max_length
-        if spring.is_colliding():
-            length = spring.length
-            color = Color.RED
-        var offset: Vector3 = spring.global_basis * (-spring.direction * length)
-        _spring_debug_shape = DebugDraw.sphere(
-            spring.global_position + offset,
-            (spring.shape as SphereShape3D).radius,
-            color,
-            _spring_debug_shape,
-            0.1
-        )
-        _spring_debug_line = DebugDraw.vector(
-            spring.global_position,
-            offset,
-            color,
-            _spring_debug_line,
-            0.1
-        )
-
-    state.linear_velocity += gravity * state.step
+    state.linear_velocity += air_friction * state.step
 
     # When slipping, add an extra force orthogonal to gravity in the downhill direction
     if not gravity.is_zero_approx() and is_slipping:
@@ -260,17 +198,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             slip = slip * slip.dot(gravity)
             state.linear_velocity += slip.slide(gravity.normalized()) * state.step
 
-    state.linear_velocity += (air_friction + ground_friction) * state.step
-
     if debug_enabled and is_on_floor:
-        var normal_center: Vector3
-        if spring_active and spring and spring.contact_point.is_finite():
-            normal_center = spring.contact_point
-        else:
-            normal_center = state.transform.origin
         if debug_normal:
             _normal_debug_vec = DebugDraw.vector(
-                    normal_center,
+                    ground_position,
                     ground_normal * 0.5,
                     Color.CORNFLOWER_BLUE,
                     _normal_debug_vec,
@@ -313,7 +244,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             if force_ground_movement:
                 # NOTE: I hate how this is nested, but a function for it seems overkill
                 forward = local_up.cross(desired_direction).cross(ground_normal).normalized()
-                speed_in_dir = ground_velocity.dot(forward)
+                speed_in_dir = ground_rel_con_velocity.dot(forward)
                 if is_slipping:
                     var wall_normal: Vector3 = Vector3(wall_slide_normal.x, 0.0, wall_slide_normal.z)
                     if not wall_normal.is_zero_approx():
@@ -332,7 +263,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
             else:
                 forward = desired_direction
-                speed_in_dir = ground_velocity.dot(forward)
+                speed_in_dir = ground_rel_con_velocity.dot(forward)
 
             # Limit forward acceleration
             if force_ground_movement and desired_incline_effect > 0.0:
@@ -351,22 +282,20 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                         accel_multiplier *= bonus
 
             # Add extra ground friction for turning/ changing direction/ over speed
-            if desired_surface_friction > 0.0 and (not is_slipping) and (not ground_velocity.is_zero_approx()):
-                var move_friction: Vector3
-                if speed_in_dir > limit_in_dir:
-                    move_friction = -ground_direction * minf(deceleration, (speed_in_dir - limit_in_dir) / state.step)
-                else:
-                    move_friction = _calculate_move_friction(forward)
-                move_friction *= desired_surface_friction
+            if not is_slipping:
+                # NOTE: this should allow maintaining high speed and changing direction, but only
+                # with long turns and still has some loss... you could only recover when
+                # speed_in_dir < limit_in_dir, and clamp to the limit, but this just sounds fun...
+                var recovery: Vector3 = state.inverse_mass * _calculate_friction_recovery(forward)
                 if debug_enabled and debug_friction:
                     _friction_movement_debug_vec = DebugDraw.vector(
                             state.transform.origin + (Vector3.UP * 0.45),
-                            move_friction,
+                            recovery,
                             Color.DARK_GREEN,
                             _friction_movement_debug_vec,
                             2.0
                     )
-                state.linear_velocity += move_friction * state.step
+                state.linear_velocity += recovery * state.step
 
     elif force_ground_movement:
         # Air control
@@ -414,7 +343,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
     if is_on_floor:
         # NOTE: Should be updated using new velocity, it is a little wrong like this
-        speed_in_dir = ground_velocity.dot(forward)
+        speed_in_dir = ground_rel_con_velocity.dot(forward)
     else:
         speed_in_dir = state.linear_velocity.dot(forward)
 
@@ -473,119 +402,58 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
     ground_normal = Vector3.ZERO
     ground_position = Vector3.INF
 
-    if (not spring_active) or (not spring):
+    if (not spring) or (not spring.enabled):
         return
 
-    var local_up: Vector3 = state.transform.basis.y
-
-    spring.cast()
-    spring.save_state()
     is_on_floor = spring.is_colliding()
-    ground_position = spring.contact_point
 
     # If spring hits nothing, stop here, do not risk raycast discovering ground
     if not is_on_floor:
         return
 
-    var spring_cos_theta: float = local_up.dot(spring.normal)
+    # Compute a ground position and normal using the best normal
+    var global_up: Vector3 = state.transform.basis.y # technically global, too
+    var best_cos_theta: float = -INF
+    for i in range(spring.get_contact_body_count()):
+        var normal: Vector3 = -spring.get_contact_normal(i)
+        if normal.dot(global_up) > best_cos_theta:
+            ground_normal = normal
+            ground_position = spring.get_contact_average_point(i)
 
-    # Raycast for a better ground normal
-    var space := state.get_space_state()
-    var query := PhysicsRayQueryParameters3D.new()
-
-    var offset: Vector3 = (-spring.direction) * (spring.max_length + (spring.shape as SphereShape3D).radius)
-
-    query.from = spring.global_position
-    query.to = spring.global_position + (spring.global_basis * offset)
-    query.collision_mask = spring.collision_mask
-    query.exclude = [get_rid()]
-
-    var hit: Dictionary = space.intersect_ray(query)
-    var hit_ignore: RID
-    var ray_cos_theta: float = 0.0
-
-    if hit:
-        hit_ignore = hit.rid
-        ray_cos_theta = local_up.dot(hit.normal)
-
-    var floor_cos_theta: float
-    var best_ground_mode: PhysicsServer3D.BodyMode
-
-    if (not hit) or spring_cos_theta >= ray_cos_theta:
-        ground_normal = spring.normal
-        best_ground_mode = spring.other_mode
-        floor_cos_theta = spring_cos_theta
-    else:
-        ground_normal = hit.normal
-        best_ground_mode = PhysicsServer3D.body_get_mode(hit.rid)
-        floor_cos_theta = ray_cos_theta
-
-    if floor_cos_theta > cos(max_slope_angle):
+    if best_cos_theta >= cos(max_slope_angle):
         has_landed_on_ground_for_jump = true
         return
 
     is_slipping = true
     wall_slide_normal = ground_normal
 
-    # If the best ground was a non-static body, stop here.
-    # Otherwise, recast everything ignoring their respective first hits
-    if best_ground_mode != PhysicsServer3D.BodyMode.BODY_MODE_STATIC:
-        return
-
-    # Do not change the spring interaction unless the other is static
-    # This ensures it will apply forces to dynamic bodies on the ground
-    var test_new_floors: bool = false
-    if spring.other_mode == PhysicsServer3D.BodyMode.BODY_MODE_STATIC:
-        var spring_ignore: RID = spring.other_rid
-        spring.add_exception_rid(spring_ignore)
-        spring.cast()
-        # Must be a static body for recasting
-        if (
-                    spring.is_colliding()
-                and (PhysicsServer3D.body_get_mode(spring.get_collider_rid(0)) == PhysicsServer3D.BodyMode.BODY_MODE_STATIC)
-        ):
-            var new_spring_cos_theta = local_up.dot(spring.get_collision_normal(0))
-
-            if new_spring_cos_theta > spring_cos_theta:
-                spring_cos_theta = new_spring_cos_theta
-                spring.save_state() # Apply forces from this body
-                test_new_floors = true
-        spring.remove_exception_rid(spring_ignore)
-
-    if hit_ignore:
-        query.exclude = [get_rid(), hit_ignore]
-        var new_hit: Dictionary = space.intersect_ray(query)
-        # Must be a static body for recasting
-        if (
-                    new_hit
-                and (PhysicsServer3D.body_get_mode(new_hit.rid) == PhysicsServer3D.BodyMode.BODY_MODE_STATIC)
-        ):
-            var new_ray_cos_theta: float = local_up.dot(new_hit.normal)
-            if new_ray_cos_theta > ray_cos_theta:
-                ray_cos_theta = new_ray_cos_theta
-                hit = new_hit
-                test_new_floors = true
-
-    if not test_new_floors:
-        return
-
-    if (not hit) or spring_cos_theta >= ray_cos_theta:
-        ground_normal = spring.normal
-        floor_cos_theta = spring_cos_theta
+@warning_ignore("unused_parameter")
+func pick_ground(
+        rid_list: Array[RID],
+        spring_fraction_list: PackedFloat32Array,
+        average_contact_point_list: PackedVector3Array,
+        average_normal_list: PackedVector3Array
+) -> Array[RID]:
+    var cos_preferred: float = cos(max_slope_angle)
+    var global_up: Vector3
+    if phys_state:
+        global_up = phys_state.transform.basis.y
     else:
-        ground_normal = hit.normal
-        floor_cos_theta = ray_cos_theta
+        global_up = Vector3.UP
+    var preferred: Array[RID] = []
+    for i in range(average_normal_list.size()):
+        var normal: Vector3 = -average_normal_list[i]
+        if normal.dot(global_up) >= cos_preferred:
+            preferred.append(rid_list[i])
 
-    if floor_cos_theta > cos(max_slope_angle):
-        is_slipping = false
-        has_landed_on_ground_for_jump = true
-        return
+    if preferred.size() > 0:
+        return preferred
 
-    wall_slide_normal = ground_normal
-
+    return rid_list
 
 ## Calculate ground vectors from the current ground state
 func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
+    const STATIC_MASS: float = 10000.0
 
     ground_friction = Vector3.ZERO
     ground_direction = Vector3.ZERO
@@ -595,41 +463,38 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
     if not is_on_floor:
         return
 
-    var ground_rid: RID = spring.other_rid
-    if (not ground_rid) and is_on_floor:
-        breakpoint
-    var hit_position: Vector3 = spring.contact_point
+    var inv_effective_mass: float = 0.0
 
-    var ground_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(ground_rid)
+    for i in range(spring.get_contact_body_count()):
+        var ground_rid: RID = spring.get_contact_body_rid(i)
+        var ground_mass: float
+        if PhysicsServer3D.body_get_mode(ground_rid) == PhysicsServer3D.BODY_MODE_STATIC:
+            ground_mass = STATIC_MASS
+        else:
+            ground_mass = PhysicsServer3D.body_get_param(ground_rid, PhysicsServer3D.BODY_PARAM_MASS)
 
-    var rid: RID = get_rid()
+        inv_effective_mass += 1.0 / ground_mass
+        ground_friction += spring.get_contact_friction(i)
 
-    if ground_state:
-        _friction_coef = absf(minf(
-                PhysicsServer3D.body_get_param(rid, PhysicsServer3D.BODY_PARAM_FRICTION),
-                PhysicsServer3D.body_get_param(ground_rid, PhysicsServer3D.BODY_PARAM_FRICTION)
-        ))
-        _combined_restitution = clampf(
-                  PhysicsServer3D.body_get_param(rid, PhysicsServer3D.BODY_PARAM_BOUNCE)
-                + PhysicsServer3D.body_get_param(ground_rid, PhysicsServer3D.BODY_PARAM_BOUNCE),
-                0.0, 1.0
-        )
-    else:
-        _friction_coef = absf(PhysicsServer3D.body_get_param(rid, PhysicsServer3D.BODY_PARAM_FRICTION))
-        _combined_restitution = clampf(
-                PhysicsServer3D.body_get_param(rid, PhysicsServer3D.BODY_PARAM_BOUNCE),
-                0.0, 1.0
-        )
+    var effective_mass: float = 1.0 / inv_effective_mass
 
-    var ground_contact_velocity: Vector3
-    if ground_state:
-        ground_contact_velocity = ground_state.get_velocity_at_local_position(hit_position - ground_state.transform.origin)
-    else:
-        ground_contact_velocity = Vector3.ZERO
+    for i in range(spring.get_contact_body_count()):
+        var ground_rid: RID = spring.get_contact_body_rid(i)
+        var hit_position: Vector3 = spring.get_contact_average_point(i)
+        var ground_state := PhysicsServer3D.body_get_direct_state(ground_rid)
+        var ground_contact_velocity: Vector3
+        var ground_mass: float
+        if PhysicsServer3D.body_get_mode(ground_rid) == PhysicsServer3D.BODY_MODE_STATIC:
+            ground_mass = STATIC_MASS
+            ground_contact_velocity = Vector3.ZERO
+        else:
+            ground_mass = PhysicsServer3D.body_get_param(ground_rid, PhysicsServer3D.BODY_PARAM_MASS)
+            ground_contact_velocity = ground_state.get_velocity_at_local_position(hit_position - ground_state.transform.origin)
 
-    ground_rel_con_velocity = state.linear_velocity - ground_contact_velocity
-    ground_velocity = ground_rel_con_velocity.slide(state.transform.basis.y).slide(ground_normal)
-    ground_friction = _friction_coef * -ground_velocity
+        # Ground velocity contribution shared by mass proportion, higher mass contribute more
+        ground_rel_con_velocity += (1.0 - (effective_mass / ground_mass)) * (state.linear_velocity - ground_contact_velocity)
+
+    ground_velocity = ground_rel_con_velocity.slide(ground_normal)
 
     if not ground_velocity.is_zero_approx():
         ground_direction = ground_velocity.normalized()
@@ -637,31 +502,35 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
         ground_direction = Vector3.ZERO
 
 
-## Calculate additional ground friction for turning/ changing direction
-func _calculate_move_friction(forward: Vector3) -> Vector3:
-    var cos_theta: float = clampf(ground_direction.dot(forward), -1.0, 1.0)
+## Calculate recovery acceleration from applied ground friction for turning/ changing direction.
+## NOTE: this is a force, so it must be multiplied by the main body's inverse mass to get acceleration
+func _calculate_friction_recovery(forward: Vector3) -> Vector3:
+    var recovery: Vector3 = Vector3.ZERO
 
-    # No friction if wish direction and movement match
-    if cos_theta == 1.0:
-        return Vector3.ZERO
+    for i in range(spring.get_contact_body_count()):
+        var friction: Vector3 = spring.get_contact_friction(i)
+        if friction.is_zero_approx():
+            continue
 
-    var angle: float = acos(cos_theta)
+        var cos_theta: float = clampf(forward.dot(-friction.normalized()), -1.0, 1.0)
 
-    # More friction in similar directions, reduce slidey feel when
-    # strafing perpendicular to direction of motion
-    if cos_theta > 0.5:
-        cos_theta = angle * (2 / PI)
+        # Full recovery if wish direction and friction match
+        if cos_theta == 1.0:
+            recovery -= friction
+            continue
 
-    var loss: float = (1.0 - cos_theta) * deceleration
+        var angle: float = acos(cos_theta)
 
-    # Retain some speed when turning, multiplier is per 15* of difference
-    var keep: float = pow(clampf(turning_retention, 0.001, 0.943), angle * (12.0 / PI))
+        # Retain some speed when turning, multiplier is per 15* of difference
+        var keep: float = pow(clampf(turning_retention, 0.001, 0.943), angle * (12.0 / PI))
 
-    # Allow counter-strafing at "half" the normal rate, reduces jumpy feeling
-    if cos_theta <= 0.0:
-        keep *= keep
+        # Allow counter-strafing at "half" the normal rate, reduces jumpy feeling
+        if cos_theta <= 0.0:
+            keep *= keep
 
-    return -ground_direction * loss + forward * loss * keep
+        recovery -= friction * keep
+
+    return recovery
 
 ## For custom forces that should be applied just before movement
 @warning_ignore("unused_parameter")

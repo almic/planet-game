@@ -26,10 +26,9 @@ var jump_power: float = 5.0
 @export_range(0.0, 1.0, 0.001, 'or_greater', 'suffix:m')
 var crouch_offset: float = 0.39
 
-## The safe fraction of the spring when the standing collider can be enabled.
-## Math may be required to determine this value, but you can just do trial-and-error.
+## The safe length of the spring when the standing collider can be enabled.
 @export_range(0.0, 1.0, 0.001)
-var crouch_safe_fraction: float = 0.6
+var crouch_safe_length: float = 0.45
 
 
 @export_group('Input', 'input')
@@ -109,6 +108,8 @@ func _ready() -> void:
         GUIDE.enable_mapping_context(input_context_look)
         GUIDE.enable_mapping_context(input_context_move)
 
+        # InputManager.allow_mouse_capture = false
+        InputManager.allow_pause_on_exit = false
         InputManager.pause()
 
 func _process(_delta: float) -> void:
@@ -144,7 +145,7 @@ func _process(_delta: float) -> void:
         if freecam_mode:
             collider_crouch.disabled = true
             collider_stand.disabled = true
-            spring_active = false
+            spring.remove_constraint()
             force_ground_movement = false
             desired_gravity = 0.0
             crouch_mode = false
@@ -153,7 +154,7 @@ func _process(_delta: float) -> void:
         else:
             # Crouch collider first
             collider_crouch.disabled = false
-            spring_active = true
+            spring.add_constraint()
             force_ground_movement = true
             desired_gravity = 1.0
             linear_damp = 0.0
@@ -198,7 +199,7 @@ func _process(_delta: float) -> void:
     elif (not freecam_mode) and collider_stand.disabled:
         # Test if we can switch to the stand collider using the shape_cast result
         # NOTE: should be an error if spring is null here
-        if spring.get_closest_collision_safe_fraction() >= crouch_safe_fraction:
+        if spring.get_spring_length() >= crouch_safe_length:
             collider_stand.disabled = false
             collider_crouch.disabled = true
 
@@ -254,9 +255,9 @@ func _handle_input() -> void:
         desired_jump_power = 0.0
 
     if (not freecam_mode) and crouch_mode:
-        desired_height_offset = -crouch_offset
+        spring.rest_offset = -crouch_offset
     else:
-        desired_height_offset = 0.0
+        spring.rest_offset = 0.0
 
     if false and input_debug_target_position.is_triggered():
         var active_camera: Camera3D = get_viewport().get_camera_3d()

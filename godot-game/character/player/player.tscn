@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://cetgr3wj5qd6v"]
 
 [ext_resource type="Script" uid="uid://6l6ugv6t1q5e" path="res://character/player/player.gd" id="1_y0s34"]
-[ext_resource type="Script" uid="uid://bakqx774uoeem" path="res://character/SpringCast.gd" id="2_8eijk"]
 [ext_resource type="PackedScene" uid="uid://dkr80d2pi0d41" path="res://addons/guide/debugger/guide_debugger.tscn" id="3_gtsfv"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_y0s34"]
@@ -20,9 +19,9 @@ margin = 0.0
 radius = 0.32
 height = 1.0
 
-[sub_resource type="SphereShape3D" id="SphereShape3D_y0s34"]
-margin = 0.0
-radius = 0.3
+[sub_resource type="SpringCastSettings" id="SpringCastSettings_0anp1"]
+position = Vector3(-3.2014214e-09, 1.04, -3.2014214e-09)
+max_length = 0.74
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_8eijk"]
 radius = 0.3
@@ -48,7 +47,7 @@ physics_material_override = SubResource("PhysicsMaterial_y0s34")
 custom_integrator = true
 continuous_cd = true
 script = ExtResource("1_y0s34")
-spring = NodePath("spring_cast")
+spring = NodePath("SpringCast")
 metadata/_custom_type_script = "uid://gy5qwm8j5pbh"
 
 [node name="collider_stand" type="CollisionShape3D" parent="." unique_id=296855449]
@@ -64,22 +63,15 @@ shape = SubResource("CapsuleShape3D_8eijk")
 disabled = true
 debug_color = Color(0, 0.6392157, 0.39215687, 0.9254902)
 
-[node name="spring_cast" type="ShapeCast3D" parent="." unique_id=1863752111]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.04, 0)
-enabled = false
-shape = SubResource("SphereShape3D_y0s34")
-target_position = Vector3(0, -0.74, 0)
-max_results = 1
-collision_mask = 48
-debug_shape_custom_color = Color(1, 0, 0, 1)
-script = ExtResource("2_8eijk")
-stiffness = 15000.0
-damping = 3400.0
-apply_on_normal = false
-metadata/_custom_type_script = "uid://bakqx774uoeem"
+[node name="SpringCast" type="SpringCast" parent="." unique_id=1482531905]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, 1.04, -3.2014214e-09)
+main_body = NodePath("..")
+settings = SubResource("SpringCastSettings_0anp1")
+collision_mask = 49
 
 [node name="mesh_yaw" type="Node3D" parent="." unique_id=1705262676]
 unique_name_in_owner = true
+visible = false
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="mesh_yaw" unique_id=662592939]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)

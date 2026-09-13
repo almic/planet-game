@@ -1,5 +1,5 @@
 ## Helper for spring-like shape cast nodes
-class_name SpringCast extends ShapeCast3D
+class_name SpringCastOld extends ShapeCast3D
 
 
 
@@ -79,7 +79,7 @@ func save_state() -> void:
     other_mode = PhysicsServer3D.body_get_mode(other_rid)
 
 ## Solves spring forces and applies accelerations to the main and colliding body
-func solve_forces(delta: float, extra_offset: float = 0.0, _restitution: float = 0.0) -> void:
+func solve_forces(delta: float, extra_offset: float = 0.0) -> void:
 
     # TODO: iteratively update velocities and positions for better spring results.
     const ITERATIONS: int = 2
