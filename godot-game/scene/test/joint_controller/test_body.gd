@@ -198,7 +198,7 @@ func rebuild_physical_skeleton() -> void:
 ## joint before returning it, which will be used as a local transform from the
 ## bone in global pose space. Returning null will be interpreted as an error.
 func build_custom_joint(
-        _chain: PhysicalBoneChain3D,
+        chain: PhysicalBoneChain3D,
         part: PhysicalBonePart3D,
         main_body: RigidBody3D,
         parent_body: RigidBody3D,
@@ -217,8 +217,12 @@ func build_custom_joint(
     if beam_res.attach_to_main_body:
         beam_joint.node_a = main_body.get_path()
         beam_joint.body_A_offset = main_body.global_transform.affine_inverse() * global_position
-    else:
+    elif beam_res.relative_attach == -1:
         beam_joint.node_a = parent_body.get_path()
+    else:
+        var relative_part: PhysicalBonePart3D = chain.get_child(part.get_index() + beam_res.relative_attach) as PhysicalBonePart3D
+        if relative_part:
+            beam_joint.node_a = relative_part.get_path()
 
     beam_joint.node_b = part.get_path()
 

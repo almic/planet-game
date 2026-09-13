@@ -2,8 +2,13 @@
 class_name BeamPivotJoint3DSetting extends Resource
 
 
-## Make this joint connect to the main body instead of the parent body
+## Make this joint connect to the main body instead of the relative attachment
 @export var attach_to_main_body: bool = false
+
+## Relative body index in the chain to attach to, default attaches to the prior
+## body part
+@export_range(-10.0, -1.0, 1.0, 'or_less', 'prefer_slider')
+var relative_attach: int = -1
 
 ## Location of the attachment on Body A
 @export

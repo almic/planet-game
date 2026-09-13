@@ -2,7 +2,6 @@
 
 [ext_resource type="Material" uid="uid://b40dbxkqwa5td" path="res://character/crawler_bot/normal/ghost_material.tres" id="1_lrul0"]
 [ext_resource type="Shape3D" uid="uid://biemjf2j15vco" path="res://character/crawler_bot/normal/tibia_collision_shape.tres" id="2_akupv"]
-[ext_resource type="Resource" uid="uid://chv8p4u042q7n" path="res://character/crawler_bot/normal/tibia_beam_mr.tres" id="3_lrul0"]
 [ext_resource type="Resource" uid="uid://r7jexawb7mgr" path="res://character/crawler_bot/normal/tibia_limitation.tres" id="4_ykm2q"]
 [ext_resource type="BoxMesh" uid="uid://btoiao1l4fp0n" path="res://character/crawler_bot/normal/tibia_box_mesh.tres" id="5_7aw22"]
 [ext_resource type="Resource" uid="uid://b6hjp2n07pjft" path="res://character/crawler_bot/normal/tibia_motor.tres" id="6_akupv"]
@@ -30,6 +29,4 @@ copy_ik_limitation_angle = true
 joint_angular_limit_x_upper = 0.4363323129985824
 joint_angular_limit_x_lower = -0.4363323129985824
 motor_parameters = ExtResource("6_akupv")
-custom_enabled = true
-custom_joint_resource_list = Array[Resource]([ExtResource("3_lrul0")])
 metadata/_custom_type_script = "uid://beoy3te8b6dll"

@@ -5,6 +5,7 @@
 [resource]
 resource_name = "Beam Tarsus Main"
 script = ExtResource("1_fy4jy")
+relative_attach = -2
 body_A_position = Vector3(0, 0.0999999999999968, 0)
 body_B_position = Vector3(0, 0.4499999999999856, 0)
 expand_limit = 100.0
