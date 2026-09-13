@@ -138,11 +138,6 @@ var body_legs_needed_for_jump: int = 3
 @export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
 var debug_enable: bool = false
 
-@export var debug_new_leg_mode: bool = false:
-    set(value):
-        debug_new_leg_mode = value
-        _update_leg_modes()
-
 @export var debug_leg_polygon: bool = false
 var _debug_leg_polyline: int = 0
 
@@ -155,7 +150,7 @@ var legs: Array[CrawlerLeg]
 var target_position: Vector3 = Vector3.INF
 var target_direction: Vector3 = Vector3.INF
 
-var is_stepping: bool:
+var has_desired_movement: bool:
     get():
         return has_desired_forward or has_desired_rotation
 
@@ -165,6 +160,9 @@ var grounded_leg_avg_displacement: float
 var leg_update_data: PackedVector3Array
 var leg_polygon: PackedVector2Array
 var leg_gravity_power: PackedFloat64Array
+
+var leg_set_first: Array[CrawlerLeg]
+var leg_set_second: Array[CrawlerLeg]
 
 var linear_leg_accel: Vector3
 var angular_leg_accel: Vector3
@@ -340,19 +338,19 @@ func _ready() -> void:
         if body is CollisionObject3D:
             leg_cast_exclude_list.append(body.get_rid())
 
+    _calculate_leg_sets()
+
     # Initialize legs
     for leg in legs:
-        leg.setup(leg_cast_exclude_list)
+        if leg in leg_set_first:
+            leg.setup(leg_cast_exclude_list, leg_set_first)
+        else:
+            leg.setup(leg_cast_exclude_list, leg_set_second)
 
-    _update_leg_modes()
-
-    # Should be off for the editor, on in-game
     leg_ik.active = true
     physical_skeleton.active = true
     physical_skeleton.modification_processed.connect(_update_legs)
     leg_ik.modification_processed.connect(physical_skeleton.on_pose_finalized)
-
-    desired_surface_friction = 0.0
 
 func get_nice_path(to: Node = null) -> NodePath:
     if not is_inside_tree():
@@ -488,10 +486,6 @@ func _update_body_mass() -> void:
             body.mass = remaining_mass * mass_ratio
             remaining_mass -= body.mass
 
-func _update_leg_modes() -> void:
-    for leg in legs:
-        leg.use_new_leg_mode = debug_new_leg_mode
-
 func _handle_input() -> void:
 
     var body_center: Vector3 = position + PhysicsServer3D.body_get_param(get_rid(), PhysicsServer3D.BODY_PARAM_CENTER_OF_MASS)
@@ -543,6 +537,7 @@ func _update_legs() -> void:
     for leg in legs:
         leg.on_pose_updated()
 
+    var any_legs_just_broken: bool = false
     for chain in physical_skeleton.chain_list:
         if not chain.is_ik_enabled:
             continue
@@ -552,10 +547,11 @@ func _update_legs() -> void:
             chain.is_ik_enabled = false # mark disabled to skip in the future
             # NOTE: setting node path to empty effectively disables that ik setting
             leg_ik.setting_list[chain.ik_setting].target_node = NodePath("")
-            # TODO: tell CrawlerLegs about this so they can change behavior
+            legs[chain.ik_setting].is_broken = true
+            any_legs_just_broken = true
 
-    for leg in legs:
-        leg.check_early_step()
+    if any_legs_just_broken:
+        _update_leg_sets()
 
     grounded_leg_count = 0
 
@@ -586,7 +582,6 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
     ground_velocity = ground_rel_con_velocity.slide(state.transform.basis.y).slide(ground_normal)
 
     # TODO: stopping friction when not traveling
-    """
     # Gather relative velocity from all legs, using last gravity power
     var max_leg_mass: float
     if is_zero_approx(body_leg_lift_ratio):
@@ -627,17 +622,11 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
         var ground_state := PhysicsServer3D.body_get_direct_state(leg.ground_body)
         if ground_state:
             ground_state.apply_force(leg_force, leg.ground_point - ground_state.transform.origin)
-    """
 
     if not ground_velocity.is_zero_approx():
         ground_direction = ground_velocity.normalized()
     else:
         ground_direction = Vector3.ZERO
-
-    # Legs need final ground velocities for some updates
-    for leg in legs:
-        leg.post_update()
-
 
 func _custom_pre_movement_forces(state: PhysicsDirectBodyState3D) -> void:
     _solve_leg_forces(state)
@@ -812,7 +801,6 @@ func _solve_leg_forces(state: PhysicsDirectBodyState3D) -> void:
     state.transform = old_transform
     PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, state.transform)
 
-
 func _calculate_leg_gravity_power(state: PhysicsDirectBodyState3D) -> void:
     # NOTE: Parameterize the iteration count
     const MAX_ITERATIONS: int = 2
@@ -942,7 +930,7 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
         if leg.apply_ground_forces:
             ground_points[i] = leg.ground_point
         elif leg.is_stepping:
-            ground_points[i] = leg.global_transform * leg.step_target
+            ground_points[i] = leg.to_global(leg.step_target_initial)
         elif using_rest_point:
             # Cannot use more than 1 rest point, use current orientation
             preferred_forward = -state.transform.basis.z
@@ -951,7 +939,7 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
             break
         else:
             using_rest_point = true
-            ground_points[i] = leg.target_global_rest
+            ground_points[i] = leg.to_global(leg.target_rest_position)
 
     if using_ground_points:
         preferred_forward = (
@@ -986,7 +974,8 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
     angular.z = 0.0
 
     # roughly 0.5 degrees
-    if angular.length_squared() > 7.62e-5:
+    const LOW_ANGLE: float = 7.62e-5
+    if angular.length_squared() > LOW_ANGLE or target_direction.is_finite():
         has_desired_rotation = true
 
     var max_angular: Vector3 = angular / state.step
@@ -999,6 +988,157 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
     state.angular_velocity += target_angular * (1.0 + rotation_overshoot) * state.step * grounded_leg_factor
     #state.angular_velocity += target_angular * (1.0 + rotation_overshoot) * state.step * rotation_acceleration * grounded_leg_factor
 
-    if (not has_desired_rotation) and state.angular_velocity.length_squared() < 7.62e-5:
+    if target_angular.length_squared() < LOW_ANGLE and state.angular_velocity.length_squared() < LOW_ANGLE:
         # Low angular velocity, facing the target, clear target
         target_direction = Vector3.INF
+
+func _update_leg_sets() -> void:
+    _calculate_leg_sets()
+    for leg in legs:
+        if leg in leg_set_first:
+            leg.sync_paired = leg_set_first
+        else:
+            # NOTE: broken legs will default to second set, but won't actually
+            #       exist in the second set
+            leg.sync_paired = leg_set_second
+
+func _calculate_leg_sets() -> void:
+    leg_set_first.clear()
+    leg_set_second.clear()
+
+    var good_leg_set: Array[CrawlerLeg] = []
+    var left_side: int = 0
+    var right_side: int = 0
+    for leg in legs:
+        if leg.is_broken:
+            continue
+
+        good_leg_set.append(leg)
+
+        if leg.is_left:
+            left_side += 1
+        else:
+            right_side += 1
+
+    var good_leg_count: int = good_leg_set.size()
+    var missing_count: int = legs.size() - good_leg_count
+
+    if missing_count <= 1:
+        # Missing up to 1 leg, use AB, BA pairing
+        for leg in good_leg_set:
+            var leg_pair: int = leg.index % 4
+            if leg_pair == 0 or leg_pair == 3:
+                leg_set_first.append(leg)
+            else:
+                leg_set_second.append(leg)
+        return
+
+    if missing_count >= 4 or left_side == 0 or right_side == 0:
+        # All legs on one side, or fewer than three, simple alternate rule
+        for index in range(good_leg_count):
+            if index % 2 == 0:
+                leg_set_first.append(good_leg_set[index])
+            else:
+                leg_set_second.append(good_leg_set[index])
+        return
+
+    if missing_count == 2:
+        # It may be possible to create diagonal pairs, but can fail
+        # Counting most likely layouts, this is most likely to fail 1/3 times
+        var current_leg: CrawlerLeg = good_leg_set[0]
+        leg_set_first.append(current_leg)
+
+        for index in range(1, good_leg_count):
+            var leg: CrawlerLeg = good_leg_set[index]
+            if leg.is_left != current_leg.is_left:
+                leg_set_first.append(leg)
+                break
+
+        # This should succeed, but just in case...
+        if leg_set_first.size() == 2:
+            # Second diagonal
+            for leg in good_leg_set:
+                if leg_set_second.size() == 0:
+                    if leg not in leg_set_first:
+                        current_leg = leg
+                        leg_set_second.append(leg)
+                    continue
+
+                if leg in leg_set_first:
+                    continue
+
+                # Must be opposite side, not on the same row
+                @warning_ignore("integer_division")
+                if (
+                            current_leg.is_left != leg.is_left
+                        and int(current_leg.index / 2) != int(leg.index / 2)
+                ):
+                    leg_set_second.append(leg)
+                break
+
+            # Test for failure
+            if leg_set_second.size() == 2:
+                return
+
+            leg_set_first.clear()
+            leg_set_second.clear()
+
+    # At least 3 legs and at least 1 per side. Special algorithm.
+    # Start with the first leg on the "least-legged" side, then pair with first:
+    #   1. If it is a middle leg, select the leg above
+    #   2. The leg on the same row
+    #   3. The first leg ahead of it
+    #   4. The first leg behind it
+    # The remaining legs become the second pair
+
+    # Least-legged side leg
+    var least_legged_is_left: bool = left_side < right_side
+    var least_leg: CrawlerLeg
+    var least_leg_good_index: int = 0
+    for leg in good_leg_set:
+        if leg.is_left == least_legged_is_left:
+            least_leg = leg
+            break
+        least_leg_good_index += 1
+
+    @warning_ignore("integer_division")
+    var least_leg_row: int = int(least_leg.index / 2)
+
+    leg_set_first.append(least_leg)
+
+    if least_leg.index >= 2 and least_leg.index < legs.size() - 2:
+        for index in range(least_leg_good_index - 1, -1, -1):
+            var leg: CrawlerLeg = good_leg_set[index]
+
+            @warning_ignore("integer_division")
+            if int(leg.index / 2) != least_leg_row:
+                leg_set_first.append(leg)
+                break
+    else:
+        var row_candidate_index: int = least_leg_good_index
+        var candidate_index: int = least_leg.index
+        if least_leg.is_left:
+            row_candidate_index += 1
+            candidate_index += 1
+        else:
+            row_candidate_index -= 1
+            candidate_index -= 1
+
+        # Same row
+        if (
+                    row_candidate_index > 0
+                and row_candidate_index < good_leg_count
+                and good_leg_set[row_candidate_index].index == candidate_index
+        ):
+            leg_set_first.append(good_leg_set[row_candidate_index])
+        # First leg ahead
+        elif least_leg_good_index - 1 >= 0:
+            leg_set_first.append(good_leg_set[least_leg_good_index - 1])
+        # First leg behind
+        else:
+            leg_set_first.append(good_leg_set[least_leg_good_index + 1])
+
+    # Add others to second set
+    for leg in good_leg_set:
+        if leg not in leg_set_first:
+            leg_set_second.append(leg)

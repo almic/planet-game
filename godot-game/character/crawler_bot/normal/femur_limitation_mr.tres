@@ -5,6 +5,6 @@
 [resource]
 resource_name = "FemurLimitationMR"
 script = ExtResource("1_wm4yv")
-angle = 0.7853981633974483
+angle = 0.8726646259971648
 rotation_offset = Quaternion(0, 0, 0.06104853953486, 0.99813479842187)
 metadata/_custom_type_script = "uid://def477t0ae837"

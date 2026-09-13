@@ -45,12 +45,18 @@ var error_correction: float = 1.0
         if is_node_ready():
             _update_chain_list()
 
+
 var chain_bone_list: Array[PackedInt32Array]
 var skeleton: Skeleton3D
 
 var _queued_joint_bone_names: bool = false
 
 var _prior_work_map: Dictionary[int, Quaternion]
+
+## Bitmask for chain progress state
+var _progress_state_list: PackedInt32Array
+const FLAG_MADE_PROGRESS: int = 1
+const FLAG_REACHED_GOAL: int = 2
 
 
 func _ready() -> void:
@@ -95,6 +101,16 @@ func set_setting_count(count: int) -> void:
     setting_list.resize(count)
     setting_list = setting_list # Force setter call
 
+func has_made_progress(setting: int) -> bool:
+    if setting < 0 or setting >= _progress_state_list.size():
+        return false
+    return _progress_state_list[setting] & FLAG_MADE_PROGRESS
+
+func has_reached_goal(setting: int) -> bool:
+    if setting < 0 or setting >= _progress_state_list.size():
+        return false
+    return _progress_state_list[setting] & FLAG_REACHED_GOAL
+
 func _enter_tree() -> void:
     _connect_setting_list()
 
@@ -126,6 +142,8 @@ func _disconnect_setting_list() -> void:
 func _update_chain_list() -> void:
     var count: int = setting_list.size()
     chain_bone_list.resize(count)
+    _progress_state_list.resize(count)
+    _progress_state_list.fill(0)
     for index in range(count):
         var setting: ChainResource = setting_list[index]
         var root_bone: int = -1
@@ -198,6 +216,8 @@ func _process_modification_with_delta(delta: float) -> void:
 
     for index in range(count):
         var setting: ChainResource = setting_list[index]
+        _progress_state_list[index] = 0
+
         var target_node: Node3D = get_node_or_null(setting.target_node) as Node3D
         if not target_node:
             continue
@@ -207,6 +227,10 @@ func _process_modification_with_delta(delta: float) -> void:
         var bone_count: int = bone_list.size()
         if bone_count == 0:
             continue
+
+        var flags: int = 0
+        var end_bone: int = bone_list[bone_count - 1]
+        var initial_position: Vector3 = skeleton.get_bone_global_pose(end_bone).origin
 
         # To limit rotation rate
         var cached_rotation_list: Array[Quaternion]
@@ -225,12 +249,12 @@ func _process_modification_with_delta(delta: float) -> void:
 
             cached_rotation_list[i] = bone_rotation
 
-        var end_bone: int = bone_list[bone_count - 1]
         for n in range(iterations):
             if (
                 target_position.distance_squared_to(skeleton.get_bone_global_pose(end_bone).origin)
                 <= min_dist_sqr
             ):
+                flags |= FLAG_REACHED_GOAL
                 break
 
             _iterate_chain(bone_list, setting, target_position)
@@ -262,6 +286,12 @@ func _process_modification_with_delta(delta: float) -> void:
                     skeleton.set_bone_pose_rotation(bone_idx, new_rot)
 
             skeleton.force_update_all_bone_transforms()
+
+        var final_position: Vector3 = skeleton.get_bone_global_pose(end_bone).origin
+        if final_position.distance_squared_to(target_position) - 1e-6 < initial_position.distance_squared_to(target_position):
+            flags |= FLAG_MADE_PROGRESS
+
+        _progress_state_list[index] = flags
 
         if use_prior_work:
             for bone_idx in bone_list:

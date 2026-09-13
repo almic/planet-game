@@ -122,6 +122,9 @@ var ground_velocity: Vector3
 ## Direction of this body along the plane of the ground
 var ground_direction: Vector3
 
+## Speed along the ground, or the length of ground_velocity
+var ground_speed: float
+
 ## Calculated ground friction force
 var ground_friction: Vector3
 
@@ -459,6 +462,7 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
     ground_direction = Vector3.ZERO
     ground_velocity = Vector3.ZERO
     ground_rel_con_velocity = Vector3.ZERO
+    ground_speed = 0.0
 
     if not is_on_floor:
         return
@@ -500,6 +504,8 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
         ground_direction = ground_velocity.normalized()
     else:
         ground_direction = Vector3.ZERO
+
+    ground_speed = ground_velocity.dot(ground_direction)
 
 
 ## Calculate recovery acceleration from applied ground friction for turning/ changing direction.

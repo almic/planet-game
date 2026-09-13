@@ -54,9 +54,9 @@ var _debug_ground_cast_vector: int = 0
 var _debug_ground_cast_shape: int = 0
 
 ## Render text at the leg giving the reason it takes a step
-@export var debug_step_reason: bool = true
-var _debug_step_reason_text_id: int = 0
-var _debug_step_reason_text: String
+@export var debug_move_reason: bool = true
+var _debug_move_reason_text_id: int = 0
+var _debug_move_reason_text: String
 #endregion Debug
 
 var body: CrawlerCharacter = null:
@@ -69,6 +69,9 @@ var index: int = -1
 var is_left: bool:
     get():
         return index % 2 == 0
+var is_leader: bool:
+    get():
+        return sync_paired.size() > 0 and sync_paired[0].index == index
 ## True when `is_grounded and (not is_stepping)`
 var apply_ground_forces: bool:
     get():
@@ -81,14 +84,13 @@ var attachment_point: Vector3 = Vector3.ZERO
 ## The floor step target raycast
 var step_cast: ShapeCast3D
 
-## Transform used for moving step cast and rest point
+## Rest point of the step cast
+var step_cast_rest_position: Vector3
+## Transform that controls leg rotation and directional movement offset for the step cast
 var step_transform: Transform3D = Transform3D.IDENTITY
 
-## Position of the leg at rest, set as the target position on setup
-var target_rest_position: Vector3 = Vector3.INF
-var target_global_rest: Vector3 = Vector3.INF
-## Last global position of the leg target, used to track relative velocities
-var target_last_global_position: Vector3 = Vector3.INF
+## Initial rest position of the leg, set as the target position on setup.
+var rest_position: Vector3 = Vector3.INF
 ## Contact velocity of this leg relative to the ground
 var ground_rel_con_velocity: Vector3 = Vector3.ZERO
 
@@ -111,28 +113,58 @@ var time_since_start_step: float = 0.0
 ## How long it has been since the last step ended
 var time_since_last_step: float = 0.0
 
-## The leg is currently lifting up to avoid contact with the ground, and so it
-## should likely be excluded from friction and ground normal calculations.
-var is_lifting: bool = false
-
 ## The leg is in a comfortable position. This is used to signal that the leg
 ## wants to move to a better position.
 var is_comfortable: bool = false
 
-var allow_step_sync: bool = false
-var current_step_travel: float
-var next_step_target_global: Vector3 = Vector3.INF
-var step_target_global: Vector3 = Vector3.INF
-var step_target: Vector3 = Vector3.INF
-var step_origin: Vector3 = Vector3.INF
+## Controlled by the owning body, helper field to track broken legs
+var is_broken: bool = false
+
 
 var comfort_distance: float
 var dist_sqr_to_rest: float
-var leg_normal: Vector3
-var leg_end_position: Vector3
+## Global space leg normal vector
+var normal: Vector3
+## Local space position of the end of the leg
+var local_end_point: Vector3
+## Global space position of the end of the leg
+var global_end_point: Vector3 = Vector3.INF
 
+## Decided by this leg. These are legs that this leg generally should not move with.
+var cross_paired: Array[CrawlerLeg]
+## Provided by main body. These are legs that this leg generally should move with.
+var sync_paired: Array[CrawlerLeg]
+
+## Most recent global step target from the step cast
+var next_step_target_global: Vector3 = Vector3.INF
+var has_next_target: bool:
+    get():
+        return next_step_target_global.is_finite()
+## During steps, this is used to prevent the final target from moving too far
+## from the original target.
+var step_target_initial: Vector3
+
+## When in motion, these are the targets for the leg. The W component encodes
+## the goal distance, and when negative marks the point as global space.
+var target_point_list: PackedVector4Array
+## Extra data for target points. 0 encodes the delay upon reaching the goal.
+var target_point_data_list: PackedFloat32Array
+var target_point_index: int = -1
+var target_point_index_ik_checked: int = -1
+## If the target can skip ahead to future points that are closer. Disable this
+## for movements that have repeated positions, like a wave.
+var target_allow_skipping_ahead: bool = true
+## Current target rest in local space, the leg will continuously travel to this
+## point when it has no other target points. When displaced, this target is
+## moved towards the displacment at a set rate.
+var target_rest_position: Vector3
+
+#region Ground Stuff
 var ground_bone_idx: int = -1
 var ground_cast: ShapeCast3D
+## The body used to calculate ground relative contact velocity
+var ground_physical_part: PhysicalBonePart3D
+## RID of the body considered to be the ground
 var ground_body: RID
 var ground_normal: Vector3 = Vector3.INF
 ## Ground contact position in global space
@@ -148,17 +180,9 @@ var ground_offset: float = INF
 
 var ground_last_rid: RID
 var ground_last_local: Vector3
+#endregion Ground Stuff
 
 var target_bone_idx: int = -1
-
-var cached_adjacent: Array[CrawlerLeg]
-var cached_diagonal: Array[CrawlerLeg]
-
-
-## Target step height
-var step_height: float = 0.0
-
-var use_new_leg_mode: bool = false
 
 
 func editor_reset_target() -> void:
@@ -185,7 +209,7 @@ func set_setting(new_setting: CrawlerLegSetting) -> void:
     if setting:
         connect_setting()
 
-func setup(cast_exceptions: Array[RID]) -> void:
+func setup(cast_exceptions: Array[RID], sync_with: Array[CrawlerLeg]) -> void:
     if has_initialized:
         return
 
@@ -196,12 +220,16 @@ func setup(cast_exceptions: Array[RID]) -> void:
     # Setup target node and position, same reason as above
     setup_target()
 
-    cached_adjacent = get_adjacent()
-    cached_diagonal = get_diagonal()
+    # Cache leg pairs
+    cross_paired = get_cross_paired_legs()
+    sync_paired = sync_with
 
     comfort_distance = setting.rest_distance
+    rest_position = target.position
     target_rest_position = target.position
+    local_end_point = target.position
     attachment_point = (body.global_transform.affine_inverse() * global_transform).origin
+    step_cast_rest_position = transform.affine_inverse() * body.skeleton.get_bone_global_rest(target_bone_idx).origin
 
     ground_bone_idx = body.skeleton.find_bone(ground_bone)
     if ground_bone_idx == -1:
@@ -209,11 +237,19 @@ func setup(cast_exceptions: Array[RID]) -> void:
             'Unable to find ground bone "%s" for leg %s!' % [ground_bone, name]
         )
         return
+    ground_physical_part = body.physical_skeleton.get_bone_part_map().get(ground_bone_idx) as PhysicalBonePart3D
+    if ground_physical_part == null:
+        push_error(
+            'Unable to get ground physical part from bone "%s" (index %d) for leg %s!' % [ground_bone, ground_bone_idx, name]
+        )
+        return
 
     step_cast = ShapeCast3D.new()
     step_cast.name = 'StepCast'
     step_cast.enabled = false # Manually update the cast
     add_child(step_cast, false, Node.INTERNAL_MODE_FRONT)
+    step_cast.position = step_cast_rest_position
+    step_cast.position.y += setting.step_cast_start
 
     ground_cast = ShapeCast3D.new()
     ground_cast.name = 'GroundCast'
@@ -256,58 +292,116 @@ func setup_target() -> void:
         target.owner = owner
 
     body.leg_ik.setting_list[index].target_node = body.leg_ik.get_path_to(target)
-    target.global_position = body.skeleton.global_transform * body.skeleton.get_bone_global_rest(target_bone_idx).origin
+    if not body.leg_ik.modification_processed.is_connected(on_ik_updated):
+        body.leg_ik.modification_processed.connect(on_ik_updated)
+    target.global_position = body.skeleton.to_global(body.skeleton.get_bone_global_rest(target_bone_idx).origin)
+
+## Watches IK to check for targetting failures, where IK is unable to reach the
+## current target position and needs to be reset.
+func on_ik_updated() -> void:
+    const SOFT_RATE: float = 0.5
+
+    if not body.leg_ik.has_reached_goal(index):
+        if body.leg_ik.has_made_progress(index):
+            return
+
+        # This can imply flickering or an impossible location
+        if target_point_index == -1:
+            # Move rest towards current bone
+            @warning_ignore("confusable_local_declaration")
+            var local_bone: Vector3 = to_local(
+                    body.skeleton.to_global(
+                        body.skeleton.get_bone_global_pose(target_bone_idx).origin
+                    )
+            )
+            target_rest_position = target_rest_position.lerp(local_bone, SOFT_RATE * body.delta_time)
+        else:
+            # Skip this target completely
+            target_point_index += 1
+            if target_point_index >= target_point_list.size():
+                @warning_ignore("confusable_local_declaration")
+                var local_bone: Vector3 = to_local(
+                        body.skeleton.to_global(
+                            body.skeleton.get_bone_global_pose(target_bone_idx).origin
+                        )
+                )
+                _on_target_finished(local_bone)
+
+        return
+
+    # Reached the goal, resting, do nothing
+    if target_point_index == -1:
+        return
+
+    # If we have already checked this index, we should not have to check it again
+    if target_point_index_ik_checked == target_point_index:
+        return
+    target_point_index_ik_checked = target_point_index
+
+    # Check that goal is close enough to current target point
+    var target_point: Vector4 = target_point_list[target_point_index]
+    var local_point: Vector3 = Vector3(target_point.x, target_point.y, target_point.z)
+    if target_point.w < 0.0:
+        local_point = to_local(local_point)
+    var local_bone: Vector3 = to_local(
+            body.skeleton.to_global(
+                body.skeleton.get_bone_global_pose(target_bone_idx).origin
+            )
+    )
+    var goal_dist_sqr: float = local_point.distance_squared_to(local_bone)
+    if goal_dist_sqr < absf(target_point.w * target_point.w):
+        return
+
+    push_warning(
+        (
+            'Leg %d of %s has completed IK, but is not within %.3fm of '
+            + 'target point %d. Please increase the target goal '
+            + 'distance, or decrease the IK min_distance! Now!!!!'
+        ) % [index, body.name, absf(target_point.w), target_point_index]
+    )
+
+    # TODO: remove this breakpoint later
+    breakpoint
+
+    local_point = local_bone
+    if target_point.w < 0.0:
+        local_point = to_global(local_point)
+    target_point_list[target_point_index] = Vector4(local_point.x, local_point.y, local_point.z, target_point.w)
 
 ## Cache leg pose data, update timers, transforms, ground data
 func on_pose_updated() -> void:
-    leg_normal = (
+    normal = (
               body.skeleton.global_transform
             * body.skeleton.get_bone_global_pose(body.skeleton.get_bone_parent(ground_bone_idx))
     ).basis.y
 
-    leg_end_position = (
-              body.skeleton.global_transform
-            * body.skeleton.get_bone_global_pose(target_bone_idx).origin
-    )
-
-
-
-# TODO: This method needs to have a lot of stuff moved into the "update" method
-#       instead, as this method does not know anything about the true leg
-#       transforms because they haven't been updated yet
-func pre_update(state: PhysicsDirectBodyState3D) -> void:
+    global_end_point = body.skeleton.to_global(body.skeleton.get_bone_global_pose(target_bone_idx).origin)
+    local_end_point = to_local(global_end_point)
 
     _update_grounded()
     _update_timers()
-    _update_step_transform()
+    _update_step_cast()
 
-    # Run in pre-update to get ahead of the comfort distances
-    if body.is_stepping:
+    if step_cast.is_colliding():
+        next_step_target_global = step_cast.get_collision_point(0)
+
+    # NOTE: With desired rotation, this could lag by a frame. This is acceptable to me.
+    if body.has_desired_movement:
         comfort_distance = move_toward(comfort_distance, setting.step_distance, body.delta_time * 2.0)
+    else:
+        # NOTE: deliberately using last frame's body ground vectors
+        var t: float = lerpf(setting.rest_distance, setting.step_distance, body.ground_speed / body.max_speed)
+        comfort_distance = move_toward(comfort_distance, t, body.delta_time * 2.0)
 
-    var local_rest: Vector3 = step_transform * target_rest_position
-    target_global_rest = global_transform * local_rest
+    var local_rest: Vector3 = step_transform * rest_position
 
-    var rest_delta: Vector3 = target.position - local_rest
+    var rest_delta: Vector3 = local_end_point - local_rest
     rest_delta.y = 0.0
     dist_sqr_to_rest = rest_delta.length_squared()
     is_comfortable = dist_sqr_to_rest <= comfort_distance * comfort_distance
 
     if debug_enable and debug_rest_area:
         _draw_rest_area()
-
-    _update_step_cast(state.transform.basis)
-    if step_cast.is_colliding():
-        next_step_target_global = step_cast.get_collision_point(0)
-
-        if is_stepping:
-            step_target_global = next_step_target_global
-            step_target = next_step_target_global * global_transform
-    elif is_stepping:
-        step_target = step_target_global * global_transform
-
-func _new_pre_update(_state: PhysicsDirectBodyState3D) -> void:
-    pass
 
 func _update_grounded() -> void:
     var has_ground: bool = false
@@ -317,7 +411,7 @@ func _update_grounded() -> void:
     var bone_direction: Vector3 = (target_position - bone_parent_xform.origin).normalized()
     var shape_size: float = (ground_cast.shape as SphereShape3D).radius
     var start_position: Vector3 = (bone_direction * (setting.ground_hit_start + shape_size))
-    ground_cast.position = body.skeleton.global_transform * (target_position - start_position)
+    ground_cast.position = body.skeleton.to_global(target_position - start_position)
     ground_cast.basis = body.skeleton.global_basis * bone_parent_xform.basis
     ground_cast.target_position = Vector3.UP * (setting.ground_hit_start + setting.ground_hit_extra)
 
@@ -330,7 +424,7 @@ func _update_grounded() -> void:
         ground_point = ground_cast.get_collision_point(0)
         ground_normal = ground_cast.get_collision_normal(0)
 
-        var ground_cos_theta: float = ground_normal.dot(-leg_normal)
+        var ground_cos_theta: float = ground_normal.dot(-normal)
         if ground_cos_theta >= 0.0:
             has_ground = true
 
@@ -343,8 +437,13 @@ func _update_grounded() -> void:
         ground_xform = ground_state.transform
         ground_velocity = ground_state.get_velocity_at_local_position(
                     ground_point - ground_state.transform.origin
-                )
+        )
         ground_friction = PhysicsServer3D.body_get_param(ground_body, PhysicsServer3D.BODY_PARAM_FRICTION)
+        var part_state := PhysicsServer3D.body_get_direct_state(ground_physical_part.get_rid())
+        var part_velocity: Vector3 = part_state.get_velocity_at_local_position(
+                    ground_point - part_state.transform.origin
+        )
+        ground_rel_con_velocity = part_velocity - ground_velocity
 
         if debug_enable and debug_ground_normal:
             _draw_ground_normal()
@@ -367,17 +466,17 @@ func _update_timers() -> void:
     if is_grounded:
         time_since_grounded += body.delta_time
 
-func _update_step_transform() -> void:
-    var body_basis: Basis = body.phys_state.transform.basis
+func _update_step_cast() -> void:
     var target_transform: Transform3D = Transform3D.IDENTITY
+
     if body.has_desired_forward:
-        target_transform.origin += (body_basis.inverse() * body.desired_direction) * setting.move_offset
+        target_transform.origin = (body.phys_state.transform.basis.inverse() * body.desired_direction) * setting.move_offset
         target_transform.origin.y = 0.0
 
         var is_front: bool = index < 2
         var is_back: bool = index + 2 >= body.legs.size()
 
-        var cos_theta: float = body.desired_direction.dot(-body_basis.z)
+        var cos_theta: float = body.desired_direction.dot(-body.phys_state.transform.basis.z)
 
         if is_front:
             cos_theta = cos_theta * 2.0 - 1.0
@@ -400,279 +499,255 @@ func _update_step_transform() -> void:
         if step_transform.is_equal_approx(target_transform):
             step_transform = target_transform
 
-func _update_step_cast(body_basis: Basis) -> void:
-
-    # Rotate in direction of motion
-    var old_step_cast_xform: Transform3D = step_cast.transform
+    # Local step cast rotation and translation
+    step_cast.transform = Transform3D.IDENTITY.translated(step_cast_rest_position)
     if body.has_desired_forward and not is_zero_approx(setting.step_cast_angle):
-        var rot_axis: Vector3 = body_basis.inverse() * body.desired_direction.cross(body_basis.y)
-        rot_axis = rot_axis.normalized()
+        var rot_axis: Vector3 = (
+                  body.phys_state.transform.basis.inverse()
+                * body.desired_direction.cross(body.phys_state.transform.basis.y)
+        ).normalized()
+
         var angle: float = setting.step_cast_angle# * (1.0 - absf(state.transform.basis.tdoty(body.desired_direction)))
-        var point: Vector3 = target_rest_position - step_cast.position
 
-        # NOTE: Think of making a "transform sandwich", order the lines as if you are looking at
-        #       the side profile of a "transform sandwich".
-        var xform: Transform3D = Transform3D.IDENTITY
-        xform = xform.translated(-point)
-        xform = xform.rotated(rot_axis, angle)
-        xform = xform.translated(target_rest_position)
+        step_cast.transform = step_cast.transform.rotated(rot_axis, angle)
 
-        step_cast.transform = xform
+    step_cast.transform = step_cast.transform.translated_local(Vector3.UP * setting.step_cast_start)
     step_cast.transform = step_transform * step_cast.transform
+
     step_cast.force_shapecast_update()
 
     if debug_enable and debug_step_cast:
         _draw_step_cast()
 
-    step_cast.transform = old_step_cast_xform
-
-func check_early_step() -> void:
-    if use_new_leg_mode:
-        return
-
-    allow_step_sync = false
-    if not step_cast.is_colliding():
-        return
-
-    # NOTE: The method call 'can_start_step' may enable 'allow_step_sync'
-    if (not is_stepping) and can_start_step():
-        start_step()
-
 func update() -> void:
-    if use_new_leg_mode:
-        _new_update()
-        return
+    # Only the leader checks leg
+    if is_leader:
+        var all_allowed: bool = true
+        var early_step_leg: CrawlerLeg = null
+        for leg in sync_paired:
+            if leg.is_moving or not leg.has_next_target:
+                continue
+
+            if not leg.is_grounded:
+                # Recover?? Missed a step or lost ground
+                leg.do_step()
+                if leg.debug_enable and leg.debug_move_reason:
+                    leg._debug_move_reason_text = "Recovering, not moving and no ground!"
+                continue
+
+            if not leg._can_move():
+                all_allowed = false
+                continue
+
+            if not leg.is_comfortable:
+                leg.do_step()
+                if leg.debug_enable and leg.debug_move_reason:
+                    leg._debug_move_reason_text = "Not comfortable%s!" % ('' if is_grounded else ' & floating')
+                continue
+
+            # Allow an early step if body has a forward and if any leg has
+            # enough distance to start the group
+            if (
+                    early_step_leg != null
+                    or (not body.has_desired_forward)
+                    or leg.dist_sqr_to_rest < leg.setting.early_step_distance * leg.setting.early_step_distance
+            ):
+                continue
+            early_step_leg = leg
+
+        # Start remaining legs with an early step
+        if all_allowed and early_step_leg != null:
+            for leg in sync_paired:
+                if leg.is_moving or not leg.has_next_target:
+                    continue
+                leg.do_step()
+                if leg.debug_enable and leg.debug_move_reason:
+                    if leg == early_step_leg:
+                        leg._debug_move_reason_text = "Early step!"
+                    else:
+                        leg._debug_move_reason_text = "Stepping with %s!" % leg.name
+
     _update_target()
 
-func _new_update() -> void:
-    pass
+## Check this and cross-paired legs state to see if this leg is allowed to move,
+## assuming it is currently stable. Unstable legs should always try to move.
+func _can_move() -> bool:
+    if time_since_last_step < setting.step_delay:
+        return false
 
-func post_update() -> void:
-    if use_new_leg_mode:
-        _new_post_update()
+    for leg in cross_paired:
+        if leg.is_moving:
+            return false
+        if not leg.apply_ground_forces:
+            continue
+        if leg.time_since_grounded < setting.step_crosspair_wait:
+            return false
+
+    return true
+
+## Start a movement to the most recent step cast target
+func do_step() -> void:
+    step_target_initial = next_step_target_global
+
+    # Sometimes this leg is already very close, so just update the rest position
+    # and don't count this as a real step
+    var local_step_target: Vector3 = to_local(step_target_initial)
+    if local_step_target.distance_squared_to(local_end_point) < 2.5e-3:
+        target_rest_position = local_step_target
         return
 
-    if not body.is_stepping:
-        var t: float = lerpf(setting.rest_distance, setting.step_distance, (body.ground_direction.dot(body.ground_velocity)) / body.max_speed)
-        comfort_distance = move_toward(comfort_distance, t, body.delta_time * 2.0)
+    is_moving = true
+    is_stepping = true
+    time_since_start_step = 0.0
+    target_point_list.clear()
+    target_point_data_list.clear()
+    target_point_index = 0
+    target_point_index_ik_checked = -1
 
-func _new_post_update() -> void:
-    pass
+    var start_length: float = local_end_point.length()
+    var end_length: float = local_step_target.length()
+    var start_normalized: Vector3 = local_end_point.normalized()
+    var end_normalized: Vector3 = local_step_target.normalized()
+    var sweep_axis: Vector3 = local_step_target.cross(local_end_point).normalized()
+    var angle: float = acos(start_normalized.dot(end_normalized))
+
+    var use_rotation: bool = not (
+               is_zero_approx(setting.leg_swing_amount)
+            or is_zero_approx(start_length)
+            or is_zero_approx(end_length)
+            or is_zero_approx(angle)
+            or sweep_axis.is_zero_approx()
+    )
+
+    # TODO: parameter for point count
+    const POINTS: int = 3
+    for i in range(1, POINTS + 1):
+        var progress: float = float(i) / float(POINTS)
+        var point: Vector3
+        if i == POINTS:
+            point = local_step_target
+        else:
+            point = local_end_point.lerp(local_step_target, progress)
+            if use_rotation:
+                var rotated_point: Vector3 = start_normalized.rotated(sweep_axis, angle * progress)
+                rotated_point *= ((1.0 - progress) * start_length) + (progress * end_length)
+                point = point.lerp(rotated_point, setting.leg_swing_amount)
+            # TODO: parameter for lift height curve
+            point += Vector3.UP * maxf(setting.leg_lift_height, setting.leg_lift_height * 2.0 * progress)
+
+        var point_4: Vector4 = Vector4(point.x, point.y, point.z, 0.08)
+        if i == POINTS:
+            point_4.y = local_step_target.y
+            point_4.w = -point_4.w
+
+        target_point_list.append(point_4)
 
 func _update_target() -> void:
-    if (
-            (not is_moving)
-        and (not is_stepping)
-        and step_cast.is_colliding()
-        and should_sync_step()
-    ):
-        start_step()
 
-    if debug_enable and debug_step_target:
-        _draw_step_target(not is_stepping)
+    if debug_enable and debug_step_target and is_stepping:
+        _draw_step_target()
 
-    if not is_stepping:
-        target.position.y = _calculate_lift(target.position.y, body.max_speed * body.delta_time)
+    if debug_enable and debug_move_reason and is_moving:
+        _draw_move_reason()
+
+    # At rest, travel towards leg end point
+    if target_point_index == -1:
+        # TODO: parameters?
+        const MAX_DISPLACEMENT_SQR: float = pow(0.03, 2.0)
+        const TRAVEL_RATE: float = 0.2
+        var rest_displacement_sqr: float = target_rest_position.distance_squared_to(local_end_point)
+        if rest_displacement_sqr > MAX_DISPLACEMENT_SQR:
+            target_rest_position = target_rest_position.move_toward(local_end_point, sqrt(rest_displacement_sqr) * TRAVEL_RATE * body.delta_time)
+
+        target.position = local_end_point
+        var target_displacement_sqr: float = target.position.distance_squared_to(target_rest_position)
+        if target_displacement_sqr > MAX_DISPLACEMENT_SQR:
+            target.position = target.position.move_toward(target_rest_position, sqrt(target_displacement_sqr) * TRAVEL_RATE * body.delta_time)
 
         if debug_enable and debug_ik_target:
             _draw_ik_target()
+
         return
 
-    if debug_enable and debug_step_reason:
-        _draw_step_reason()
+    # Motion is a step, and we got a new step target, update final goal point
+    if is_stepping and time_since_start_step > 0.0 and step_cast.is_colliding():
+        # Only update if new point is locally close to current target, otherwise
+        # it will mess up the movement and we should just wait to make a new step
+        var last: int = target_point_list.size() - 1
+        var step_target: Vector4 = target_point_list[last]
+        var max_travel: float = absf(step_target.w)
+        var new_point: Vector3 = step_target_initial.move_toward(next_step_target_global, max_travel)
+        target_point_list[last] = Vector4(new_point.x, new_point.y, new_point.z, step_target.w)
 
-    var leg_speed: float
+    # Moving through targets, check distances and update target
+    var target_point: Vector4 = target_point_list[target_point_index]
+    var local_target_point: Vector3 = Vector3(target_point.x, target_point.y, target_point.z)
+    if target_point.w < 0.0:
+        local_target_point = to_local(local_target_point)
 
-    if body.has_desired_forward:
-        leg_speed = body.desired_speed
-    elif step_transform == Transform3D.IDENTITY:
-        # At rest, use ground speed
-        leg_speed = clampf(
-                body.ground_direction.dot(body.ground_velocity),
-                body.max_speed * 0.65,
-                body.max_speed
-        )
-    else:
-        # Use very small leg speed while interpolating to rest
-        leg_speed = body.max_speed
-        #leg_speed = maxf(body.max_speed * 0.1, 0.05)
+    # TODO: Add timer delays using target_data[index * span + 0] value.
+    #       Probably flip a bool to use the above resting code but with a more
+    #       aggressive holding (don't move the rest target point?), or reset the
+    #       timer if too far? idk.
 
-    # NOTE: In general, will be covering twice the comfort distance
-    leg_speed *= maxf(comfort_distance * 2.0, 1.0)
+    var dist_sqr: float = local_end_point.distance_squared_to(local_target_point)
+    if dist_sqr <= absf(target_point.w * target_point.w):
+        target_point_index += 1
+        if target_point_index >= target_point_list.size():
+            _on_target_finished(local_target_point)
+            return
 
-    var step_current: Vector3 = target.position
-    step_current.y = 0.0
+    if not target_allow_skipping_ahead:
+        target.position = local_target_point
 
-    var step_goal: Vector3 = step_target
-    step_goal.y = 0.0
+        if debug_enable and debug_ik_target:
+            _draw_ik_target()
 
-    var current_dist: float = (step_goal - step_current).length()
+        return
 
-    var step_delta: float = leg_speed * body.delta_time * clampf(current_dist / setting.step_distance, 1.0, 2.0)
-    step_delta = current_dist * minf(step_delta / current_dist, 1.0)
-    var new_step: Vector3 = _calculate_step_vector(step_current, step_goal, step_delta)
+    # Move target ahead if leg ends up closer to a future point
+    var closest_dist_sqr: float = INF
+    for i in range(target_point_index, target_point_list.size()):
+        var point: Vector4 = target_point_list[i]
+        var local_point: Vector3 = Vector3(point.x, point.y, point.z)
+        if point.w < 0.0:
+            local_point = to_local(local_point)
 
-    current_dist = (step_goal - new_step).length()
-    step_height = step_target.y + minf(setting.leg_lift_height, current_dist)
+        dist_sqr = local_end_point.distance_squared_to(local_point)
+        if dist_sqr < closest_dist_sqr:
+            target_point_index = i
+            local_target_point = local_point
+            closest_dist_sqr = dist_sqr
 
-    if target.position.y < step_height:
-        is_lifting = true
-    else:
-        is_lifting = false
-
-    new_step.y = _calculate_lift(target.position.y, step_delta)
-
-    # Fix to step delta
-    var step_change: Vector3 = new_step - target.position
-    new_step = target.position + step_change.limit_length(step_delta)
-
-    if new_step.distance_squared_to(step_target) < 1e-4:
-        is_stepping = false
-        is_lifting = false
-        time_since_last_step = 0.0
-        target.position = step_target
-
-        if debug_enable and debug_step_reason:
-            _draw_step_reason(true)
-    else:
-        target.position = new_step
+    target.position = local_target_point
 
     if debug_enable and debug_ik_target:
         _draw_ik_target()
 
-func _calculate_step_vector(current: Vector3, goal: Vector3, step_delta: float) -> Vector3:
-    if is_zero_approx(setting.leg_swing_amount):
-        return current.move_toward(goal, step_delta)
+## Cleans up target state and sets target_rest_position to final_point
+func _on_target_finished(final_point: Vector3) -> void:
+    target_rest_position = final_point
+    target_point_index = -1
+    target_point_index_ik_checked = -1
 
-    var current_length_sqr: float = current.length_squared()
-    var goal_length_sqr: float = goal.length_squared()
+    if debug_enable:
+        if debug_move_reason:
+            _draw_move_reason(true)
+        if is_stepping:
+            _draw_step_target(true)
+        if debug_ik_target:
+            _draw_ik_target()
 
-    # Check lengths
-    if is_zero_approx(current_length_sqr) or is_zero_approx(goal_length_sqr):
-        return current.move_toward(goal, step_delta)
+    is_moving = false
 
-    var radians: float = current.signed_angle_2(goal, Vector3.UP)
-
-    # Check angle
-    if is_zero_approx(radians) or is_zero_approx(absf(radians) - PI):
-        return current.move_toward(goal, step_delta)
-
-    var current_length: float = sqrt(current_length_sqr)
-    var goal_length: float = sqrt(goal_length_sqr)
-
-    radians = signf(radians) * minf( absf(radians), step_delta / current_length )
-    var new_length: float = move_toward(current_length, goal_length, step_delta)
-
-    var rotated_step = current.rotated(Vector3.UP, radians) * (new_length / current_length)
-
-    if setting.leg_swing_amount < 1.0:
-        var linear_point: Vector2 = Geometry2D.get_closest_point_to_segment(
-                Vector2(rotated_step.x, rotated_step.z),
-                Vector2(current.x, current.z),
-                Vector2(goal.x, goal.z)
-        )
-        rotated_step = rotated_step.lerp(
-                Vector3(linear_point.x, 0.0, linear_point.y),
-                1.0 - setting.leg_swing_amount
-        )
-
-    # Fit to delta
-    var travel: Vector3 = rotated_step - current
-    rotated_step = current + travel.limit_length(step_delta)
-
-    return rotated_step
-
-func start_step() -> void:
-    is_stepping = true
-    is_lifting = true
-    time_since_start_step = 0.0
-    step_target_global = next_step_target_global
-    step_target = step_target_global * global_transform
-    step_origin = target.position
-
-func _calculate_lift(current: float, delta: float) -> float:
-    var baseline: float
     if is_stepping:
-        baseline = step_height
-    elif is_grounded:
-        baseline = (ground_point * global_transform).y
-    elif step_cast.is_colliding():
-        baseline = (next_step_target_global * global_transform).y
-    else:
-        baseline = target_rest_position.y
+        time_since_last_step = 0.0
+        is_stepping = false
 
-    if is_lifting:
-        return move_toward(current, baseline + setting.leg_lift_height, delta)
-    return move_toward(current, baseline, delta)
-
-func can_start_step() -> bool:
-    # Must be not moving
-    if is_moving:
-        return false
-
-    if is_grounded:
-        # Wait for this leg to remain in place before stepping again
-        if time_since_last_step < setting.step_delay:
-            return false
-
-        for leg in get_adjacent():
-            # Adjacent legs must not be moving or stepping
-            if leg.is_moving or leg.is_stepping:
-                return false
-            # Ignore legs that are not grounding and not moving
-            if not leg.apply_ground_forces:
-                continue
-            # And have remained grounded for some time, while applying ground forces
-            if (not leg.apply_ground_forces) or leg.time_since_grounded < setting.step_crosspair_wait:
-                return false
-
-    # We can move and want to move!
-    if not is_comfortable:
-        if debug_enable and debug_step_reason:
-            _debug_step_reason_text = "Not comfortable%s!" % ('' if is_grounded else ' & floating')
-        return true
-
-    # Step sync when the body is moving and this has remained grounded
-    if not body.has_desired_forward:
-        return false
-
-    if (not is_grounded) or time_since_grounded < setting.step_delay:
-        return false
-
-    allow_step_sync = true
-
-    # Allow an early step if all legs are ready to move and this one has enough
-    # distance to start the pair
-    if dist_sqr_to_rest < setting.early_step_distance * setting.early_step_distance:
-        return false
-
-    for leg in get_diagonal():
-        if (not leg.apply_ground_forces) or leg.time_since_grounded < leg.setting.step_delay:
-            return false
-
-    # None of our diagonals have started to move, start the cycle!
-    if debug_enable and debug_step_reason:
-        _debug_step_reason_text = "Early step!"
-    return true
-
-## If this leg should start stepping because it can synchronize with another
-## leg that has begun to step
-func should_sync_step() -> bool:
-    if not allow_step_sync:
-        return false
-
-    for leg in get_diagonal():
-        if leg.is_stepping and leg.time_since_start_step < setting.step_pair_window:
-            if debug_enable and debug_step_reason:
-                _debug_step_reason_text = "Stepping with %s!" % leg.name
-            return true
-    return false
-
-## Returns the legs ahead, behind, and across from this leg. These are the
-## anti-paired legs.
-func get_adjacent() -> Array[CrawlerLeg]:
-    if cached_adjacent.size() > 0:
-        return cached_adjacent
+## Returns the legs cross-paired with this one.
+func get_cross_paired_legs() -> Array[CrawlerLeg]:
+    if cross_paired.size() > 0:
+        return cross_paired
 
     var result: Array[CrawlerLeg]
     var max_id: int = body.legs.size()
@@ -688,35 +763,11 @@ func get_adjacent() -> Array[CrawlerLeg]:
         result.append(body.legs[idx])
 
     # Across
-    if index % 2 == 0:
+    if is_left:
         idx = index + 1
     else:
         idx = index - 1
 
-    if idx >= 0 and idx < max_id:
-        result.append(body.legs[idx])
-
-    return result
-
-## Returns the legs diagonal to this leg. These are the paired legs.
-func get_diagonal() -> Array[CrawlerLeg]:
-    if cached_diagonal.size() > 0:
-        return cached_diagonal
-
-    var result: Array[CrawlerLeg]
-    var max_id: int = body.legs.size()
-
-    # Ahead
-    var idx: int = index - 1
-    if not is_left:
-        idx -= 2
-    if idx >= 0 and idx < max_id:
-        result.append(body.legs[idx])
-
-    # Behind
-    idx = index + 1
-    if is_left:
-        idx += 2
     if idx >= 0 and idx < max_id:
         result.append(body.legs[idx])
 
@@ -734,7 +785,7 @@ func prepare_custom_joint(
 ## joint before returning it, which will be used as a local transform from the
 ## bone in global pose space. Returning null will be interpreted as an error.
 func build_custom_joint(
-        _chain: PhysicalBoneChain3D,
+        chain: PhysicalBoneChain3D,
         part: PhysicalBonePart3D,
         main_body: RigidBody3D,
         parent_body: RigidBody3D,
@@ -753,8 +804,12 @@ func build_custom_joint(
     if beam_res.attach_to_main_body:
         beam_joint.node_a = main_body.get_path()
         beam_joint.body_A_offset = main_body.global_transform.affine_inverse() * global_position
-    else:
+    elif beam_res.relative_attach == -1:
         beam_joint.node_a = parent_body.get_path()
+    else:
+        var relative_part: PhysicalBonePart3D = chain.get_child(part.get_index() + beam_res.relative_attach) as PhysicalBonePart3D
+        if relative_part:
+            beam_joint.node_a = relative_part.get_path()
 
     beam_joint.node_b = part.get_path()
 
@@ -793,8 +848,6 @@ func setting_modified() -> void:
     step_cast.collision_mask = setting.step_cast_collision_mask
     step_cast.shape = setting.step_cast_shape
     step_cast.target_position = Vector3.UP * (setting.step_cast_end - setting.step_cast_start)
-    step_cast.global_position = body.skeleton.global_transform * body.skeleton.get_bone_global_rest(target_bone_idx).origin
-    step_cast.position += Vector3.UP * setting.step_cast_start
 
 func _draw_step_cast() -> void:
     var shape_origin: Vector3 = step_cast.target_position
@@ -819,7 +872,7 @@ func _draw_step_cast() -> void:
     )
 
 func _draw_step_target(clear: bool = false) -> void:
-    if clear:
+    if clear or (not next_step_target_global.is_finite()):
         _debug_target_sphere = DebugDraw.sphere(
                 Vector3.ZERO,
                 0.0,
@@ -829,30 +882,30 @@ func _draw_step_target(clear: bool = false) -> void:
         )
         return
     _debug_target_sphere = DebugDraw.sphere(
-            global_transform * step_target,
+            next_step_target_global,
             (step_cast.shape as SphereShape3D).radius,
             Color.FIREBRICK * Color(1.0, 1.0, 1.0, 0.3),
             _debug_target_sphere,
             1.0
     )
 
-func _draw_step_reason(clear: bool = false) -> void:
+func _draw_move_reason(clear: bool = false) -> void:
     if clear:
-        _debug_step_reason_text_id = DebugDraw.text(
+        _debug_move_reason_text_id = DebugDraw.text(
                 Vector3.INF,
                 '',
                 Color.DARK_ORANGE,
                 16.0,
-                _debug_step_reason_text_id,
+                _debug_move_reason_text_id,
                 0.1
         )
         return
-    _debug_step_reason_text_id = DebugDraw.text(
+    _debug_move_reason_text_id = DebugDraw.text(
             target.global_position,
-            _debug_step_reason_text,
+            _debug_move_reason_text,
             Color.DARK_ORANGE,
             24.0,
-            _debug_step_reason_text_id,
+            _debug_move_reason_text_id,
             1.0
     )
 
@@ -908,7 +961,7 @@ func _draw_rest_area() -> void:
     if not is_comfortable:
         color = Color.RED
     _debug_rest_circle = DebugDraw.circle(
-            target_global_rest,
+            to_global(step_transform * rest_position),
             comfort_distance,
             global_basis.y,
             16,

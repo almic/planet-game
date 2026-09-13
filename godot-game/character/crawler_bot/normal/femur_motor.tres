@@ -7,7 +7,7 @@
 [resource]
 resource_name = "FemurMotor"
 script = ExtResource("1_lgbbw")
-torque_powered_max = 30.0
+torque_powered_max = 10.0
 angle_controller = ExtResource("1_qnie8")
 motor_controller = ExtResource("2_4f2xk")
 metadata/_custom_type_script = "uid://cauv4ysnymf0u"
