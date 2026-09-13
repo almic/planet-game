@@ -12,7 +12,7 @@ var acceleration: float = 16.0
 @export_range(0.0, 20.0, 0.01, 'or_greater')
 var deceleration: float = 16.0
 
-## How much speed to maintain when turning, reduces by this fraction every 15 degrees.
+## Fraction of speed to maintain when turning, per 15 degrees.
 @export_range(0.001, 1.0, 0.001)
 var turning_retention: float = 0.67
 
@@ -289,6 +289,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                 # NOTE: this should allow maintaining high speed and changing direction, but only
                 # with long turns and still has some loss... you could only recover when
                 # speed_in_dir < limit_in_dir, and clamp to the limit, but this just sounds fun...
+                # TODO: this should take in current linear velocity and forward, and return a new
+                # linear velocity, calling "_recover_velocity()"
                 var recovery: Vector3 = state.inverse_mass * _calculate_friction_recovery(forward)
                 if debug_enabled and debug_friction:
                     _friction_movement_debug_vec = DebugDraw.vector(
@@ -298,7 +300,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                             _friction_movement_debug_vec,
                             2.0
                     )
-                state.linear_velocity += recovery * state.step
+                state.linear_velocity += recovery
 
     elif force_ground_movement:
         # Air control
@@ -419,9 +421,11 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
     var best_cos_theta: float = -INF
     for i in range(spring.get_contact_body_count()):
         var normal: Vector3 = -spring.get_contact_normal(i)
-        if normal.dot(global_up) > best_cos_theta:
+        var cos_theta: float = normal.dot(global_up)
+        if cos_theta > best_cos_theta:
             ground_normal = normal
             ground_position = spring.get_contact_average_point(i)
+            best_cos_theta = cos_theta
 
     if best_cos_theta >= cos(max_slope_angle):
         has_landed_on_ground_for_jump = true
@@ -467,7 +471,7 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
     if not is_on_floor:
         return
 
-    var inv_effective_mass: float = 0.0
+    var total_mass: float = 0.0
 
     for i in range(spring.get_contact_body_count()):
         var ground_rid: RID = spring.get_contact_body_rid(i)
@@ -477,10 +481,8 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
         else:
             ground_mass = PhysicsServer3D.body_get_param(ground_rid, PhysicsServer3D.BODY_PARAM_MASS)
 
-        inv_effective_mass += 1.0 / ground_mass
+        total_mass += ground_mass
         ground_friction += spring.get_contact_friction(i)
-
-    var effective_mass: float = 1.0 / inv_effective_mass
 
     for i in range(spring.get_contact_body_count()):
         var ground_rid: RID = spring.get_contact_body_rid(i)
@@ -496,7 +498,7 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
             ground_contact_velocity = ground_state.get_velocity_at_local_position(hit_position - ground_state.transform.origin)
 
         # Ground velocity contribution shared by mass proportion, higher mass contribute more
-        ground_rel_con_velocity += (1.0 - (effective_mass / ground_mass)) * (state.linear_velocity - ground_contact_velocity)
+        ground_rel_con_velocity += (ground_mass / total_mass) * (state.linear_velocity - ground_contact_velocity)
 
     ground_velocity = ground_rel_con_velocity.slide(ground_normal)
 
@@ -518,23 +520,38 @@ func _calculate_friction_recovery(forward: Vector3) -> Vector3:
         if friction.is_zero_approx():
             continue
 
-        var cos_theta: float = clampf(forward.dot(-friction.normalized()), -1.0, 1.0)
+        var cos_theta: float = clampf(forward.dot(friction.normalized()), -1.0, 1.0)
 
         # Full recovery if wish direction and friction match
         if cos_theta == 1.0:
-            recovery -= friction
+            recovery += friction
             continue
 
         var angle: float = acos(cos_theta)
 
         # Retain some speed when turning, multiplier is per 15* of difference
-        var keep: float = pow(clampf(turning_retention, 0.001, 0.943), angle * (12.0 / PI))
+        var keep: float
+        if turning_retention >= 1.0:
+            keep = 1.0
+        elif turning_retention <= 1e-4:
+            keep = 0.0
+        else:
+            keep = pow(clampf(turning_retention, 1e-4, 1.0), angle * (12.0 / PI))
 
         # Allow counter-strafing at "half" the normal rate, reduces jumpy feeling
         if cos_theta <= 0.0:
             keep *= keep
 
-        recovery -= friction * keep
+        # TODO: change this to just always recover `forward * forward.dot(friction)`
+        # and have a section that compares current velocity to forward and
+        # rotates it to point forward with the `keep` multiplier.
+        # rename function to "_recover_velocity"
+        # TODO: spring should have a variable to mark the 'forward' direction in
+        # which forces are applied equivalent to a turning wheel by the spring
+        # to accelerate bodies beneath it backwards. The velocity of the wheel
+        # at the point of contact is `-1.0 * main_body.velocity`, and friction
+        # multiplier would be `1.0 - abs(forward.dot(velocity_normal))`.
+        recovery += forward * friction.length() * keep
 
     return recovery
 

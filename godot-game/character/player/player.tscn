@@ -21,7 +21,9 @@ height = 1.0
 
 [sub_resource type="SpringCastSettings" id="SpringCastSettings_0anp1"]
 position = Vector3(-3.2014214e-09, 1.04, -3.2014214e-09)
+min_length = 0.15
 max_length = 0.74
+damping = 0.8
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_8eijk"]
 radius = 0.3
