@@ -43,6 +43,32 @@ var air_control: float = 0.5
 ## shape cast such that its extent is equal to the step-down height.
 @export var spring: SpringCast
 
+@export_subgroup('Stairs', 'stair')
+
+## If this character should test for stair collisions and apply a stair penalty.
+@export var stair_do_test: bool = false
+
+## Consider objects on these layers to be stairs
+@export_flags_3d_physics var stair_layer: int = 0
+
+## How much speed to lose when on stairs, in addition to incline effects.
+## Reduces acceleration and speed by this fraction for every 15 degrees.
+@export_range(0.0, 1.0, 0.001)
+var stair_speed_penalty: float = 0.2
+
+## When on stairs, always consider the player to be moving uphill for incline
+## speed effects. This makes going down stairs as slow as going up.
+@export var stair_always_uphill: bool = true
+
+## Prefer the normals of stair objects if they are within this angle of a better
+## normal (helps stabilize forward vector)
+@export_range(0.0, 10.0, 0.1, 'or_greater', 'radians_as_degrees')
+var stair_angle_margin: float = deg_to_rad(8.0):
+    set(value):
+        stair_angle_margin = value
+        _stair_cos_margin = cos(stair_angle_margin)
+var _stair_cos_margin: float
+
 
 @export_group('Debug', 'debug')
 
@@ -65,6 +91,10 @@ var _friction_movement_debug_vec: int = 0
 
 
 var is_on_floor: bool = false
+## If the spring collides with a stair object, this changes incline math to
+## always treat the direction as uphill, adds an extra stair speed penalty, and
+## prefers the stair object normal over better normals, within 5 degrees.
+var is_on_stairs: bool = false
 var is_slipping: bool = false
 ## This prevents jumping continuously up steep ground. Must land on flat ground to become true,
 ## set to false upon performing a jump.
@@ -143,6 +173,9 @@ func _ready() -> void:
     # Setup spring
     if spring:
         spring.pick_collisions_function = pick_ground
+
+    # Force cos caching
+    stair_angle_margin = stair_angle_margin
 
 
 ## Implement per controller, called when input should be read for movement.
@@ -271,10 +304,14 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             # Limit forward acceleration
             if force_ground_movement and desired_incline_effect > 0.0:
                 var slope_cos_theta: float = local_up.dot(forward)
+                if is_on_stairs and stair_always_uphill:
+                    slope_cos_theta = absf(slope_cos_theta)
                 if slope_cos_theta > 0.0:
                     if incline_speed_reduction > 0.0:
                         var angle: float = asin(slope_cos_theta)
                         var loss: float = pow(clampf(1.0 - (incline_speed_reduction * desired_incline_effect), 0.001, 0.943), angle * (12.0 / PI))
+                        if is_on_stairs:
+                            loss = maxf(0.0, loss - stair_speed_penalty)
                         limit_in_dir *= loss
                         accel_multiplier *= loss
                 elif slope_cos_theta < 0.0:
@@ -309,6 +346,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             accel_multiplier *= air_control
     else:
         forward = desired_direction
+
+    if spring:
+        spring.set_forward_input(forward)
+        spring.set_forward_max_speed(limit_in_dir)
 
     # Jumping, reset power to zero when activated
     if desired_jump_power > 0.0:
@@ -355,6 +396,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     if speed_in_dir < limit_in_dir:
         forward *= minf(acceleration * accel_multiplier, maxf(limit_in_dir - speed_in_dir, 0.0) / state.step)
         state.linear_velocity += forward * state.step
+    elif speed_in_dir > limit_in_dir:
+        forward *= minf(deceleration, maxf(speed_in_dir - limit_in_dir, 0.0) / state.step)
+        state.linear_velocity -= forward * state.step
 
     _update_motion(state)
 
@@ -365,13 +409,13 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             _velocity_debug_vec = DebugDraw.vector(
                     vel_pos,
                     state.linear_velocity,
-                    Color.FOREST_GREEN,
+                    Color.DARK_BLUE,
                     _velocity_debug_vec,
             )
             _velocity_debug_text = DebugDraw.text(
                     vel_pos,
                     '%.3f m/s' % linear_speed,
-                    Color.FOREST_GREEN,
+                    Color.DARK_BLUE,
                     24.0,
                     _velocity_debug_text
             )
@@ -403,6 +447,7 @@ func _update_motion(state: PhysicsDirectBodyState3D) -> void:
 func _update_ground(state: PhysicsDirectBodyState3D) -> void:
 
     is_on_floor = false
+    is_on_stairs = false
     is_slipping = false
     ground_normal = Vector3.ZERO
     ground_position = Vector3.INF
@@ -419,10 +464,27 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
     # Compute a ground position and normal using the best normal
     var global_up: Vector3 = state.transform.basis.y # technically global, too
     var best_cos_theta: float = -INF
+    var best_stair_normal: Vector3
     for i in range(spring.get_contact_body_count()):
+        var is_stairs: bool = false
+        if stair_do_test:
+            is_stairs = (spring.get_contact_body(i).collision_layer & stair_layer) > 0
+            if (not is_on_stairs) and is_stairs:
+                is_on_stairs = true
+
         var normal: Vector3 = -spring.get_contact_normal(i)
         var cos_theta: float = normal.dot(global_up)
-        if cos_theta > best_cos_theta:
+        var normal_is_better: bool = false
+        if is_stairs:
+            if cos_theta > best_cos_theta or ground_normal.dot(normal) > _stair_cos_margin:
+                best_stair_normal = normal
+                normal_is_better = true
+        elif cos_theta > best_cos_theta:
+            if (not is_on_stairs) or ground_normal.dot(best_stair_normal) < _stair_cos_margin:
+                best_stair_normal = Vector3.ZERO
+                normal_is_better = true
+
+        if normal_is_better:
             ground_normal = normal
             ground_position = spring.get_contact_average_point(i)
             best_cos_theta = cos_theta
@@ -473,6 +535,7 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
 
     var total_mass: float = 0.0
 
+    # is_on_floor == true is a guarantee that spring exists and has contacts
     for i in range(spring.get_contact_body_count()):
         var ground_rid: RID = spring.get_contact_body_rid(i)
         var ground_mass: float
@@ -514,6 +577,9 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
 ## NOTE: this is a force, so it must be multiplied by the main body's inverse mass to get acceleration
 func _calculate_friction_recovery(forward: Vector3) -> Vector3:
     var recovery: Vector3 = Vector3.ZERO
+
+    if not spring:
+        return recovery
 
     for i in range(spring.get_contact_body_count()):
         var friction: Vector3 = spring.get_contact_friction(i)

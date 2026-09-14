@@ -8,9 +8,21 @@ class_name CSGSteps3D extends CSGBox3D
 var steps: int = 3:
     set = set_steps
 
+
+@export_group('Step Info', 'read_only')
+
+## Read only, purely to see the step depth in the inspector
+@export_custom(0, 'radians_as_degrees', PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY)
+var read_only_incline: float = 0.0
+
 ## Read only, purely to see the step height in the inspector
-@export_custom(0, "", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY)
+@export_custom(0, 'suffix:m', PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY)
 var read_only_step_height: float = 0.0
+
+## Read only, purely to see the step depth in the inspector
+@export_custom(0, 'suffix:m', PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY)
+var read_only_step_depth: float = 0.0
+
 
 var steps_shape: CSGPolygon3D
 var last_size: Vector3
@@ -59,6 +71,9 @@ func update_steps() -> void:
     var step_height: float = size.y / steps
     read_only_step_height = step_height
     var step_length: float = size.x / steps
+    read_only_step_depth = step_length
+
+    read_only_incline = atan2(step_height, step_length)
 
     var step_array: PackedVector2Array = PackedVector2Array([
             Vector2(size.x / 2.0, -size.y / 2.0),
