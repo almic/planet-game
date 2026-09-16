@@ -325,7 +325,6 @@ func _ready() -> void:
     if Engine.is_editor_hint():
         # Allow physical skeleton to match bone meshes to IK results
         leg_ik.modification_processed.connect(physical_skeleton.on_pose_finalized)
-        return
 
     var count: int = legs.size()
     leg_update_data.resize(count * 3)
@@ -346,6 +345,9 @@ func _ready() -> void:
             leg.setup(leg_cast_exclude_list, leg_set_first)
         else:
             leg.setup(leg_cast_exclude_list, leg_set_second)
+
+    if Engine.is_editor_hint():
+        return
 
     leg_ik.active = true
     physical_skeleton.active = true
@@ -507,7 +509,6 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
     is_slipping = false
     ground_normal = Vector3.ZERO
     ground_position = Vector3.ZERO
-    ground_velocity = Vector3.ZERO
 
     # This kicks off several callbacks:
     #   1. Matches skeleton pose to physical joints
@@ -521,7 +522,6 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
         var inv_legs: float = 1.0 / float(grounded_leg_count)
         ground_normal *= inv_legs
         ground_position *= inv_legs
-        ground_velocity *= inv_legs
 
         if ground_normal.is_zero_approx():
             ground_normal = state.transform.basis.y
@@ -558,13 +558,20 @@ func _update_legs() -> void:
     for leg in legs:
         leg.update()
 
-        # At this point, all legs have computed final ground states
-        if leg.apply_ground_forces:
+        if leg.is_grounded:
             grounded_leg_count += 1
             ground_normal += leg.ground_normal
-            ground_position += leg.ground_point
-            ground_velocity += leg.ground_velocity
+            ground_position += leg.ground_position
+            ground_velocity += leg.ground_contact_velocity
 
+    if grounded_leg_count == 0:
+        return
+
+    ground_normal = ground_normal.normalized()
+
+    var inv_legs: float = 1.0 / float(grounded_leg_count)
+    ground_position *= inv_legs
+    ground_velocity *= inv_legs
 
 func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
 
@@ -581,47 +588,8 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
     ground_rel_con_velocity = state.linear_velocity - ground_velocity
     ground_velocity = ground_rel_con_velocity.slide(state.transform.basis.y).slide(ground_normal)
 
-    # TODO: stopping friction when not traveling
-    # Gather relative velocity from all legs, using last gravity power
-    var max_leg_mass: float
-    if is_zero_approx(body_leg_lift_ratio):
-        max_leg_mass = total_mass
-    else:
-        max_leg_mass = total_mass / (legs.size() * body_leg_lift_ratio)
-
-    var body_friction: float = PhysicsServer3D.body_get_param(get_rid(), PhysicsServer3D.BODY_PARAM_FRICTION)
-
     for leg in legs:
-        if not leg.is_grounded:
-            continue
-
-        var leg_ground_velocity: Vector3 = leg.ground_rel_con_velocity.slide(leg.ground_normal)
-
-        # "Effective mass" per leg
-        var leg_mass: float = minf(total_mass * leg_gravity_power[leg.index], max_leg_mass)
-
-        # Reduce applied force when leg should not be "holding" the ground
-        if not leg.apply_ground_forces:
-            leg_mass *= 0.1
-
-        # Collision force applying into the ground, only allow impacts and not pulls
-        var leg_force: Vector3 = leg_mass * leg.ground_normal * minf(leg.ground_normal.dot(leg.ground_rel_con_velocity), 0.0)
-
-        # NOTE: Save linear friction for ground_friction
-        linear_leg_accel -= state.inverse_inertia * leg_force
-
-        # Friction
-        var friction: Vector3 = leg_ground_velocity * leg_mass * absf(minf(body_friction, leg.ground_friction))
-        ground_friction -= state.inverse_inertia * friction
-
-        # Angular acceleration from collision and friction
-        leg_force += friction
-        angular_leg_accel -= state.inverse_inertia_tensor * (leg.ground_point - state.transform.origin - state.center_of_mass).cross(leg_force)
-
-        # Push into the ground here
-        var ground_state := PhysicsServer3D.body_get_direct_state(leg.ground_body)
-        if ground_state:
-            ground_state.apply_force(leg_force, leg.ground_point - ground_state.transform.origin)
+        ground_friction += leg.ground_friction
 
     if not ground_velocity.is_zero_approx():
         ground_direction = ground_velocity.normalized()
@@ -629,7 +597,7 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
         ground_direction = Vector3.ZERO
 
 func _custom_pre_movement_forces(state: PhysicsDirectBodyState3D) -> void:
-    _solve_leg_forces(state)
+    # _solve_leg_forces(state)
 
     _solve_rotation(state)
 
@@ -638,8 +606,8 @@ func _solve_leg_forces(state: PhysicsDirectBodyState3D) -> void:
         return
 
     # Add leg accelerations immediately, the next section is responsible for stabilizing the crawler
-    state.linear_velocity += linear_leg_accel * state.step
-    state.angular_velocity += angular_leg_accel * state.step
+    # state.linear_velocity += linear_leg_accel * state.step
+    # state.angular_velocity += angular_leg_accel * state.step
 
     var rid: RID = get_rid()
 
@@ -692,11 +660,11 @@ func _solve_leg_forces(state: PhysicsDirectBodyState3D) -> void:
 
             # These lines copied from CrawlerLeg
             var attachment_plane: Plane = Plane(-state.transform.basis.y, global_attachment)
-            leg.ground_offset = attachment_plane.distance_to(leg.ground_point) - total_height_offset
+            leg.ground_offset = attachment_plane.distance_to(leg.ground_position) - total_height_offset
 
             grounded_leg_avg_displacement += absf(leg.ground_offset)
 
-            var spring_midpoint: Vector3 = (0.5 * (leg.ground_point + global_attachment)) - state.transform.origin
+            var spring_midpoint: Vector3 = (0.5 * (leg.ground_position + global_attachment)) - state.transform.origin
             leg_update_data[leg.index * 3] = spring_midpoint
             leg_update_data[leg.index * 3 + 1] = state.get_velocity_at_local_position(spring_midpoint)
             leg_update_data[leg.index * 3 + 2] = body_plane.project(spring_midpoint + state.transform.origin) - state.transform.origin
@@ -928,7 +896,7 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
     for i in range(4):
         var leg: CrawlerLeg = main_legs[i]
         if leg.apply_ground_forces:
-            ground_points[i] = leg.ground_point
+            ground_points[i] = leg.ground_position
         elif leg.is_stepping:
             ground_points[i] = leg.to_global(leg.step_target_initial)
         elif using_rest_point:

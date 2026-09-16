@@ -1,0 +1,10 @@
+[gd_resource type="SpringCastSettings" format=3 uid="uid://8x8cm8ddcya1"]
+
+[resource]
+resource_name = "CrawlerLegSpring"
+position = Vector3(0, 1.52, 0)
+direction = Vector3(0, 1, 0)
+radius = 0.06
+min_length = 0.02
+max_length = 0.14
+damping = 0.9

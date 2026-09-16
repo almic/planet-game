@@ -3,7 +3,7 @@ class_name CrawlerLeg extends Node3D
 
 
 ## The node that IK uses for this leg
-@export_custom(PROPERTY_HINT_NODE_TYPE, 'Marker3D', PROPERTY_USAGE_STORAGE)
+@export_custom(PROPERTY_HINT_NODE_TYPE, 'Marker3D')
 var target: Marker3D
 
 @export_tool_button('Reset Target', '3D')
@@ -47,11 +47,6 @@ var _debug_ik_sphere: int = 0
 ## The ground contact normal of the leg
 @export var debug_ground_normal: bool = false
 var _debug_ground_normal_vector: int = 0
-
-## The cast used for ground detection
-@export var debug_ground_cast: bool = true
-var _debug_ground_cast_vector: int = 0
-var _debug_ground_cast_shape: int = 0
 
 ## Render text at the leg giving the reason it takes a step
 @export var debug_move_reason: bool = true
@@ -161,20 +156,17 @@ var target_rest_position: Vector3
 
 #region Ground Stuff
 var ground_bone_idx: int = -1
-var ground_cast: ShapeCast3D
+var ground_cast: SpringCast
 ## The body used to calculate ground relative contact velocity
 var ground_physical_part: PhysicalBonePart3D
-## RID of the body considered to be the ground
-var ground_body: RID
+## Ground contact normal in global space
 var ground_normal: Vector3 = Vector3.INF
 ## Ground contact position in global space
-var ground_point: Vector3 = Vector3.INF
+var ground_position: Vector3 = Vector3.INF
 ## Velocity of the ground at the contact point
-var ground_velocity: Vector3 = Vector3.ZERO
-## Computed real velocity of the ground from tick-to-tick
-var ground_last_velocity: Vector3 = Vector3.ZERO
-var ground_xform: Transform3D = Transform3D.IDENTITY
-var ground_friction: float = 0.0
+var ground_contact_velocity: Vector3 = Vector3.ZERO
+## Total friction force applied
+var ground_friction: Vector3
 ## Set by the parent CrawlerCharacter class, exists here for (attempted) organization
 var ground_offset: float = INF
 
@@ -237,7 +229,7 @@ func setup(cast_exceptions: Array[RID], sync_with: Array[CrawlerLeg]) -> void:
             'Unable to find ground bone "%s" for leg %s!' % [ground_bone, name]
         )
         return
-    ground_physical_part = body.physical_skeleton.get_bone_part_map().get(ground_bone_idx) as PhysicalBonePart3D
+    ground_physical_part = body.physical_skeleton.get_bone_part_map().get(body.skeleton.get_bone_parent(ground_bone_idx)) as PhysicalBonePart3D
     if ground_physical_part == null:
         push_error(
             'Unable to get ground physical part from bone "%s" (index %d) for leg %s!' % [ground_bone, ground_bone_idx, name]
@@ -251,15 +243,18 @@ func setup(cast_exceptions: Array[RID], sync_with: Array[CrawlerLeg]) -> void:
     step_cast.position = step_cast_rest_position
     step_cast.position.y += setting.step_cast_start
 
-    ground_cast = ShapeCast3D.new()
+    ground_cast = SpringCast.new()
     ground_cast.name = 'GroundCast'
-    ground_cast.enabled = false
-    ground_cast.top_level = true
-    add_child(ground_cast, false, Node.INTERNAL_MODE_FRONT)
+    ground_cast.settings = setting.ground_spring_setting
+    ground_cast.collision_mask = setting.ground_collision_mask
+    ground_physical_part.add_child(ground_cast, false, Node.INTERNAL_MODE_FRONT)
+    ground_cast.main_body = ground_cast.get_path_to(ground_physical_part)
+    var is_added: bool = ground_cast.is_constraint_added()
+    var main_body := ground_cast.get_main_body_object()
 
     for rid in cast_exceptions:
         step_cast.add_exception_rid(rid)
-        ground_cast.add_exception_rid(rid)
+        # ground_cast.add_exception_rid(rid)
 
     setting_modified()
 
@@ -291,10 +286,14 @@ func setup_target() -> void:
         add_child(target, true)
         target.owner = owner
 
+    target.global_position = body.skeleton.to_global(body.skeleton.get_bone_global_rest(target_bone_idx).origin)
     body.leg_ik.setting_list[index].target_node = body.leg_ik.get_path_to(target)
+
+    if Engine.is_editor_hint():
+        return
+
     if not body.leg_ik.modification_processed.is_connected(on_ik_updated):
         body.leg_ik.modification_processed.connect(on_ik_updated)
-    target.global_position = body.skeleton.to_global(body.skeleton.get_bone_global_rest(target_bone_idx).origin)
 
 ## Watches IK to check for targetting failures, where IK is unable to reach the
 ## current target position and needs to be reset.
@@ -404,59 +403,71 @@ func on_pose_updated() -> void:
         _draw_rest_area()
 
 func _update_grounded() -> void:
-    var has_ground: bool = false
+    # NOTE: when the ground is a static body, use this relative mass instead for ground velocity distribution
+    const STATIC_MASS: float = 10000.0
 
-    var bone_parent_xform: Transform3D = body.skeleton.get_bone_global_pose(body.skeleton.get_bone_parent(ground_bone_idx))
-    var target_position: Vector3 = body.skeleton.get_bone_global_pose(ground_bone_idx).origin
-    var bone_direction: Vector3 = (target_position - bone_parent_xform.origin).normalized()
-    var shape_size: float = (ground_cast.shape as SphereShape3D).radius
-    var start_position: Vector3 = (bone_direction * (setting.ground_hit_start + shape_size))
-    ground_cast.position = body.skeleton.to_global(target_position - start_position)
-    ground_cast.basis = body.skeleton.global_basis * bone_parent_xform.basis
-    ground_cast.target_position = Vector3.UP * (setting.ground_hit_start + setting.ground_hit_extra)
+    ground_position = Vector3.ZERO
+    ground_normal = Vector3.INF
+    ground_friction = Vector3.ZERO
+    ground_contact_velocity = Vector3.ZERO
+    ground_rel_con_velocity = Vector3.ZERO
 
-    ground_cast.force_shapecast_update()
-
-    if debug_enable and debug_ground_cast:
-        _draw_ground_cast()
+    var ground_body := ground_cast.get_main_body_object()
 
     if ground_cast.is_colliding():
-        ground_point = ground_cast.get_collision_point(0)
-        ground_normal = ground_cast.get_collision_normal(0)
+        ground_position = ground_cast.get_contact_average_point(0)
+        var contact_normal: Vector3 = ground_cast.get_contact_normal(0)
 
-        var ground_cos_theta: float = ground_normal.dot(-normal)
-        if ground_cos_theta >= 0.0:
-            has_ground = true
-
-    if has_ground:
-        if not is_grounded:
-            is_grounded = true
-
-        ground_body = ground_cast.get_collider_rid(0)
-        var ground_state := PhysicsServer3D.body_get_direct_state(ground_body)
-        ground_xform = ground_state.transform
-        ground_velocity = ground_state.get_velocity_at_local_position(
-                    ground_point - ground_state.transform.origin
-        )
-        ground_friction = PhysicsServer3D.body_get_param(ground_body, PhysicsServer3D.BODY_PARAM_FRICTION)
-        var part_state := PhysicsServer3D.body_get_direct_state(ground_physical_part.get_rid())
-        var part_velocity: Vector3 = part_state.get_velocity_at_local_position(
-                    ground_point - part_state.transform.origin
-        )
-        ground_rel_con_velocity = part_velocity - ground_velocity
-
+        ground_normal = -contact_normal
         if debug_enable and debug_ground_normal:
             _draw_ground_normal()
 
+        var ground_cos_theta: float = contact_normal.dot(normal)
+        if ground_cos_theta >= 0.0:
+            is_grounded = true
+
     elif is_grounded:
         is_grounded = false
-        ground_normal = Vector3.INF
-        ground_velocity = Vector3.ZERO
-        ground_rel_con_velocity = Vector3.ZERO
-        ground_friction = 0.0
         time_since_grounded = 0.0
         if debug_enable and debug_ground_normal:
             _draw_ground_normal(true)
+
+    if not is_grounded:
+        return
+
+    var total_mass: float = 0.0
+
+    for i in range(ground_cast.get_contact_body_count()):
+        var ground_rid: RID = ground_cast.get_contact_body_rid(i)
+        var ground_mass: float
+        if PhysicsServer3D.body_get_mode(ground_rid) == PhysicsServer3D.BODY_MODE_STATIC:
+            ground_mass = STATIC_MASS
+        else:
+            ground_mass = PhysicsServer3D.body_get_param(ground_rid, PhysicsServer3D.BODY_PARAM_MASS)
+
+        total_mass += ground_mass
+        ground_friction += ground_cast.get_contact_friction(i)
+
+    var part_state := PhysicsServer3D.body_get_direct_state(ground_physical_part.get_rid())
+    var part_velocity: Vector3 = part_state.get_velocity_at_local_position(ground_position - part_state.transform.origin)
+
+    for i in range(ground_cast.get_contact_body_count()):
+        var ground_rid: RID = ground_cast.get_contact_body_rid(i)
+        var hit_position: Vector3 = ground_cast.get_contact_average_point(i)
+        var ground_state := PhysicsServer3D.body_get_direct_state(ground_rid)
+        var ground_velocity: Vector3
+        var ground_mass: float
+        if PhysicsServer3D.body_get_mode(ground_rid) == PhysicsServer3D.BODY_MODE_STATIC:
+            ground_mass = STATIC_MASS
+            ground_velocity = Vector3.ZERO
+        else:
+            ground_mass = PhysicsServer3D.body_get_param(ground_rid, PhysicsServer3D.BODY_PARAM_MASS)
+            ground_velocity = ground_state.get_velocity_at_local_position(hit_position - ground_state.transform.origin)
+
+        # Ground velocity contribution shared by mass proportion, higher mass contribute more
+        var ratio: float = ground_mass / total_mass
+        ground_rel_con_velocity += ratio * (part_velocity - ground_velocity)
+        ground_contact_velocity += ratio * ground_velocity
 
 func _update_timers() -> void:
     # time_since_moved += body.delta_time
@@ -843,7 +854,7 @@ func disconnect_setting() -> void:
 
 func setting_modified() -> void:
     ground_cast.collision_mask = setting.ground_collision_mask
-    ground_cast.shape = setting.ground_cast_shape
+    ground_cast.settings = setting.ground_spring_setting
 
     step_cast.collision_mask = setting.step_cast_collision_mask
     step_cast.shape = setting.step_cast_shape
@@ -917,28 +928,6 @@ func _draw_ik_target() -> void:
             _debug_ik_sphere
     )
 
-func _draw_ground_cast() -> void:
-    var shape_origin: Vector3 = ground_cast.target_position
-    var shape_color: Color
-    if ground_cast.is_colliding():
-        shape_origin *= ground_cast.get_closest_collision_safe_fraction()
-        shape_color = Color.DARK_ORCHID
-    else:
-        shape_color = Color.DARK_SLATE_GRAY
-
-    _debug_ground_cast_vector = DebugDraw.vector(
-            ground_cast.global_position,
-            ground_cast.global_basis * shape_origin,
-            shape_color,
-            _debug_ground_cast_vector
-    )
-    _debug_ground_cast_shape = DebugDraw.sphere(
-            ground_cast.global_transform * shape_origin,
-            (ground_cast.shape as SphereShape3D).radius,
-            shape_color,
-            _debug_ground_cast_shape
-    )
-
 func _draw_ground_normal(clear: bool = false) -> void:
     if clear:
         _debug_ground_normal_vector = DebugDraw.vector(
@@ -950,7 +939,7 @@ func _draw_ground_normal(clear: bool = false) -> void:
         )
         return
     _debug_ground_normal_vector = DebugDraw.vector(
-            ground_point,
+            ground_position,
             ground_normal * 0.5,
             Color.CORNFLOWER_BLUE,
             _debug_ground_normal_vector

@@ -8,7 +8,6 @@
 [ext_resource type="Script" uid="uid://ba78jnlpxs7ph" path="res://addons/physical_skeleton/physical_skeleton.gd" id="3_xefeq"]
 [ext_resource type="Script" uid="uid://dfs1kud1hcgq1" path="res://node/ik_modifier/ik_modifier.gd" id="5_2n4j6"]
 [ext_resource type="Texture2D" uid="uid://c4kyalj0xhphu" path="res://texture/dev/grid_blue.png" id="5_eqa8u"]
-[ext_resource type="Script" uid="uid://dsgtilmpouc1y" path="res://character/crawler_bot/debug_node.gd" id="5_ysf54"]
 [ext_resource type="Resource" uid="uid://cd7utf738hfx6" path="res://character/crawler_bot/normal/front_leg_setting.tres" id="6_8gnh6"]
 [ext_resource type="Resource" uid="uid://deep6fs82y85d" path="res://character/crawler_bot/normal/front_left_chain.tres" id="6_h414r"]
 [ext_resource type="Script" uid="uid://co33qil70ybm6" path="res://node/ik_modifier/chain_resource.gd" id="6_hitf2"]
@@ -44,15 +43,6 @@
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_3kbc3"]
 margin = 0.0
 radius = 0.3
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gbknq"]
-no_depth_test = true
-albedo_color = Color(0, 1, 0, 1)
-
-[sub_resource type="SphereMesh" id="SphereMesh_vmej4"]
-material = SubResource("StandardMaterial3D_gbknq")
-radius = 0.01
-height = 0.02
 
 [sub_resource type="Resource" id="Resource_1ph6b"]
 resource_name = "JointResource"
@@ -285,18 +275,7 @@ joint_copy_width = 0.12
 metadata/_custom_type_script = "uid://ba78jnlpxs7ph"
 metadata/_edit_lock_ = true
 
-[node name="ModifierBoneTarget3D" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="1" unique_id=674517354]
-transform = Transform3D(0.9999998964308021, -9.990390931191584e-08, -1.082866852297748e-07, 3.9730966072681895e-08, -2.0944414330648087e-07, 0.9999999280743757, -3.441599494280467e-08, -0.9999999370761607, -3.0380379623107245e-07, -1.3046897624283078, -2.4514360497107646e-07, -2.2091897354165613)
-bone_name = "FrontLeftTarsus_leaf"
-bone = 11
-
-[node name="Node3D" type="Node3D" parent="big_crawler/Skeleton3D/ModifierBoneTarget3D" unique_id=511948554]
-script = ExtResource("5_ysf54")
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="big_crawler/Skeleton3D/ModifierBoneTarget3D" unique_id=735017294]
-mesh = SubResource("SphereMesh_vmej4")
-
-[node name="IKModifier" type="SkeletonModifier3D" parent="big_crawler/Skeleton3D" index="2" unique_id=523852362]
+[node name="IKModifier" type="SkeletonModifier3D" parent="big_crawler/Skeleton3D" index="1" unique_id=523852362]
 unique_name_in_owner = false
 process_mode = 0
 process_priority = 0
@@ -320,7 +299,7 @@ setting_list = Array[ExtResource("6_hitf2")]([SubResource("Resource_a6782"), Sub
 metadata/_custom_type_script = "uid://dfs1kud1hcgq1"
 metadata/_edit_lock_ = true
 
-[node name="LegTargets" type="Node3D" parent="big_crawler/Skeleton3D" index="3" unique_id=1831794]
+[node name="LegTargets" type="Node3D" parent="big_crawler/Skeleton3D" index="2" unique_id=1831794]
 metadata/_edit_lock_ = true
 
 [node name="FL_Leg" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=116817796 node_paths=PackedStringArray("target")]
@@ -334,7 +313,7 @@ metadata/_custom_type_script = "uid://bco1liolqoebw"
 metadata/_edit_lock_ = true
 
 [node name="FL_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/FL_Leg" unique_id=252489343]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1316897994972137, -0.8200002637279464, -1.5361897448335555)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1316897994972135, -0.8200002637279464, -1.5361897448335555)
 gizmo_extents = 0.1
 
 [node name="FR_Leg" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=734277902 node_paths=PackedStringArray("target")]
@@ -348,7 +327,7 @@ metadata/_custom_type_script = "uid://bco1liolqoebw"
 metadata/_edit_lock_ = true
 
 [node name="FR_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/FR_Leg" unique_id=313845362]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1316897994972137, -0.8200002637279464, -1.5361897448335555)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1316897994972135, -0.8200002637279464, -1.5361897448335555)
 gizmo_extents = 0.1
 
 [node name="ML_Leg" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=1724073026 node_paths=PackedStringArray("target")]
@@ -362,7 +341,7 @@ metadata/_custom_type_script = "uid://bco1liolqoebw"
 metadata/_edit_lock_ = true
 
 [node name="ML_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/ML_Leg" unique_id=1374616570]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9083802259523648, -0.8199997715675613, 3.86036573856717e-07)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9083802259523646, -0.8199997715675613, 3.8603657385671696e-07)
 gizmo_extents = 0.1
 
 [node name="MR_Leg" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=535388397 node_paths=PackedStringArray("target")]
@@ -376,7 +355,7 @@ metadata/_custom_type_script = "uid://bco1liolqoebw"
 metadata/_edit_lock_ = true
 
 [node name="MR_LegTarget" type="Marker3D" parent="big_crawler/Skeleton3D/LegTargets/MR_Leg" unique_id=1527091504]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.9083801970678744, -0.8199997985141179, 3.860366077733255e-07)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.9083801970678742, -0.8199997985141179, 3.860366077733255e-07)
 gizmo_extents = 0.1
 
 [node name="BL_Leg" type="Node3D" parent="big_crawler/Skeleton3D/LegTargets" unique_id=1539461357 node_paths=PackedStringArray("target")]
@@ -407,7 +386,7 @@ metadata/_edit_lock_ = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1316897718826358, -0.8200002237818728, 1.5361900622041404)
 gizmo_extents = 0.1
 
-[node name="LowerSection" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="4" unique_id=920247470]
+[node name="LowerSection" type="ModifierBoneTarget3D" parent="big_crawler/Skeleton3D" index="3" unique_id=920247470]
 transform = Transform3D(1, 0, 0, 0, 2.220446e-16, 1, 0, -1, 2.220446e-16, 0, 0.9, 0.5)
 bone_name = "LowerSection"
 bone = 0
@@ -422,7 +401,7 @@ metadata/_edit_lock_ = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
 mesh = SubResource("BoxMesh_ro1ip")
 
-[node name="ChainRootNode" type="Node3D" parent="big_crawler/Skeleton3D" index="5" unique_id=331699015]
+[node name="ChainRootNode" type="Node3D" parent="big_crawler/Skeleton3D" index="4" unique_id=331699015]
 metadata/_physical_skeleton_owned = true
 metadata/_physical_chain_root = true
 metadata/_edit_lock_ = true

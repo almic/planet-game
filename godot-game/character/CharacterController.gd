@@ -246,7 +246,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
         if debug_friction:
             _friction_debug_vec = DebugDraw.vector(
                 state.transform.origin + (Vector3.UP * 0.45),
-                air_friction + ground_friction,
+                air_friction + (ground_friction * state.inverse_mass),
                 Color.FIREBRICK,
                 _friction_debug_vec,
                 2.0
@@ -522,6 +522,7 @@ func pick_ground(
 
 ## Calculate ground vectors from the current ground state
 func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
+    # NOTE: when the ground is a static body, use this relative mass instead for ground velocity distribution
     const STATIC_MASS: float = 10000.0
 
     ground_friction = Vector3.ZERO

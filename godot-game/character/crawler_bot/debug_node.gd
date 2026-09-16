@@ -3,7 +3,6 @@ extends Node3D
 var debug_id: int
 
 func _ready() -> void:
-    return
     var modifier: SkeletonModifier3D = get_parent() as SkeletonModifier3D
     modifier.modification_processed.connect(draw_debug)
 

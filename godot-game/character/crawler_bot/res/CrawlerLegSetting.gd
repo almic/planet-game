@@ -4,15 +4,7 @@ class_name CrawlerLegSetting extends Resource
 @export_group('Ground Paramaters', 'ground')
 
 ## The shape to use for ground detection
-@export var ground_cast_shape: Shape3D
-
-## How far back from the ground bone to raycast
-@export_range(0.05, 0.2, 0.01, 'or_greater')
-var ground_hit_start: float = 0.1
-
-## How far beyond the ground bone to raycast
-@export_range(0.05, 0.2, 0.01, 'or_greater')
-var ground_hit_extra: float = 0.05
+@export var ground_spring_setting: SpringCastSettings
 
 ## Collision mask for ground contact
 @export_flags_3d_physics var ground_collision_mask: int = 1
