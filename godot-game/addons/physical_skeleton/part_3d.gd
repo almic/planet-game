@@ -93,14 +93,24 @@ var _ik_angle: float
 ## Target orientation for the joint
 var _ik_target: Quaternion
 
+
+#region Debug
 var _debug_layer: CanvasLayer = null
 
+@export_group('Debug', 'debug')
+
+@export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
+var debug_enable: bool = false
+
+## Displays a graph showing motor output and measures
+@export var debug_motor: bool = false
 var _debug_motor_chart: DebugDraw.Chart = null
 var _debug_motor_angle: bool = false
 var _debug_motor_velocity: bool = false
 var _debug_motor_angle_error_id: int = 0
 var _debug_motor_velocity_id: int = 0
 var _debug_motor_torque_id: int = 0
+#endregion Debug
 
 
 func _ready() -> void:
@@ -401,11 +411,11 @@ func update(skeleton: Skeleton3D, bone_idx: int) -> void:
             joint_data.joint = null
 
     if _debug_layer:
-        _debug_layer.visible = resource.debug_enable
+        _debug_layer.visible = debug_enable
 
     if _debug_motor_chart:
-        _debug_motor_chart.visible = resource.debug_enable and resource.debug_motor
-    elif resource.debug_enable and resource.debug_motor:
+        _debug_motor_chart.visible = debug_enable and debug_motor
+    elif debug_enable and debug_motor:
         _setup_debug_motor_chart()
 
 func _update_joint(joint_data: JointData) -> void:
@@ -515,7 +525,7 @@ func on_pose_finalized(skeleton: Skeleton3D, bone_idx: int) -> void:
     if pose.get_axis().dot(local_axis) < 0:
         _ik_angle = -_ik_angle
 
-    if resource.debug_enable and resource.debug_motor and _debug_motor_chart:
+    if debug_enable and debug_motor and _debug_motor_chart:
         _debug_joint_angle()
 
 func apply_motor_parameters() -> void:
@@ -548,7 +558,7 @@ func apply_motor_parameters() -> void:
         bone_joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, desired_motor_torque)
         #bone_joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_MOTOR_TARGET_VELOCITY, desired_motor_velocity)
 
-    if resource.debug_enable and resource.debug_motor and _debug_motor_chart:
+    if debug_enable and debug_motor and _debug_motor_chart:
         _debug_motor_chart.insert(_debug_motor_velocity_id, joint_velocity)
         var torque_ratio: float = desired_motor_torque / resource.motor_parameters.torque_powered_max
         _debug_motor_chart.insert(_debug_motor_torque_id, torque_ratio)

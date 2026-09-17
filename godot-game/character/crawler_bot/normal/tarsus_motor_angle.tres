@@ -6,6 +6,6 @@
 resource_name = "TarsusMotorAngle"
 script = ExtResource("1_lrdxp")
 proportional = 16.0
-integral = 0.0
+integral = 0.1
 derivative = 16.0
 metadata/_custom_type_script = "uid://bddq06cxcp4p0"

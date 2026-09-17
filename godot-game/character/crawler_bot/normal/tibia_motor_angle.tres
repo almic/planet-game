@@ -6,6 +6,6 @@
 resource_name = "TibiaMotorAngle"
 script = ExtResource("1_nclol")
 proportional = 16.0
-integral = 0.0
+integral = 0.1
 derivative = 14.0
 metadata/_custom_type_script = "uid://bddq06cxcp4p0"

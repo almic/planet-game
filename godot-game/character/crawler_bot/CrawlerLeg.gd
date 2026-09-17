@@ -2,7 +2,7 @@
 class_name CrawlerLeg extends Node3D
 
 
-## The node that IK uses for this leg
+## The node that IK uses for this leg, using local-space positions
 @export_custom(PROPERTY_HINT_NODE_TYPE, 'Marker3D')
 var target: Marker3D
 
@@ -25,10 +25,10 @@ var ground_bone: StringName
 @export_group('Debug', 'debug')
 
 @export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
-var debug_enable: bool = true
+var debug_enable: bool = false
 
 ## The comfort region for leg
-@export var debug_rest_area: bool = true
+@export var debug_rest_area: bool = false
 var _debug_rest_circle: int = 0
 
 ## The step shape cast
@@ -37,11 +37,11 @@ var _debug_step_cast_shape: int = 0
 var _debug_step_cast_vector: int = 0
 
 ## The target position for the current step
-@export var debug_step_target: bool = true
+@export var debug_step_target: bool = false
 var _debug_target_sphere: int = 0
 
 ## The target IK position for the leg
-@export var debug_ik_target: bool = true
+@export var debug_ik_target: bool = false
 var _debug_ik_sphere: int = 0
 
 ## The ground contact normal of the leg
@@ -49,7 +49,7 @@ var _debug_ik_sphere: int = 0
 var _debug_ground_normal_vector: int = 0
 
 ## Render text at the leg giving the reason it takes a step
-@export var debug_move_reason: bool = true
+@export var debug_move_reason: bool = false
 var _debug_move_reason_text_id: int = 0
 var _debug_move_reason_text: String
 #endregion Debug
@@ -151,7 +151,7 @@ var target_point_index_ik_checked: int = -1
 var target_allow_skipping_ahead: bool = true
 ## Current target rest in local space, the leg will continuously travel to this
 ## point when it has no other target points. When displaced, this target is
-## moved towards the displacment at a set rate.
+## moved towards the displacement at a set rate.
 var target_rest_position: Vector3
 
 #region Ground Stuff
@@ -249,8 +249,6 @@ func setup(cast_exceptions: Array[RID], sync_with: Array[CrawlerLeg]) -> void:
     ground_cast.collision_mask = setting.ground_collision_mask
     ground_physical_part.add_child(ground_cast, false, Node.INTERNAL_MODE_FRONT)
     ground_cast.main_body = ground_cast.get_path_to(ground_physical_part)
-    var is_added: bool = ground_cast.is_constraint_added()
-    var main_body := ground_cast.get_main_body_object()
 
     for rid in cast_exceptions:
         step_cast.add_exception_rid(rid)
@@ -316,6 +314,7 @@ func on_ik_updated() -> void:
             target_rest_position = target_rest_position.lerp(local_bone, SOFT_RATE * body.delta_time)
         else:
             # Skip this target completely
+            # TODO: use a delay instead of giving up instantly!
             target_point_index += 1
             if target_point_index >= target_point_list.size():
                 @warning_ignore("confusable_local_declaration")
@@ -411,8 +410,6 @@ func _update_grounded() -> void:
     ground_friction = Vector3.ZERO
     ground_contact_velocity = Vector3.ZERO
     ground_rel_con_velocity = Vector3.ZERO
-
-    var ground_body := ground_cast.get_main_body_object()
 
     if ground_cast.is_colliding():
         ground_position = ground_cast.get_contact_average_point(0)
@@ -664,16 +661,12 @@ func _update_target() -> void:
     # At rest, travel towards leg end point
     if target_point_index == -1:
         # TODO: parameters?
-        const MAX_DISPLACEMENT_SQR: float = pow(0.03, 2.0)
+        const MAX_DISPLACEMENT_SQR: float = pow(0.1, 2.0)
         const TRAVEL_RATE: float = 0.2
         var rest_displacement_sqr: float = target_rest_position.distance_squared_to(local_end_point)
         if rest_displacement_sqr > MAX_DISPLACEMENT_SQR:
             target_rest_position = target_rest_position.move_toward(local_end_point, sqrt(rest_displacement_sqr) * TRAVEL_RATE * body.delta_time)
-
-        target.position = local_end_point
-        var target_displacement_sqr: float = target.position.distance_squared_to(target_rest_position)
-        if target_displacement_sqr > MAX_DISPLACEMENT_SQR:
-            target.position = target.position.move_toward(target_rest_position, sqrt(target_displacement_sqr) * TRAVEL_RATE * body.delta_time)
+            target.position = target_rest_position
 
         if debug_enable and debug_ik_target:
             _draw_ik_target()
@@ -738,6 +731,7 @@ func _update_target() -> void:
 ## Cleans up target state and sets target_rest_position to final_point
 func _on_target_finished(final_point: Vector3) -> void:
     target_rest_position = final_point
+    target.position = target_rest_position
     target_point_index = -1
     target_point_index_ik_checked = -1
 

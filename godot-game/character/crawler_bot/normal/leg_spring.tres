@@ -7,4 +7,5 @@ direction = Vector3(0, 1, 0)
 radius = 0.06
 min_length = 0.02
 max_length = 0.14
-damping = 0.9
+stiffness = 9.0
+damping = 1.0
