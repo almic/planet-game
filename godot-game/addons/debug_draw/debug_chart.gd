@@ -80,6 +80,12 @@ func _draw() -> void:
     legend_y += font.get_height(TITLE_SIZE)
 
     var series_rect: Rect2 = Rect2(Vector2(0, 0), size)
+    draw_line(
+        Vector2(series_rect.position.x, series_rect.position.y + size.y * 0.5),
+        Vector2(series_rect.position.x + size.x, series_rect.position.y + size.y * 0.5),
+        Color.DARK_GRAY
+    )
+
     for series in series_list:
         draw_rect(
                 Rect2(legend_x, legend_y + line_ascent - box_size, box_size, minf(box_size, line_ascent)),
