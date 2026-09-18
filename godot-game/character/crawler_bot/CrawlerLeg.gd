@@ -229,6 +229,7 @@ func setup(cast_exceptions: Array[RID], sync_with: Array[CrawlerLeg]) -> void:
             'Unable to find ground bone "%s" for leg %s!' % [ground_bone, name]
         )
         return
+
     ground_physical_part = body.physical_skeleton.get_bone_part_map().get(body.skeleton.get_bone_parent(ground_bone_idx)) as PhysicalBonePart3D
     if ground_physical_part == null:
         push_error(
@@ -263,7 +264,7 @@ func apply_position() -> void:
         return
 
     var root_bone: int = body.skeleton.find_bone(physical_bone_chain.root_bone)
-    position = body.skeleton.get_bone_global_pose(root_bone).origin
+    global_position = body.skeleton.to_global(body.skeleton.get_bone_global_pose(root_bone).origin)
     basis = Basis.IDENTITY
 
 func setup_target() -> void:
@@ -297,6 +298,9 @@ func setup_target() -> void:
 ## current target position and needs to be reset.
 func on_ik_updated() -> void:
     const SOFT_RATE: float = 0.5
+
+    # Need to verify that IK endpoint is within the current target distance,
+    # otherwise it's a bug and devs should be notified with an error
 
     if not body.leg_ik.has_reached_goal(index):
         if body.leg_ik.has_made_progress(index):
@@ -609,7 +613,7 @@ func do_step() -> void:
     time_since_start_step = 0.0
     target_point_list.clear()
     target_point_data_list.clear()
-    target_point_index = 0
+    target_point_index = 1 # NOTE: the first point is the current position, used only for skipping
     target_point_index_ik_checked = -1
 
     var start_length: float = local_end_point.length()
@@ -629,12 +633,19 @@ func do_step() -> void:
 
     # TODO: parameter for point count
     const POINTS: int = 3
-    for i in range(1, POINTS + 1):
-        var progress: float = float(i) / float(POINTS)
+    for i in range(0, POINTS + 1):
         var point: Vector3
-        if i == POINTS:
+        var is_global: bool = false
+        if i == 0:
+            # NOTE: initial point is used to track directions when skipping the
+            # first mid-point
+            point = global_end_point
+            is_global = true
+        elif i == POINTS:
             point = local_step_target
+            is_global = true
         else:
+            var progress: float = float(i) / float(POINTS)
             point = local_end_point.lerp(local_step_target, progress)
             if use_rotation:
                 var rotated_point: Vector3 = start_normalized.rotated(sweep_axis, angle * progress)
@@ -643,9 +654,9 @@ func do_step() -> void:
             # TODO: parameter for lift height curve
             point += Vector3.UP * maxf(setting.leg_lift_height, setting.leg_lift_height * 2.0 * progress)
 
+        # TODO: parameter for target distance
         var point_4: Vector4 = Vector4(point.x, point.y, point.z, 0.08)
-        if i == POINTS:
-            point_4.y = local_step_target.y
+        if is_global:
             point_4.w = -point_4.w
 
         target_point_list.append(point_4)
@@ -709,24 +720,50 @@ func _update_target() -> void:
 
         return
 
-    # Move target ahead if leg ends up closer to a future point
-    var closest_dist_sqr: float = INF
-    for i in range(target_point_index, target_point_list.size()):
-        var point: Vector4 = target_point_list[i]
-        var local_point: Vector3 = Vector3(point.x, point.y, point.z)
-        if point.w < 0.0:
-            local_point = to_local(local_point)
+    # 1. Compare current travel direction to A->B direction, if zero or less:
+    # 2. Compare distance to current target and future, if future is closer,
+    #    skip ahead. Otherwise:
+    # 3. Compare dot products of here to B, and here to C, select the target
+    #    with the higher result.
+    # 4. Repeat until no skip is made.
+    while true:
+        local_target_point = _get_target_point(target_point_index)
+        if target_point_index + 1 >= target_point_list.size():
+            break
 
-        dist_sqr = local_end_point.distance_squared_to(local_point)
-        if dist_sqr < closest_dist_sqr:
-            target_point_index = i
-            local_target_point = local_point
-            closest_dist_sqr = dist_sqr
+        var current_travel_dir: Vector3 = local_end_point.direction_to(local_target_point)
+        # NOTE: always safe, index starts at 1, first point is initial position
+        var prev_target: Vector3 = _get_target_point(target_point_index - 1)
+        var original_travel_dir: Vector3 = prev_target.direction_to(local_target_point)
+
+        if current_travel_dir.dot(original_travel_dir) > 0.0:
+            break # Same direction, keep going towards target
+
+        var next_target: Vector3 = _get_target_point(target_point_index + 1)
+        if local_end_point.distance_squared_to(next_target) <= dist_sqr:
+            target_point_index += 1
+            continue
+
+        var next_travel_dir: Vector3 = local_end_point.direction_to(next_target)
+        if original_travel_dir.dot(current_travel_dir) <= original_travel_dir.dot(next_travel_dir):
+            target_point_index += 1
+            continue
+
+        break
 
     target.position = local_target_point
 
     if debug_enable and debug_ik_target:
         _draw_ik_target()
+
+## Returns the local position of the target point at the given index. You must
+## guarantee that the point exists as this does not perform bounds checks.
+func _get_target_point(target_index: int) -> Vector3:
+    var tp: Vector4 = target_point_list[target_index]
+    var point: Vector3 = Vector3(tp.x, tp.y, tp.z)
+    if tp.w < 0.0:
+        point = to_local(point)
+    return point
 
 ## Cleans up target state and sets target_rest_position to final_point
 func _on_target_finished(final_point: Vector3) -> void:
