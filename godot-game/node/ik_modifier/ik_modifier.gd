@@ -288,7 +288,8 @@ func _process_modification_with_delta(delta: float) -> void:
             skeleton.force_update_all_bone_transforms()
 
         var final_position: Vector3 = skeleton.get_bone_global_pose(end_bone).origin
-        if final_position.distance_squared_to(target_position) - 1e-6 < initial_position.distance_squared_to(target_position):
+        # NOTE: must make a minimum of 0.1cm of progress to count
+        if final_position.distance_squared_to(target_position) + 1e-6 < initial_position.distance_squared_to(target_position):
             flags |= FLAG_MADE_PROGRESS
 
         _progress_state_list[index] = flags
