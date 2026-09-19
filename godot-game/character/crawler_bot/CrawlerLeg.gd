@@ -542,6 +542,10 @@ func update() -> void:
 
             if not leg.is_grounded:
                 # Recover?? Missed a step or lost ground
+                # TODO: if a step is not allowed right now, just try to maintain ground contact,
+                # probably need a new cast or something?
+                # Probably move target to a predetermined "safe" position based on the current
+                # location, and hope that ground contact is made.
                 leg.do_step()
                 if leg.debug_enable and leg.debug_move_reason:
                     leg._debug_move_reason_text = "Recovering, not moving and no ground!"
@@ -707,6 +711,11 @@ func _update_target() -> void:
 
     var dist_sqr: float = local_end_point.distance_squared_to(local_target_point)
     if dist_sqr <= absf(target_point.w * target_point.w):
+        if _should_wait_for_step():
+            if debug_enable and debug_ik_target:
+                _draw_ik_target()
+            return
+
         target_point_index += 1
         if target_point_index >= target_point_list.size():
             _on_target_finished(local_target_point)
@@ -755,6 +764,49 @@ func _update_target() -> void:
 
     if debug_enable and debug_ik_target:
         _draw_ik_target()
+
+## When stepping and targeting the final point, we may "reach" it without finding
+## ground. This method returns true if the target should remain active, hoping
+## to locate ground in a short time. This returns false if we find ground, stay
+## very close to the target (TODO: for a short time), or pass it and miss.
+func _should_wait_for_step() -> bool:
+    # NOTE: when stepping, we should not consider the motion complete until
+    # we touch ground, pass the point, or get very close. Maybe consider a
+    # timer to hold at the location for a short period, too.
+    if not is_stepping:
+        return false
+
+    # Not at the final step goal, no need to wait here
+    if target_point_index + 1 < target_point_list.size():
+        return false
+
+    # 1. touching ground is the end of the step
+    if is_grounded:
+        return false
+
+    # 2. being very near the goal (TODO: for a short time)
+    const STEP_GOAL_DIST_SQR: float = 2.5e-5 # NOTE: 0.5cm
+    var local_target_point: Vector3 = _get_target_point(target_point_index)
+    var dist_sqr: float = local_end_point.distance_squared_to(local_target_point)
+
+    if dist_sqr <= STEP_GOAL_DIST_SQR:
+        return false
+
+    # 3. passing the goal by some distance (maybe not count this?)
+    const STEP_MISS_DIST_SQR: float = 2.25e-4 # NOTE: 1.5cm
+    var current_travel_dir: Vector3 = local_end_point.direction_to(local_target_point)
+    var prev_target: Vector3 = _get_target_point(target_point_index - 1)
+    var original_travel_dir: Vector3 = prev_target.direction_to(local_target_point)
+
+    if current_travel_dir.dot(original_travel_dir) < 0.0 and dist_sqr > STEP_MISS_DIST_SQR:
+        return false
+
+    # 1. not grounded
+    # 2. further than step goal distance
+    # 3. traveling towards the goal, or not further than miss distance
+    # Do not progress target, wait.
+    # TODO: probably need a short timer here...
+    return true
 
 ## Returns the local position of the target point at the given index. You must
 ## guarantee that the point exists as this does not perform bounds checks.
