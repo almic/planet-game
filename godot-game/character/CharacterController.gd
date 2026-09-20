@@ -402,6 +402,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
     _update_motion(state)
 
+    _post_integrate_forces(state)
+
     if debug_enabled:
         var vector_pos: Vector3 = state.transform.origin + (local_up * 0.5)
         if debug_velocity:
@@ -625,4 +627,9 @@ func _calculate_friction_recovery(forward: Vector3) -> Vector3:
 ## For custom forces that should be applied just before movement
 @warning_ignore("unused_parameter")
 func _custom_pre_movement_forces(state: PhysicsDirectBodyState3D) -> void:
+    pass
+
+## Called after all force integration has been made
+@warning_ignore("unused_parameter")
+func _post_integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     pass

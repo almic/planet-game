@@ -79,6 +79,13 @@ var ik_max_iterations: int = 4:
         ik_max_iterations = value
         _queue_update_ik_settings()
 
+## Minimum number of iteration loops used by the IK solver even when it has reached the goal distance.
+@export_range(0, 10, 1, 'or_greater')
+var ik_min_iterations: int = 1:
+    set(value):
+        ik_min_iterations = value
+        _queue_update_ik_settings()
+
 ## The target solve distance between the end bone and the target node.
 ## Iteration will only run while the distance is greater than this value.
 @export_range(0.0, 1.0, 0.001, 'or_greater')
@@ -150,6 +157,7 @@ var legs: Array[CrawlerLeg]
 var target_position: Vector3 = Vector3.INF
 var target_direction: Vector3 = Vector3.INF
 
+## True when the body has either a desired foward direction or rotation
 var has_desired_movement: bool:
     get():
         return has_desired_forward or has_desired_rotation
@@ -158,14 +166,14 @@ var has_desired_rotation: bool = false
 var grounded_leg_count: int = 0
 var grounded_leg_avg_displacement: float
 var leg_update_data: PackedVector3Array
+## When in motion, grounded legs should apply this transform to their target
+## positions, enabling them to effectively propel the main body.
+var leg_target_delta: Transform3D
 var leg_polygon: PackedVector2Array
 var leg_gravity_power: PackedFloat64Array
 
 var leg_set_first: Array[CrawlerLeg]
 var leg_set_second: Array[CrawlerLeg]
-
-var linear_leg_accel: Vector3
-var angular_leg_accel: Vector3
 
 var _is_update_ik_queued: bool = false
 
@@ -425,6 +433,7 @@ func _update_ik_settings() -> void:
         return
 
     leg_ik.iterations = ik_max_iterations
+    leg_ik.min_iterations = ik_min_iterations
     leg_ik.min_distance = ik_min_distance
     leg_ik.angular_delta_limit = ik_angular_delta_limit
 
@@ -504,24 +513,26 @@ func _handle_input() -> void:
         target_position = Vector3.INF
 
 func _update_ground(state: PhysicsDirectBodyState3D) -> void:
-
     is_on_floor = false
     is_slipping = false
     ground_normal = Vector3.ZERO
     ground_position = Vector3.ZERO
+    ground_velocity = Vector3.ZERO
 
-    # This kicks off several callbacks:
-    #   1. Matches skeleton pose to physical joints
-    #   2. Calls '_update_legs()' which provides the current pose and calculates new targets
-    #   3. IterateIK moves joints towards targets
-    #   4. PhysicalSkeleton calculates joint motor velocities for the next physics step
-    skeleton.advance(state.step, true)
+    grounded_leg_count = 0
+
+    for leg in legs:
+        leg.on_physics_update()
+        # TODO: handle leg being broken somehow
+        if leg.is_grounded:
+            grounded_leg_count += 1
+            ground_normal += leg.ground_normal
+            ground_position += leg.ground_position
+            ground_velocity += leg.ground_contact_velocity
 
     if grounded_leg_count > 0:
         is_on_floor = true
-        var inv_legs: float = 1.0 / float(grounded_leg_count)
-        ground_normal *= inv_legs
-        ground_position *= inv_legs
+        ground_position /= grounded_leg_count
 
         if ground_normal.is_zero_approx():
             ground_normal = state.transform.basis.y
@@ -533,55 +544,12 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
     else:
         ground_position = Vector3.INF
 
-func _update_legs() -> void:
-    for leg in legs:
-        leg.on_pose_updated()
-
-    var any_legs_just_broken: bool = false
-    for chain in physical_skeleton.chain_list:
-        if not chain.is_ik_enabled:
-            continue
-
-        # Disable IK behavior on the chain and update legs
-        if chain.is_any_motor_broken:
-            chain.is_ik_enabled = false # mark disabled to skip in the future
-            # NOTE: setting node path to empty effectively disables that ik setting
-            leg_ik.setting_list[chain.ik_setting].target_node = NodePath("")
-            legs[chain.ik_setting].is_broken = true
-            any_legs_just_broken = true
-
-    if any_legs_just_broken:
-        _update_leg_sets()
-
-    grounded_leg_count = 0
-
-    for leg in legs:
-        leg.update()
-
-        if leg.is_grounded:
-            grounded_leg_count += 1
-            ground_normal += leg.ground_normal
-            ground_position += leg.ground_position
-            ground_velocity += leg.ground_contact_velocity
-
-    if grounded_leg_count == 0:
-        return
-
-    ground_normal = ground_normal.normalized()
-
-    var inv_legs: float = 1.0 / float(grounded_leg_count)
-    ground_position *= inv_legs
-    ground_velocity *= inv_legs
-
 func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
 
     ground_direction = Vector3.ZERO
     ground_rel_con_velocity = Vector3.ZERO
     ground_friction = Vector3.ZERO
-    angular_leg_accel = Vector3.ZERO
-    linear_leg_accel = Vector3.ZERO
 
-    # NOTE: is_on_floor is effectively a `grounded_leg_count != 0` test
     if not is_on_floor:
         return
 
@@ -601,13 +569,38 @@ func _custom_pre_movement_forces(state: PhysicsDirectBodyState3D) -> void:
 
     _solve_rotation(state)
 
+func _post_integrate_forces(state: PhysicsDirectBodyState3D) -> void:
+    # This kicks off several callbacks:
+    #   1. Matches skeleton pose to physical joints and updates chain forces
+    #   2. Calls _update_legs(), which
+    #   3. IterateIK moves joints towards targets
+    #   4. PhysicalSkeleton calculates joint motor velocities for the next physics step
+    skeleton.advance(state.step, true)
+
+func _update_legs() -> void:
+    # NOTE: Disable any IK here, this is between the physical skeleton and ik
+    var any_legs_just_broken: bool = false
+    for chain in physical_skeleton.chain_list:
+        if not chain.is_ik_enabled:
+            continue
+
+        # Disable IK behavior on the chain and update legs
+        if chain.is_any_motor_broken:
+            chain.is_ik_enabled = false # mark disabled to skip in the future
+            # NOTE: setting node path to empty effectively disables that ik setting
+            leg_ik.setting_list[chain.ik_setting].target_node = NodePath("")
+            legs[chain.ik_setting].is_broken = true
+            any_legs_just_broken = true
+
+    if any_legs_just_broken:
+        _update_leg_sets()
+
+    for leg in legs:
+        leg.update()
+
 func _solve_leg_forces(state: PhysicsDirectBodyState3D) -> void:
     if grounded_leg_count < 1:
         return
-
-    # Add leg accelerations immediately, the next section is responsible for stabilizing the crawler
-    # state.linear_velocity += linear_leg_accel * state.step
-    # state.angular_velocity += angular_leg_accel * state.step
 
     var rid: RID = get_rid()
 
@@ -938,8 +931,6 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
     var pitch: float = current_forward.signed_angle_2(preferred_forward, preferred_right)
 
     var angular: Vector3 = Vector3(pitch, yaw, roll)
-    angular.x = 0.0
-    angular.z = 0.0
 
     # roughly 0.5 degrees
     const LOW_ANGLE: float = 7.62e-5

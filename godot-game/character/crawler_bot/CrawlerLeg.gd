@@ -97,7 +97,9 @@ var time_since_grounded: float = 0.0
 var grounded_last_tick: bool = false
 
 ## The leg is currently in motion
-var is_moving: bool = false
+var is_moving: bool:
+    get():
+        return is_stepping or target_point_index != -1
 ## How long it has been since the last movement began
 var time_since_moved: float = 0.0
 
@@ -132,7 +134,7 @@ var sync_paired: Array[CrawlerLeg]
 
 ## Most recent global step target from the step cast
 var next_step_target_global: Vector3 = Vector3.INF
-var has_next_target: bool:
+var has_next_step_target: bool:
     get():
         return next_step_target_global.is_finite()
 ## During steps, this is used to prevent the final target from moving too far
@@ -159,6 +161,8 @@ var ground_bone_idx: int = -1
 var ground_cast: SpringCast
 ## The body used to calculate ground relative contact velocity
 var ground_physical_part: PhysicalBonePart3D
+## Length of the ground bone, used to calculate the leg end position
+var ground_bone_length: float = 0.0
 ## Ground contact normal in global space
 var ground_normal: Vector3 = Vector3.INF
 ## Ground contact position in global space
@@ -167,13 +171,12 @@ var ground_position: Vector3 = Vector3.INF
 var ground_contact_velocity: Vector3 = Vector3.ZERO
 ## Total friction force applied
 var ground_friction: Vector3
-## Set by the parent CrawlerCharacter class, exists here for (attempted) organization
-var ground_offset: float = INF
 
 var ground_last_rid: RID
 var ground_last_local: Vector3
 #endregion Ground Stuff
 
+## Bone of the end point of the leg, where the target is compared to
 var target_bone_idx: int = -1
 
 
@@ -222,6 +225,7 @@ func setup(cast_exceptions: Array[RID], sync_with: Array[CrawlerLeg]) -> void:
     local_end_point = target.position
     attachment_point = (body.global_transform.affine_inverse() * global_transform).origin
     step_cast_rest_position = transform.affine_inverse() * body.skeleton.get_bone_global_rest(target_bone_idx).origin
+    ground_bone_length = body.skeleton.get_bone_rest(target_bone_idx).origin.length()
 
     ground_bone_idx = body.skeleton.find_bone(ground_bone)
     if ground_bone_idx == -1:
@@ -370,14 +374,10 @@ func on_ik_updated() -> void:
         local_point = to_global(local_point)
     target_point_list[target_point_index] = Vector4(local_point.x, local_point.y, local_point.z, target_point.w)
 
-## Cache leg pose data, update timers, transforms, ground data
-func on_pose_updated() -> void:
-    normal = (
-              body.skeleton.global_transform
-            * body.skeleton.get_bone_global_pose(body.skeleton.get_bone_parent(ground_bone_idx))
-    ).basis.y
-
-    global_end_point = body.skeleton.to_global(body.skeleton.get_bone_global_pose(target_bone_idx).origin)
+## Physics
+func on_physics_update() -> void:
+    normal = ground_physical_part.global_basis.y
+    global_end_point = ground_physical_part.global_transform.translated_local(Vector3.UP * ground_bone_length).origin
     local_end_point = to_local(global_end_point)
 
     _update_grounded()
@@ -537,7 +537,7 @@ func update() -> void:
         var all_allowed: bool = true
         var early_step_leg: CrawlerLeg = null
         for leg in sync_paired:
-            if leg.is_moving or not leg.has_next_target:
+            if leg.is_moving or not leg.has_next_step_target:
                 continue
 
             if not leg.is_grounded:
@@ -574,7 +574,7 @@ func update() -> void:
         # Start remaining legs with an early step
         if all_allowed and early_step_leg != null:
             for leg in sync_paired:
-                if leg.is_moving or not leg.has_next_target:
+                if leg.is_moving or not leg.has_next_step_target:
                     continue
                 leg.do_step()
                 if leg.debug_enable and leg.debug_move_reason:
@@ -612,7 +612,6 @@ func do_step() -> void:
         target_rest_position = local_step_target
         return
 
-    is_moving = true
     is_stepping = true
     time_since_start_step = 0.0
     target_point_list.clear()
@@ -675,13 +674,7 @@ func _update_target() -> void:
 
     # At rest, travel towards leg end point
     if target_point_index == -1:
-        # TODO: parameters?
-        const MAX_DISPLACEMENT_SQR: float = pow(0.1, 2.0)
-        const TRAVEL_RATE: float = 0.2
-        var rest_displacement_sqr: float = target_rest_position.distance_squared_to(local_end_point)
-        if rest_displacement_sqr > MAX_DISPLACEMENT_SQR:
-            target_rest_position = target_rest_position.move_toward(local_end_point, sqrt(rest_displacement_sqr) * TRAVEL_RATE * body.delta_time)
-            target.position = target_rest_position
+        _update_target_rest()
 
         if debug_enable and debug_ik_target:
             _draw_ik_target()
@@ -765,6 +758,41 @@ func _update_target() -> void:
     if debug_enable and debug_ik_target:
         _draw_ik_target()
 
+func _update_target_rest() -> void:
+    if not body.has_desired_movement:
+        # TODO: parameters?
+        const MAX_DISPLACEMENT_SQR: float = pow(0.1, 2.0)
+        const TRAVEL_RATE: float = 0.2
+        var rest_displacement_sqr: float = target_rest_position.distance_squared_to(local_end_point)
+        if rest_displacement_sqr > MAX_DISPLACEMENT_SQR:
+            target_rest_position = target_rest_position.move_toward(local_end_point, sqrt(rest_displacement_sqr) * TRAVEL_RATE * body.delta_time)
+            target.position = target_rest_position
+        return
+
+    # Move rest target to oppose forward / rotation, such that this leg has a
+    # minimal impact on body movement.
+    var body_global_center: Transform3D = body.phys_state.transform.translated(body.phys_state.center_of_mass)
+    var rest_rel_to_body: Vector3 = (
+              body_global_center.affine_inverse()
+            * global_transform.translated_local(target_rest_position).origin
+    )
+
+    if body.has_desired_rotation and (not body.phys_state.angular_velocity.is_zero_approx()):
+        body_global_center.basis = body_global_center.basis.rotated(
+                body.phys_state.angular_velocity.normalized(),
+                -body.phys_state.angular_velocity.length() * body.delta_time
+        )
+
+    if body.has_desired_forward:
+        var forward_delta: Vector3 = body.desired_direction * body.desired_direction.dot(body.phys_state.linear_velocity)
+        forward_delta *= body.delta_time
+        var body_origin: Vector3 = body_global_center.origin
+        var new_body_origin: Vector3 = body_origin - forward_delta
+        body_global_center.origin -= forward_delta
+
+    target_rest_position = to_local(body_global_center * rest_rel_to_body)
+    target.position = target_rest_position
+
 ## When stepping and targeting the final point, we may "reach" it without finding
 ## ground. This method returns true if the target should remain active, hoping
 ## to locate ground in a short time. This returns false if we find ground, stay
@@ -790,6 +818,7 @@ func _should_wait_for_step() -> bool:
     var dist_sqr: float = local_end_point.distance_squared_to(local_target_point)
 
     if dist_sqr <= STEP_GOAL_DIST_SQR:
+        breakpoint # TODO: remove later
         return false
 
     # 3. passing the goal by some distance (maybe not count this?)
@@ -799,6 +828,7 @@ func _should_wait_for_step() -> bool:
     var original_travel_dir: Vector3 = prev_target.direction_to(local_target_point)
 
     if current_travel_dir.dot(original_travel_dir) < 0.0 and dist_sqr > STEP_MISS_DIST_SQR:
+        #breakpoint # TODO: remove later
         return false
 
     # 1. not grounded
@@ -831,8 +861,6 @@ func _on_target_finished(final_point: Vector3) -> void:
             _draw_step_target(true)
         if debug_ik_target:
             _draw_ik_target()
-
-    is_moving = false
 
     if is_stepping:
         time_since_last_step = 0.0

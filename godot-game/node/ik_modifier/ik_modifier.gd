@@ -10,6 +10,11 @@ const JointResource = preload("uid://c5ct6mxt0vyod")
 @export_range(1, 10, 1, 'or_greater')
 var iterations: int = 10
 
+## Minimum number of IK iterations, only matters when IK is already within the
+## target distance
+@export_range(0, 10, 1, 'or_greater')
+var min_iterations: int = 0
+
 ## Target minimum distance for IK
 @export_range(0.0, 1.0, 0.001, 'or_greater')
 var min_distance: float = 0.01
@@ -222,7 +227,7 @@ func _process_modification_with_delta(delta: float) -> void:
         if not target_node:
             continue
 
-        var target_position: Vector3 = skeleton.global_transform.affine_inverse() * target_node.global_position
+        var target_position: Vector3 = skeleton.to_local(target_node.global_position)
         var bone_list: PackedInt32Array = chain_bone_list[index]
         var bone_count: int = bone_list.size()
         if bone_count == 0:
@@ -255,7 +260,8 @@ func _process_modification_with_delta(delta: float) -> void:
                 <= min_dist_sqr
             ):
                 flags |= FLAG_REACHED_GOAL
-                break
+                if n >= min_iterations:
+                    break
 
             _iterate_chain(bone_list, setting, target_position)
 
