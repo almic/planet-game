@@ -143,8 +143,10 @@ func _process(_delta: float) -> void:
     if input_debug_noclip.is_triggered():
         freecam_mode = not freecam_mode
         if freecam_mode:
-            collider_crouch.disabled = true
+            # Switch to crouch collider
+            collider_crouch.disabled = false
             collider_stand.disabled = true
+            collision_enabled = false
             spring.remove_constraint()
             force_ground_movement = false
             desired_gravity = 0.0
@@ -152,8 +154,7 @@ func _process(_delta: float) -> void:
             desired_incline_effect = 0.0
             GUIDE.enable_mapping_context(input_debug_freecam_context, false, -1)
         else:
-            # Crouch collider first
-            collider_crouch.disabled = false
+            collision_enabled = true
             spring.add_constraint()
             force_ground_movement = true
             desired_gravity = 1.0

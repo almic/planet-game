@@ -37,6 +37,26 @@ var decline_speed_bonus: float = 1.1
 var air_control: float = 0.5
 
 
+@export_group('Collision Layers')
+
+@export var collision_enabled: bool = true:
+    set = set_collision_enabled
+
+## Collision layer of the main character body
+@export_flags_3d_physics var character_collision_layer: int = 1:
+    set(value):
+        character_collision_layer = value
+        if collision_enabled:
+            collision_layer = character_collision_layer
+
+## Collision mask of the main character body
+@export_flags_3d_physics var character_collision_mask: int = 1:
+    set(value):
+        character_collision_mask = value
+        if collision_enabled:
+            collision_mask = character_collision_mask
+
+
 @export_group('Floor Collision')
 
 ## Shape cast to use for colliding with the ground, like a spring. Set up the
@@ -177,6 +197,17 @@ func _ready() -> void:
     # Force cos caching
     stair_angle_margin = stair_angle_margin
 
+    # Force layers to update
+    collision_enabled = collision_enabled
+
+func set_collision_enabled(value: bool) -> void:
+    collision_enabled = value
+    if collision_enabled:
+        collision_layer = character_collision_layer
+        collision_mask = character_collision_mask
+    else:
+        collision_layer = 0
+        collision_mask = 0
 
 ## Implement per controller, called when input should be read for movement.
 ## If your controller has a camera connect to mouse movement, you should handle
