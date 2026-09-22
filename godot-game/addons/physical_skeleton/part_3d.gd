@@ -79,6 +79,8 @@ var _cached_com: Vector3
 var joint_force_exceeded_emit: Callable
 var _signal_should_break: bool = false
 
+## Physics State of the body, cached in update()
+var body_state: PhysicsDirectBodyState3D
 ## The bone rotation in global space
 var bone_rotation: Basis
 ## Local axis index of the bone rotation
@@ -375,12 +377,12 @@ func prepare_custom_joints(custom_joint_callable: Callable) -> bool:
     return true
 
 func update(skeleton: Skeleton3D, bone_idx: int) -> void:
+    body_state = PhysicsServer3D.body_get_direct_state(get_rid())
+
     if not bone_joint_data.is_destroyed:
         _update_joint(bone_joint_data)
 
-        var bone_rest = skeleton.get_bone_rest(bone_idx)
-        skeleton.set_bone_pose_rotation(bone_idx, bone_rest.basis * bone_joint_data.offset.basis)
-        skeleton.set_bone_pose_position(bone_idx, bone_rest * bone_joint_data.offset.origin)
+        skeleton.set_bone_global_pose(bone_idx, skeleton.global_transform.affine_inverse() * body_state.transform)
 
         if bone_joint_data.is_breakable and _should_break(bone_joint_data.joint, bone_joint_data.offset):
             print('Breaking joint %s' % [get_nice_path(bone_joint)])
@@ -396,6 +398,7 @@ func update(skeleton: Skeleton3D, bone_idx: int) -> void:
 
         is_using_power = is_motor_powered
 
+    # NOTE: update other custom joints, skip the first which is the main bone_joint_data
     for i in range(1, joint_data_list.size()):
         var joint_data: JointData = joint_data_list[i]
 
@@ -421,7 +424,7 @@ func update(skeleton: Skeleton3D, bone_idx: int) -> void:
 func _update_joint(joint_data: JointData) -> void:
     var parent_state := PhysicsServer3D.body_get_direct_state(joint_data.parent)
     var joint_parent: Transform3D = parent_state.transform * joint_data.xform_rel_parent
-    var joint_body: Transform3D = global_transform * joint_data.xform_rel_body
+    var joint_body: Transform3D = body_state.transform * joint_data.xform_rel_body
 
     var body_diff: Transform3D = joint_parent.affine_inverse() * joint_body
     joint_data.offset = body_diff
@@ -507,14 +510,15 @@ func on_pose_finalized(skeleton: Skeleton3D, bone_idx: int) -> void:
     bone_rotation_axis = axis
     bone_rotation_axis_vector = bone_rotation[axis]
 
-    var rest: Transform3D = skeleton.get_bone_rest(bone_idx)
-    var pose: Quaternion = skeleton.get_bone_pose_rotation(bone_idx)
+    var pose: Quaternion = bone_rotation
 
-    # Relative to rest angle
-    pose = rest.basis.get_rotation_quaternion().inverse() * pose
+    # Relative to parent
+    var parent_state := PhysicsServer3D.body_get_direct_state(bone_joint_data.parent)
+    var parent_rotation: Quaternion = parent_state.transform.basis.get_rotation_quaternion()
+    pose = (parent_rotation * bone_joint_data.xform_rel_parent.basis.get_rotation_quaternion()).inverse() * pose
 
     # Axis correction
-    var local_axis: Vector3 = rest.basis[axis]
+    var local_axis: Vector3 = body_state.transform.basis.inverse() * bone_rotation_axis_vector
     pose = Quaternion(pose * local_axis, local_axis) * pose
 
     if pose.w < 0.0:
@@ -538,10 +542,9 @@ func apply_motor_parameters() -> void:
     param = resource.motor_parameters.motor_controller
     bone_joint.set_motor_pid_acceleration(motor_axis, param.proportional, param.integral, param.derivative)
 
-    var part_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(get_rid())
     var parent_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(bone_joint_data.parent)
 
-    var part_velocity: Vector3 = part_state.angular_velocity
+    var part_velocity: Vector3 = body_state.angular_velocity
     var parent_velocity: Vector3 = parent_state.angular_velocity
 
     var joint_velocity: float = bone_rotation_axis_vector.dot(parent_velocity - part_velocity)
@@ -844,7 +847,7 @@ func _debug_joint_angle() -> void:
 
     var parent_state := PhysicsServer3D.body_get_direct_state(bone_joint_data.parent)
     var joint_parent: Quaternion = parent_state.transform.basis.get_rotation_quaternion()
-    var joint_body: Quaternion = transform.basis.get_rotation_quaternion()
+    var joint_body: Quaternion = body_state.transform.basis.get_rotation_quaternion()
     var rot: Quaternion =  (
             (joint_parent * joint_to_parent).inverse()
             * (joint_body * joint_to_body)
