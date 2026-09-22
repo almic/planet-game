@@ -255,12 +255,10 @@ func _process_modification_with_delta(delta: float) -> void:
             cached_rotation_list[i] = bone_rotation
 
         for n in range(iterations):
-            if (
-                target_position.distance_squared_to(skeleton.get_bone_global_pose(end_bone).origin)
-                <= min_dist_sqr
-            ):
+            var dist_sqr: float = target_position.distance_squared_to(skeleton.get_bone_global_pose(end_bone).origin)
+            if dist_sqr <= min_dist_sqr:
                 flags |= FLAG_REACHED_GOAL
-                if n >= min_iterations:
+                if n >= min_iterations or dist_sqr < 1e-8: # NOTE: very small minimum
                     break
 
             _iterate_chain(bone_list, setting, target_position)
