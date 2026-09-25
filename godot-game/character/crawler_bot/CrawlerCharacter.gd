@@ -65,7 +65,7 @@ var rotation_acceleration: float = deg_to_rad(270.0)
 @export_range(0.1, 180.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s')
 var rotation_rate: float = deg_to_rad(180.0)
 
-@export_range(0.1, 1.0, 0.01, 'or_greater')
+@export_range(0.0, 1.0, 0.01, 'or_greater')
 var rotation_overshoot: float = 0.2
 #endregion Movement Parameters
 
@@ -163,6 +163,11 @@ var has_desired_movement: bool:
         return has_desired_forward or has_desired_rotation
 
 var has_desired_rotation: bool = false
+## This vector is used to stabilize the forward direction
+var stable_forward: Vector3
+## When the real forward vector drifts the far from stable_forward, update
+## stable_forward to the current forward vector, aligned to the up plane
+const STABLE_FORWARD_DRIFT: float = cos(deg_to_rad(8.0))
 var grounded_leg_count: int = 0
 var grounded_leg_avg_displacement: float
 var leg_update_data: PackedVector3Array
@@ -323,6 +328,7 @@ func rebuild_crawler(remove_unowned_nodes: bool = false, editor_mode: bool = fal
 func _ready() -> void:
     super._ready()
 
+    stable_forward = -global_basis.z
     physical_skeleton.skeleton = skeleton
     physical_skeleton.joint_force_exceeded.connect(on_joint_force_exceeded)
 
@@ -565,8 +571,6 @@ func _calculate_ground_vectors(state: PhysicsDirectBodyState3D) -> void:
         ground_direction = Vector3.ZERO
 
 func _custom_pre_movement_forces(state: PhysicsDirectBodyState3D) -> void:
-    # _solve_leg_forces(state)
-
     _solve_rotation(state)
 
 func _post_integrate_forces(state: PhysicsDirectBodyState3D) -> void:
@@ -598,266 +602,10 @@ func _update_legs() -> void:
     for leg in legs:
         leg.update()
 
-func _solve_leg_forces(state: PhysicsDirectBodyState3D) -> void:
-    if grounded_leg_count < 1:
-        return
-
-    var rid: RID = get_rid()
-
-    var total_gravity: Vector3 = state.total_gravity * desired_gravity
-    var gravity_direction: Vector3 = Vector3.ZERO
-    if not state.total_gravity.is_zero_approx():
-        gravity_direction = state.total_gravity.normalized()
-
-    var leg_mass: float = total_mass / legs.size()
-    var max_leg_mass: float
-
-    if is_zero_approx(body_leg_lift_ratio):
-        max_leg_mass = total_mass
-    else:
-        max_leg_mass = total_mass / (legs.size() * body_leg_lift_ratio)
-
-    var shared_mass: float = minf(total_mass / grounded_leg_count, max_leg_mass)
-
-    var max_force: float = body_max_leg_force * leg_mass
-
-    var iteration: int = 0
-    # NOTE: 2 is probably enough, but I chose 3 so that it definitely would be accurate
-    var max_iterations: int = 3
-    var sub_step: float = state.step / max_iterations
-    var old_transform: Transform3D = state.transform
-
-    var total_grav_vec: Vector3 = Vector3.ZERO
-
-    while iteration < max_iterations:
-        iteration += 1
-
-        grounded_leg_avg_displacement = 0.0
-
-        var spring_direction: Vector3 = state.transform.basis.y
-
-        var gravity_alignment: float = state.transform.basis.tdoty(gravity_direction) * desired_gravity
-        var total_height_offset: float = body_height_offset + body_gravity_offset * gravity_alignment
-
-        var poly_front_index: int = 0
-        if debug_enable and debug_leg_polygon:
-            leg_polygon.clear()
-
-        var body_plane: Plane = Plane(state.transform.basis.y, state.transform.origin + state.center_of_mass)
-
-        for leg in legs:
-            if not leg.apply_ground_forces:
-                continue
-
-            var global_attachment: Vector3 = state.transform * leg.attachment_point
-
-            # These lines copied from CrawlerLeg
-            var attachment_plane: Plane = Plane(-state.transform.basis.y, global_attachment)
-            leg.ground_offset = attachment_plane.distance_to(leg.ground_position) - total_height_offset
-
-            grounded_leg_avg_displacement += absf(leg.ground_offset)
-
-            var spring_midpoint: Vector3 = (0.5 * (leg.ground_position + global_attachment)) - state.transform.origin
-            leg_update_data[leg.index * 3] = spring_midpoint
-            leg_update_data[leg.index * 3 + 1] = state.get_velocity_at_local_position(spring_midpoint)
-            leg_update_data[leg.index * 3 + 2] = body_plane.project(spring_midpoint + state.transform.origin) - state.transform.origin
-
-            if debug_enable and debug_leg_polygon:
-                var plane_point: Vector3 = body_plane.project(leg.ground_point) - (state.transform.origin + state.center_of_mass)
-                var polygon_point: Vector2 = Vector2(state.transform.basis.tdotx(plane_point), state.transform.basis.tdotz(plane_point))
-                leg_polygon.insert(poly_front_index, polygon_point)
-                if leg.is_left:
-                    poly_front_index += 1
-
-        grounded_leg_avg_displacement /= grounded_leg_count
-
-        _calculate_leg_gravity_power(state)
-
-        for leg in legs:
-            if not leg.apply_ground_forces:
-                continue
-
-            var offset: float = leg.ground_offset
-            offset = signf(offset) * minf(absf(offset), grounded_leg_avg_displacement)
-
-            var spring_midpoint: Vector3 = leg_update_data[leg.index * 3]
-            var local_velocity: Vector3 = leg_update_data[leg.index * 3 + 1]
-            var anti_gravity_point: Vector3 = leg_update_data[leg.index * 3 + 2]
-            var rel_ground_velocity: Vector3 = local_velocity - leg.ground_velocity
-
-            var speed: float = spring_direction.dot(rel_ground_velocity)
-
-            var spring_force: float = 100.0 * body_height_spring_stiffness * -offset * shared_mass
-            var damp_force: float = 10.0 * body_height_spring_damping * -speed * shared_mass
-            var total_force: float = clampf(spring_force + damp_force, -max_force, max_force)
-
-            var force_vec: Vector3 = total_force * spring_direction
-            state.apply_impulse(
-                force_vec * sub_step,
-                spring_midpoint
-            )
-
-            # Negate gravity, not exceeding the capability of a single leg
-            var grav_force_vec: Vector3
-            if true:
-                grav_force_vec = -total_gravity * minf(total_mass * leg_gravity_power[leg.index], max_leg_mass)
-                if debug_enable and debug_leg_gravity:
-                    total_grav_vec += (
-                          (grav_force_vec + (anti_gravity_point - state.center_of_mass)) * sub_step
-                    )
-            else:
-                grav_force_vec = -total_gravity * shared_mass
-
-            state.apply_impulse(
-                grav_force_vec * sub_step,
-                anti_gravity_point
-            )
-
-            var ground_state := PhysicsServer3D.body_get_direct_state(leg.ground_body)
-            if ground_state:
-                ground_state.apply_impulse(
-                    -(force_vec + grav_force_vec) * sub_step,
-                    leg.ground_point - ground_state.transform.origin
-                )
-
-        if iteration >= max_iterations:
-            break
-
-        # Update the body virtually
-        state.transform.origin += state.linear_velocity * sub_step
-        var angular_len: float = state.angular_velocity.length()
-        if not is_zero_approx(angular_len):
-            state.transform.basis = state.transform.basis.rotated(state.angular_velocity / angular_len, angular_len * sub_step)
-            # NOTE: when changing rotation, need to tell physics server to update so inertia is accurate
-            PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, state.transform)
-
-    if debug_enable:
-        if debug_leg_polygon:
-            var polygon: PackedVector3Array
-            polygon.resize(grounded_leg_count)
-            for i in range(grounded_leg_count):
-                polygon[i] = state.transform * Vector3(leg_polygon[i].x, grounded_leg_avg_displacement, leg_polygon[i].y)
-            _debug_leg_polyline = DebugDraw.polyline(
-                polygon,
-                true,
-                Color.MEDIUM_PURPLE,
-                _debug_leg_polyline,
-                0.05
-            )
-        if debug_leg_gravity:
-            _debug_leg_gravity_vec = DebugDraw.vector(
-                state.transform.origin,
-                total_grav_vec * 0.1,
-                Color.MEDIUM_SEA_GREEN,
-                _debug_leg_gravity_vec,
-                0.1
-            )
-
-    # NOTE: There used to be code here that moved the angular velocity back towards
-    #       the incoming value, but this was causing bobbing because the whole
-    #       purpose of the method is to stabilize angular rotation, so undoing
-    #       that work meant it would perpetuate small velocities forever.
-
-    # Reset changes to the transform
-    state.transform = old_transform
-    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, state.transform)
-
-func _calculate_leg_gravity_power(state: PhysicsDirectBodyState3D) -> void:
-    # NOTE: Parameterize the iteration count
-    const MAX_ITERATIONS: int = 2
-    # NOTE: parameterize the rate of rest (decay???)
-    var decay_rate: float = pow(0.5, state.step)
-    var dead_decay_rate: float = pow(0.1, state.step / 0.1) # roughly 10% after 0.1 seconds
-
-    var count: int = leg_gravity_power.size()
-    var points: PackedVector3Array
-    points.resize(count)
-    for leg in legs:
-        if not leg.apply_ground_forces:
-            points[leg.index] = Vector3.INF
-            continue
-
-        points[leg.index] = leg_update_data[leg.index * 3 + 2] - state.center_of_mass
-
-    if grounded_leg_count < 2:
-        for i in range(count):
-            if points[i].is_finite():
-                leg_gravity_power[i] = 1.0
-            else:
-                leg_gravity_power[i] = 0.0
-        return
-
-    var rots: PackedVector3Array
-    rots.resize(count)
-    rots.fill(Vector3.ZERO)
-    var rot_normals: PackedVector3Array
-    rot_normals.resize(count)
-    rot_normals.fill(Vector3.ZERO)
-
-    # NOTE: Used to calculate power share by assuming a leg is capable of lifting the entire body,
-    #       although in practice this will have limitations.
-    var anti_gravity: Vector3 = -state.total_gravity * state.step * total_mass
-
-    var markiplier: float = minf(2.0 / float(grounded_leg_count), 1.0)
-    var power_avg: float = 1.0 / float(grounded_leg_count)
-    var it_step: float = 1.0 / float(MAX_ITERATIONS)
-    for iteration in range(MAX_ITERATIONS):
-        var new_power := PackedFloat64Array(leg_gravity_power)
-
-        var rot_total: Vector3 = Vector3.ZERO
-        for i in range(count):
-            var point: Vector3 = points[i]
-            if not point.is_finite():
-                continue
-
-            rot_normals[i] = state.inverse_inertia * point.cross(anti_gravity)
-            rots[i] = rot_normals[i] * maxf(new_power[i], 0.001)
-
-            rot_total += rots[i]
-
-        # Scale method, each point moves its work to match what is needed, and is always slowly relaxing
-        var power_total: float = 0.0
-        for i in range(count):
-            var work: float = new_power[i]
-            var max_length: float = rot_normals[i].length()
-
-            var new_work: float = work
-            if not legs[i].apply_ground_forces:
-                new_work *= dead_decay_rate
-            elif not is_zero_approx(max_length):
-                var grad: Vector3 = rots[i]
-                var new_grad: Vector3 = grad - (rot_total * markiplier)
-                var grad_dir: Vector3 = rot_normals[i] / max_length
-                var dot_grad: float = new_grad.dot(grad_dir)
-
-                if dot_grad < 0.0:
-                    new_grad = Vector3.ZERO
-                else:
-                    new_grad = grad_dir * dot_grad
-
-                new_work = new_grad.length() / max_length
-                new_work *= pow(decay_rate, new_work / power_avg)
-
-            new_power[i] = maxf(new_work, 0.0)
-            power_total += new_power[i]
-
-        if power_total > 0.0:
-            for i in range(count):
-                new_power[i] /= power_total
-
-        power_total = 0.0
-        for i in range(count):
-            # NOTE: parameterize the rate of change
-            leg_gravity_power[i] = move_toward(leg_gravity_power[i], new_power[i], 4.0 * state.step * it_step)
-            power_total += leg_gravity_power[i]
-
-        if power_total > 1.0:
-            for i in range(count):
-                leg_gravity_power[i] /= power_total
-
 func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
 
-    var can_do_yaw: bool = target_direction.is_finite()
+    var has_target_direction: bool = target_direction.is_finite()
+    var can_do_yaw: bool = has_target_direction
     if can_do_yaw:
         for leg in legs:
             if (not leg.is_comfortable) and (not leg.is_stepping):
@@ -874,45 +622,53 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
     var leg_count: int = legs.size()
     var grounded_leg_factor: float = float(grounded_leg_count) / float(leg_count)
 
-    var preferred_forward: Vector3
-    var preferred_right: Vector3
-
-    var main_legs: Array[CrawlerLeg] = [
-        legs[0], legs[1],
-        legs[leg_count - 2], legs[leg_count - 1]
-    ]
     var ground_points: PackedVector3Array
-    ground_points.resize(4)
+    var first_ground_normal: Vector3 = Vector3.INF
+    var desired_angular_velocity: Vector3 = Vector3.ZERO
+    var valid_point_count: int = leg_count
+    ground_points.resize(leg_count)
 
-    var using_rest_point: bool = false
-    var using_ground_points: bool = true
-    for i in range(4):
-        var leg: CrawlerLeg = main_legs[i]
-        if leg.apply_ground_forces:
-            ground_points[i] = leg.ground_position
+    for i in range(leg_count):
+        var leg: CrawlerLeg = legs[i]
+        if leg.is_grounded:
+            if is_inf(first_ground_normal.x):
+                first_ground_normal = leg.ground_normal
+            ground_points[i] = to_local(leg.ground_position)
+            # Given a point and a linear velocity, angular velocity is: w = (p x v) / p^2
+            var dv: Vector3 = leg.ground_position - (state.transform.origin + state.center_of_mass)
+            desired_angular_velocity += dv.cross(leg.contact_velocity) / dv.length_squared()
         elif leg.is_stepping:
-            ground_points[i] = leg.to_global(leg.step_target_initial)
-        elif using_rest_point:
-            # Cannot use more than 1 rest point, use current orientation
-            preferred_forward = -state.transform.basis.z
-            preferred_right = state.transform.basis.x
-            using_ground_points = false
-            break
+            ground_points[i] = to_local(leg.step_target_current)
         else:
-            using_rest_point = true
-            ground_points[i] = leg.to_global(leg.target_rest_position)
+            ground_points[i] = Vector3.INF
+            valid_point_count -= 1
 
-    if using_ground_points:
-        preferred_forward = (
-                  (ground_points[0] - ground_points[2])
-                + (ground_points[1] - ground_points[3])
-        ).normalized()
-        preferred_right = (
-                  (ground_points[1] - ground_points[0])
-                + (ground_points[3] - ground_points[2])
-        ).normalized()
+    if grounded_leg_count > 1:
+        desired_angular_velocity /= grounded_leg_count
 
-    var preferred_up: Vector3 = preferred_right.cross(preferred_forward).normalized()
+    var preferred_up: Vector3
+    if valid_point_count == 1:
+        preferred_up = first_ground_normal
+    else:
+        preferred_up = _calculate_preferred_up(valid_point_count, ground_points)
+        preferred_up = state.transform.basis * preferred_up
+
+    # Fix stable_forward
+    var target_forward: Vector3
+    if has_target_direction:
+        target_forward = target_direction
+    else:
+        target_forward = -state.transform.basis.z
+
+    if target_forward.dot(stable_forward) > STABLE_FORWARD_DRIFT:
+        stable_forward = target_forward
+    elif not desired_angular_velocity.is_zero_approx():
+        # NOTE: rotate with desired angular velocity, maintains forward relative to legs
+        stable_forward = stable_forward.rotated(-desired_angular_velocity.normalized(), desired_angular_velocity.length() * state.step)
+
+    # Calculate preferred forward and right from current orientation
+    var preferred_right: Vector3 = stable_forward.cross(preferred_up).normalized()
+    var preferred_forward: Vector3 = preferred_up.cross(preferred_right).normalized()
 
     var current_forward: Vector3 = -state.transform.basis.z
     var current_right: Vector3 = state.transform.basis.x
@@ -926,6 +682,8 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
         var cos_theta: float = preferred_forward.dot(target_direction)
         if xz_dot > pow(0.03125 - 0.03125 * cos_theta, 0.25):
             yaw = current_forward.signed_angle_2(target_direction, preferred_up)
+    else:
+        yaw = current_forward.signed_angle_2(preferred_forward, preferred_up)
 
     var roll: float = current_right.signed_angle_2(preferred_right, -preferred_forward)
     var pitch: float = current_forward.signed_angle_2(preferred_forward, preferred_right)
@@ -934,22 +692,83 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
 
     # roughly 0.5 degrees
     const LOW_ANGLE: float = 7.62e-5
-    if angular.length_squared() > LOW_ANGLE or target_direction.is_finite():
+    if has_target_direction or angular.length_squared() > LOW_ANGLE:
         has_desired_rotation = true
 
-    var max_angular: Vector3 = angular / state.step
-    var limited_angular: Vector3 = angular.sign() * max_angular.abs().minf(rotation_rate * (1.0 / rotation_overshoot))
-    var target_angular: Vector3 = state.transform.basis * limited_angular
+    # Relative angular to rotate into preferred orientation
+    var max_angular: Vector3 = (angular * (1.0 + rotation_overshoot)) / state.step
+    var limited_angular: Vector3 = angular.sign() * max_angular.abs().minf(rotation_rate)
+    var relative_angular: Vector3 = state.transform.basis * limited_angular
 
-    # TODO: this is bad, please figure it out. It rotates WAY too fast with acceleration, should
-    #       just add angular velocity to attempt to reach target directions.
-    #       I just changed it so it doesn't negate incoming velocity when it has zero desired change.
-    state.angular_velocity += target_angular * (1.0 + rotation_overshoot) * state.step * grounded_leg_factor
-    #state.angular_velocity += target_angular * (1.0 + rotation_overshoot) * state.step * rotation_acceleration * grounded_leg_factor
+    var angular_delta: Vector3 = desired_angular_velocity + relative_angular - state.angular_velocity
 
-    if target_angular.length_squared() < LOW_ANGLE and state.angular_velocity.length_squared() < LOW_ANGLE:
+    state.angular_velocity += (angular_delta * grounded_leg_factor).limit_length(rotation_acceleration) * state.step
+
+    if relative_angular.length_squared() < LOW_ANGLE and angular_delta.length_squared() < LOW_ANGLE:
         # Low angular velocity, facing the target, clear target
         target_direction = Vector3.INF
+
+## Calculates a preferred up from ground points, creating a triangle for each
+## set of three contact points. If only two points are available, up is calculated
+## as the direction closest to (0, 1, 0) that is perpendicular to the segment.
+func _calculate_preferred_up(valid_points: int, ground_points: PackedVector3Array) -> Vector3:
+    if valid_points < 2:
+        return Vector3.UP
+
+    var current_point: Vector3
+
+    if valid_points == 2:
+        var first_point: Vector3 = Vector3.INF
+        var second_point: Vector3 = Vector3.INF
+        for i in range(ground_points.size()):
+            current_point = ground_points[i]
+            if is_inf(current_point.x):
+                continue
+
+            if is_inf(first_point.x):
+                first_point = current_point
+                continue
+
+            second_point = current_point
+            break
+
+        var forward: Vector3 = second_point - first_point
+        var right: Vector3 = Vector3.UP.cross(forward)
+        var up: Vector3 = forward.cross(right)
+        if up.is_zero_approx():
+            return Vector3.UP
+
+        return up.normalized()
+
+    var preferred_up: Vector3 = Vector3.ZERO
+    var initial_point: Vector3 = Vector3.INF
+    var current_side: Vector3
+    var last_side: Vector3 = Vector3.INF
+    for i in range(ground_points.size()):
+        current_point = ground_points[i]
+        if is_inf(current_point.x):
+            continue
+
+        if is_inf(initial_point.x):
+            initial_point = current_point
+            continue
+
+        current_side = current_point - initial_point
+
+        if not is_inf(last_side.x):
+            var plane_dir: Vector3 = current_side.cross(last_side)
+            if not plane_dir.is_zero_approx():
+                plane_dir = plane_dir.normalized()
+                if plane_dir.dot(Vector3.UP) < 0.0:
+                    plane_dir = -plane_dir
+                preferred_up += plane_dir
+
+        last_side = current_side
+
+    if preferred_up.is_zero_approx():
+        return Vector3.UP
+
+    return preferred_up.normalized()
 
 func _update_leg_sets() -> void:
     _calculate_leg_sets()

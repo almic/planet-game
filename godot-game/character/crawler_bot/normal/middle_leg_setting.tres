@@ -17,4 +17,5 @@ step_distance = 0.9
 rest_distance = 0.1
 move_offset = 0.3
 move_spin = 0.4363323129985824
+leg_lift_height = 0.7
 metadata/_custom_type_script = "uid://2nu0yn2lgo2m"

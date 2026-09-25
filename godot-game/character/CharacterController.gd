@@ -291,7 +291,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     # If at low speed after all external forces are applied, zero out the velocity
     if state.linear_velocity.length_squared() < 1e-4:
         state.linear_velocity = Vector3.ZERO
-    # Roughtly 0.5 degrees per seconds
+    # Roughly 0.5 degrees per seconds
     if state.angular_velocity.length_squared() < 7.62e-5:
         state.angular_velocity = Vector3.ZERO
 
