@@ -8,7 +8,14 @@
 resource_name = "TibiaMotor"
 script = ExtResource("1_8lfhx")
 max_velocity = 6.283185307179586
-torque_powered_max = 80.0
+max_acceleration = 20.420352248333657
+torque_powered_max = 100.0
+torque_zero_speed = 0.0
+torque_curve = 1.0
+control_angle_threshold = 0.00174532925199432
+control_angle_range = 0.017453292519943295
+control_velocity_threshold = 0.0017453292519943296
+control_velocity_range = 0.17453292519943295
 angle_controller = ExtResource("1_dcv3n")
 motor_controller = ExtResource("2_ockil")
 metadata/_custom_type_script = "uid://cauv4ysnymf0u"

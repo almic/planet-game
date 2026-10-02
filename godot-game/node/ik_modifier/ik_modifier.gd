@@ -225,12 +225,18 @@ func _process_modification_with_delta(delta: float) -> void:
 
         var target_node: Node3D = get_node_or_null(setting.target_node) as Node3D
         if not target_node:
+            breakpoint
             continue
 
         var target_position: Vector3 = skeleton.to_local(target_node.global_position)
+        if not target_position.is_finite():
+            breakpoint
+            continue
+
         var bone_list: PackedInt32Array = chain_bone_list[index]
         var bone_count: int = bone_list.size()
         if bone_count == 0:
+            breakpoint
             continue
 
         var flags: int = 0

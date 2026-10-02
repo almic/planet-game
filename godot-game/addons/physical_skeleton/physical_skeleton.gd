@@ -537,7 +537,8 @@ func setup_body() -> void:
             # NOTE: i cannot demonstrate that this is better than not reversing priority...
             #       but logically it should as the first iteration will send lower leg
             #       impulses straight to the main body, rather than lag by N+ iterations
-            joint.solver_priority = max_priority - priority
+            # NOTE: add 1 because 0 is not an allowed priority
+            joint.solver_priority = 1 + max_priority - priority
 
     # Initially disable bodies
     deactivate_bodies()

@@ -343,6 +343,9 @@ func on_ik_updated() -> void:
         else:
             # Skip this target completely
             # TODO: use a delay instead of giving up instantly!
+            # TODO: move point towards IK end point, this should allow the leg to continue moving
+            # to the new pose and continue normal logic
+            # IDEA: skip the delay, every frame this happens, move the target 50% to the IK end point
             target_point_index += 1
             if target_point_index >= target_point_list.size():
                 @warning_ignore("confusable_local_declaration")
@@ -700,7 +703,7 @@ func do_step() -> void:
             point += Vector3.UP * minf(setting.leg_lift_height, setting.leg_lift_height * 2.0 * progress)
 
         # TODO: parameter for target distance
-        var point_4: Vector4 = Vector4(point.x, point.y, point.z, 0.08)
+        var point_4: Vector4 = Vector4(point.x, point.y, point.z, 0.05)
         if is_global:
             point_4.w = -point_4.w
 
@@ -766,7 +769,19 @@ func _update_target() -> void:
     #       timer if too far? idk.
 
     var dist_sqr: float = local_end_point.distance_squared_to(local_target_point)
-    if dist_sqr <= absf(target_point.w * target_point.w):
+    var has_reached_target: bool = false
+
+    # During a step or recovery and we are at the last point, respond to ground
+    if (
+        (is_recovering or is_stepping)
+        and ground_cast.is_colliding()
+        and target_point_index == target_point_list.size() - 1
+    ):
+        has_reached_target = true
+    elif dist_sqr <= absf(target_point.w * target_point.w):
+        has_reached_target = true
+
+    if has_reached_target:
         if _should_wait_for_ground():
             if debug_enable and debug_ik_target:
                 _draw_ik_target()
@@ -827,36 +842,44 @@ func _update_recovery_target() -> void:
     var recovery_point: Vector3 = rest_position
 
 func _update_target_rest() -> void:
-    if not body.has_desired_movement:
-        # TODO: parameters?
-        const MAX_DISPLACEMENT_SQR: float = pow(0.1, 2.0)
-        const TRAVEL_RATE: float = 0.2
-        var rest_displacement_sqr: float = target_rest_position.distance_squared_to(local_end_point)
-        if rest_displacement_sqr > MAX_DISPLACEMENT_SQR:
-            target_rest_position = target_rest_position.move_toward(local_end_point, sqrt(rest_displacement_sqr) * TRAVEL_RATE * body.delta_time)
-            target.position = target_rest_position
-        return
+    # TODO: parameters?
+    const TRAVEL_RATE: float = 0.2
+    const REST_TARGET: float = 0.3
 
-    # Move rest target to oppose forward / rotation, such that this leg has a
-    # minimal impact on body movement.
-    var body_global_center: Transform3D = body.phys_state.transform.translated(body.phys_state.center_of_mass)
-    var rest_rel_to_body: Vector3 = (
-              body_global_center.affine_inverse()
-            * global_transform.translated_local(target_rest_position).origin
-    )
+    if is_grounded:
+        # When effectively pushing into the ground, very gently move rest towards the end point
+        var below_end_dist_sqr: float = ground_normal.dot(local_end_point - target_rest_position)
+        if below_end_dist_sqr > 0.0:
+            target_rest_position = target_rest_position.move_toward(local_end_point, sqrt(below_end_dist_sqr) * TRAVEL_RATE * body.delta_time)
+        # TODO: offsets for height/ upright, movement, rotation
 
-    if body.has_desired_rotation and (not body.phys_state.angular_velocity.is_zero_approx()):
-        body_global_center.basis = body_global_center.basis.rotated(
-                -body.phys_state.angular_velocity.normalized(),
-                body.phys_state.angular_velocity.length() * body.delta_time
+    if body.phys_state:
+        # Move rest target to oppose forward / rotation, such that this leg has a
+        # minimal impact on body movement.
+        var body_global_center: Transform3D = body.phys_state.transform.translated(body.phys_state.center_of_mass)
+        var rest_rel_to_body: Vector3 = (
+                body_global_center.affine_inverse()
+                * global_transform.translated_local(target_rest_position).origin
         )
 
-    if body.has_desired_forward:
-        var forward_velocity: Vector3 = body.desired_direction * body.desired_direction.dot(body.phys_state.linear_velocity)
-        body_global_center.origin -= forward_velocity * body.delta_time
+        if not body.leg_angular_velocity.is_zero_approx():
+            body_global_center.basis = body_global_center.basis.rotated(
+                    -body.leg_angular_velocity.normalized(),
+                    body.leg_angular_velocity.length() * body.delta_time
+            )
 
-    target_rest_position = to_local(body_global_center * rest_rel_to_body)
-    target.position = target_rest_position
+        if body.has_desired_forward:
+            var forward_velocity: Vector3 = body.desired_direction * body.desired_direction.dot(body.phys_state.linear_velocity)
+            body_global_center.origin -= forward_velocity * body.delta_time
+
+        target_rest_position = to_local(body_global_center * rest_rel_to_body)
+
+    # Converge targets, favoring target rest position
+    var displacement: float = target_rest_position.distance_to(local_end_point)
+    target.position = local_end_point.move_toward(target_rest_position, displacement * REST_TARGET)
+
+    displacement = target_rest_position.distance_to(target.position)
+    target_rest_position = target_rest_position.move_toward(local_end_point, displacement * TRAVEL_RATE * body.delta_time)
 
 ## When targeting the final point, we may "reach" it without finding ground.
 ## This method returns true if the target should remain active, hoping to locate
@@ -914,6 +937,10 @@ func _get_target_point(target_index: int) -> Vector3:
 
 ## Cleans up target state and sets target_rest_position to final_point
 func _on_target_finished(final_point: Vector3) -> void:
+    # If we were waiting on ground, actually use the current end point instead
+    if target_wait_for_ground:
+        final_point = local_end_point
+
     target_rest_position = final_point
     target.position = target_rest_position
 

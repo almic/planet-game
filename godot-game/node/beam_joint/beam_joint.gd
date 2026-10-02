@@ -68,7 +68,7 @@ func _set(property: StringName, value: Variant) -> bool:
         _queue_update_joint()
     elif property == &'solver_priority':
         if distance_joint:
-            distance_joint.solver_priority = value
+            distance_joint.solver_priority = value - 1
     return false
 
 func set_setting(new_setting: BeamPivotJoint3DSetting) -> void:
@@ -159,7 +159,7 @@ func _update_joint() -> void:
     # Set up distance joint
     if not distance_joint:
         distance_joint = DistanceJoint3D.new()
-        distance_joint.solver_priority = solver_priority
+        distance_joint.solver_priority = solver_priority - 1
         add_child.call_deferred(distance_joint)
         distance_joint.ready.connect(
             (

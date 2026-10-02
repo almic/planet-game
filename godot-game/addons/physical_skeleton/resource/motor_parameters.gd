@@ -43,6 +43,29 @@ var torque_curve: float = 0.5:
 
 
 @export_group('Controller')
+
+@export_subgroup('Angle Remap', 'control_angle')
+
+## Minimum angle error before motor activates
+@export_range(0.0, 180.0, 0.1, 'radians_as_degrees', 'suffix:°')
+var control_angle_threshold: float = deg_to_rad(0.5)
+
+## Range of interpolation, where the output becomes linear after the threshold.
+## Interpolation uses the 5th order smoothstep function.
+@export_range(0.0, 180.0, 0.1, 'radians_as_degrees', 'suffix:°')
+var control_angle_range: float = deg_to_rad(5.0)
+
+@export_subgroup('Velocity Remap', 'control_velocity')
+
+## Minimum velocity target before motor activates
+@export_range(0.0, 180.0, 0.1, 'radians_as_degrees', 'suffix:°/s')
+var control_velocity_threshold: float = deg_to_rad(0.5)
+
+## Range of interpolation, where the output becomes linear after the threshold.
+## Interpolation uses the 5th order smoothstep function.
+@export_range(0.0, 180.0, 0.1, 'radians_as_degrees', 'suffix:°/s')
+var control_velocity_range: float = deg_to_rad(45.0)
+
 ## Controller parameters for target angle
 @export var angle_controller: PhysicalControllerParameters:
     set(value):

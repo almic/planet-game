@@ -1,9 +1,6 @@
 class_name PhysicalControllerParameters extends Resource
 
 
-const Controller = preload("uid://bdhxyktjceoqv")
-
-
 ## The proportional constant. Modify this first to get the desired speed.
 @export_range(0.0, 10.0, 0.01, 'or_greater')
 var proportional: float = 1.0:
