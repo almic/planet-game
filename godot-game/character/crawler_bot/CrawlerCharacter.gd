@@ -58,7 +58,7 @@ var max_speed: float = 3.0
 @export_range(0.0, 30.0, 0.1, 'or_greater', 'radians_as_degrees')
 var max_pitch: float = deg_to_rad(12.0)
 
-@export_range(0.0, 360.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s')
+@export_range(0.0, 360.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s\u00B2')
 var rotation_acceleration: float = deg_to_rad(270.0)
 
 ## Maximum rotation speed when turning
@@ -135,7 +135,7 @@ var body_leg_lift_ratio: float = 0.5
 var body_max_leg_force: float = 20.0
 
 ## The number of grounded legs necessary for jumping
-@export_range(1, 8, 1, 'or_less')
+@export_range(1, 8, 1, 'or_greater')
 var body_legs_needed_for_jump: int = 3
 #endregion Leg Parameters
 
@@ -144,12 +144,6 @@ var body_legs_needed_for_jump: int = 3
 
 @export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
 var debug_enable: bool = false
-
-@export var debug_leg_polygon: bool = false
-var _debug_leg_polyline: int = 0
-
-@export var debug_leg_gravity: bool = false
-var _debug_leg_gravity_vec: int = 0
 #endregion Debug
 
 var legs: Array[CrawlerLeg]
@@ -415,7 +409,6 @@ func _load_legs(is_initialization: bool = false) -> void:
         if leg.physical_bone_chain:
             physical_skeleton.prepare_custom_joints(leg.physical_bone_chain, leg.prepare_custom_joint)
         else:
-            continue
             push_error(
                 (
                     'CrawlerCharacter at %s has a CrawlerLeg at %s which is '
@@ -505,8 +498,7 @@ func _update_body_mass() -> void:
 
 func _handle_input() -> void:
 
-    var body_center: Vector3 = position + PhysicsServer3D.body_get_param(get_rid(), PhysicsServer3D.BODY_PARAM_CENTER_OF_MASS)
-    var to_target: Vector3 = target_position - body_center
+    var to_target: Vector3 = target_position - (phys_state.transform.origin + phys_state.center_of_mass)
 
     if target_position.is_finite() and to_target.length_squared() > 4.0:
         var to_target_dir: Vector3 = to_target.normalized()
@@ -539,6 +531,7 @@ func _update_ground(state: PhysicsDirectBodyState3D) -> void:
     if grounded_leg_count > 0:
         is_on_floor = true
         ground_position /= grounded_leg_count
+        ground_velocity /= grounded_leg_count
 
         if ground_normal.is_zero_approx():
             ground_normal = state.transform.basis.y
@@ -904,7 +897,7 @@ func _calculate_leg_sets() -> void:
 
         # Same row
         if (
-                    row_candidate_index > 0
+                    row_candidate_index >= 0
                 and row_candidate_index < good_leg_count
                 and good_leg_set[row_candidate_index].index == candidate_index
         ):

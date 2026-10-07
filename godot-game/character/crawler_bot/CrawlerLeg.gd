@@ -298,7 +298,7 @@ func setup_target() -> void:
 
     if target_bone_idx == -1:
         push_error(
-            'Unable to find end bone targeting node "%s" for leg %s!' % [target.name, name]
+            'Unable to find end bone for leg %s!' % name
         )
         return
 
@@ -415,7 +415,7 @@ func on_physics_update() -> void:
         comfort_distance = move_toward(comfort_distance, setting.step_distance, body.delta_time * 2.0)
     else:
         # NOTE: deliberately using last frame's body ground vectors
-        var t: float = lerpf(setting.rest_distance, setting.step_distance, body.ground_speed / body.max_speed)
+        var t: float = lerpf(setting.rest_distance, setting.step_distance, clampf(body.ground_speed / body.max_speed, 0.0, 1.0))
         comfort_distance = move_toward(comfort_distance, t, body.delta_time * 2.0)
 
     var local_rest: Vector3 = step_transform * rest_position
@@ -439,6 +439,7 @@ func _update_grounded() -> void:
     ground_rel_con_velocity = Vector3.ZERO
     contact_velocity = Vector3.ZERO
 
+    var has_ground: bool = false
     if ground_cast.is_colliding():
         ground_position = ground_cast.get_contact_average_point(0)
         var contact_normal: Vector3 = ground_cast.get_contact_normal(0)
@@ -449,8 +450,10 @@ func _update_grounded() -> void:
 
         var ground_cos_theta: float = contact_normal.dot(normal)
         if ground_cos_theta >= 0.0:
-            is_grounded = true
+            has_ground = true
 
+    if has_ground:
+        is_grounded = true
     elif is_grounded:
         is_grounded = false
         time_since_grounded = 0.0
@@ -526,8 +529,18 @@ func _update_step_cast() -> void:
         target_transform = target_transform.rotated_local(Vector3.UP, setting.move_spin * cos_theta)
 
     if step_transform != target_transform:
-        # Force at least 2cm/sec of travel each interpolation
-        var min_weight: float = minf(2.0 * body.delta_time / step_transform.origin.distance_squared_to(target_transform.origin), 1.0)
+        # Force at least 2cm/sec of travel or 5deg/sec rotation each interpolation
+        const MIN_LINEAR_RATE: float = 0.02
+        const MIN_ANGULAR_RATE: float = deg_to_rad(5.0)
+        var min_weight: float = 0.0
+        var linear_travel_sqr: float = step_transform.origin.distance_squared_to(target_transform.origin)
+        var angular_travel: float = step_transform.basis.get_rotation_quaternion().angle_to(target_transform.basis.get_rotation_quaternion())
+
+        if linear_travel_sqr >= 1e-8:
+            min_weight = minf(MIN_LINEAR_RATE * body.delta_time / sqrt(linear_travel_sqr), 1.0)
+        if angular_travel >= 1.74e-4:
+            min_weight = maxf(min_weight, minf(MIN_ANGULAR_RATE * body.delta_time / angular_travel, 1.0))
+
         # TODO: improve interpolation by comparing the body's rel ground velocity to desired direction.
         #       Should interpolate only while it is positive, and reach max rate when at or beyond desired speed
         step_transform = step_transform.interpolate_with(target_transform, maxf(body.delta_time * setting.move_interp_rate * body.acceleration, min_weight))
@@ -541,11 +554,9 @@ func _update_step_cast() -> void:
         var rot_axis: Vector3 = (
                   body.phys_state.transform.basis.inverse()
                 * body.desired_direction.cross(body.phys_state.transform.basis.y)
-        ).normalized()
-
-        var angle: float = setting.step_cast_angle# * (1.0 - absf(state.transform.basis.tdoty(body.desired_direction)))
-
-        step_cast.transform = step_cast.transform.rotated(rot_axis, angle)
+        )
+        if not rot_axis.is_zero_approx():
+            step_cast.transform = step_cast.transform.rotated(rot_axis.normalized(), setting.step_cast_angle)
 
     step_cast.transform = step_cast.transform.translated_local(Vector3.UP * setting.step_cast_start)
     step_cast.transform = step_transform * step_cast.transform
@@ -583,7 +594,7 @@ func update() -> void:
             if not leg.is_comfortable:
                 leg.do_step()
                 if leg.debug_enable and leg.debug_move_reason:
-                    leg._debug_move_reason_text = "Not comfortable%s!" % ('' if is_grounded else ' & floating')
+                    leg._debug_move_reason_text = "Not comfortable%s!" % ('' if leg.is_grounded else ' & floating')
                 continue
 
             # Allow an early step if body has a forward and if any leg has
@@ -690,7 +701,7 @@ func do_step() -> void:
         var point: Vector3
         var is_global: bool = false
         if i == POINTS + 1:
-            point = local_step_target
+            point = step_target_current
             is_global = true
         else:
             var progress: float = float(i) / float(POINTS)
@@ -792,6 +803,10 @@ func _update_target() -> void:
             _on_target_finished(local_target_point)
             return
 
+        # NOTE: This update is pointless when target_allow_skipping_ahead is true
+        if not target_allow_skipping_ahead:
+            local_target_point = _get_target_point(target_point_index)
+
     if not target_allow_skipping_ahead:
         target.position = local_target_point
 
@@ -819,6 +834,7 @@ func _update_target() -> void:
         if current_travel_dir.dot(original_travel_dir) > 0.0:
             break # Same direction, keep going towards target
 
+        dist_sqr = local_end_point.distance_squared_to(local_target_point)
         var next_target: Vector3 = _get_target_point(target_point_index + 1)
         if local_end_point.distance_squared_to(next_target) <= dist_sqr:
             target_point_index += 1
