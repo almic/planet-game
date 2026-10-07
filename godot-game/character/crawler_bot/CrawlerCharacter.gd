@@ -157,11 +157,8 @@ var has_desired_movement: bool:
         return has_desired_forward or has_desired_rotation
 
 var has_desired_rotation: bool = false
-## This vector is used to stabilize the forward direction
-var stable_forward: Vector3
-## When the real forward vector drifts the far from stable_forward, update
-## stable_forward to the current forward vector, aligned to the up plane
-const STABLE_FORWARD_DRIFT: float = cos(deg_to_rad(8.0))
+var leg_angular_target: Vector2
+var leg_angular_controller: PIDController
 var grounded_leg_count: int = 0
 var grounded_leg_avg_displacement: float
 var leg_update_data: PackedVector3Array
@@ -322,7 +319,6 @@ func rebuild_crawler(remove_unowned_nodes: bool = false, editor_mode: bool = fal
 func _ready() -> void:
     super._ready()
 
-    stable_forward = -global_basis.z
     physical_skeleton.skeleton = skeleton
     physical_skeleton.joint_force_exceeded.connect(on_joint_force_exceeded)
 
@@ -361,6 +357,12 @@ func _ready() -> void:
     physical_skeleton.active = true
     physical_skeleton.modification_processed.connect(_update_legs)
     leg_ik.modification_processed.connect(physical_skeleton.on_pose_finalized)
+
+    # TODO: controller parameters
+    leg_angular_controller = PIDController.new()
+    leg_angular_controller.proportional = 1.5
+    leg_angular_controller.integral = 0.0
+    leg_angular_controller.derivative = 0.8
 
 func get_nice_path(to: Node = null) -> NodePath:
     if not is_inside_tree():
@@ -597,27 +599,26 @@ func _update_legs() -> void:
 
 func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
 
-    var has_target_direction: bool = target_direction.is_finite()
-    var can_do_yaw: bool = has_target_direction
-    if can_do_yaw:
-        for leg in legs:
-            if (not leg.is_comfortable) and (not leg.is_stepping):
-                can_do_yaw = false
-                break
-
     has_desired_rotation = false
+
+    if not target_direction.is_finite():
+        return
+
+    var can_do_yaw: bool = true
+    for leg in legs:
+        if (not leg.is_comfortable) and (not leg.is_stepping):
+            can_do_yaw = false
+            break
 
     # Must have at least 1 leg grounded to perform rotation
     if grounded_leg_count == 0:
-        # TODO: damp rotation as if by air friction
         return
 
     var leg_count: int = legs.size()
-    var grounded_leg_factor: float = float(grounded_leg_count) / float(leg_count)
 
     var ground_points: PackedVector3Array
     var first_ground_normal: Vector3 = Vector3.INF
-    var desired_angular_velocity: Vector3 = Vector3.ZERO
+    var ground_angular_velocity: Vector3 = Vector3.ZERO
     var valid_point_count: int = leg_count
     ground_points.resize(leg_count)
 
@@ -629,7 +630,7 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
             ground_points[i] = to_local(leg.ground_position)
             # Given a point and a linear velocity, angular velocity is: w = (p x v) / p^2
             var dv: Vector3 = leg.ground_position - (state.transform.origin + state.center_of_mass)
-            desired_angular_velocity += dv.cross(leg.contact_velocity) / dv.length_squared()
+            ground_angular_velocity += dv.cross(leg.contact_velocity) / dv.length_squared()
         elif leg.is_stepping:
             ground_points[i] = to_local(leg.step_target_current)
         else:
@@ -637,7 +638,20 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
             valid_point_count -= 1
 
     if grounded_leg_count > 1:
-        desired_angular_velocity /= grounded_leg_count
+        ground_angular_velocity /= grounded_leg_count
+
+    var angular_difference: Vector3 = ground_angular_velocity - state.angular_velocity
+    var current_forward: Vector3 = -state.transform.basis.z
+
+    # roughly 0.5 degrees
+    const LOW_ANGLE: float = 8.73e-3
+    const COS_LOW_ANGLE: float = cos(LOW_ANGLE)
+    if current_forward.dot(target_direction) >= COS_LOW_ANGLE and angular_difference.length_squared() < LOW_ANGLE:
+        # Low angular velocity, facing the target, clear target
+        target_direction = Vector3.INF
+        return
+
+    has_desired_rotation = true
 
     var preferred_up: Vector3
     if valid_point_count == 1:
@@ -646,60 +660,43 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
         preferred_up = _calculate_preferred_up(valid_point_count, ground_points)
         preferred_up = state.transform.basis * preferred_up
 
-    # Fix stable_forward
-    var target_forward: Vector3
-    if has_target_direction:
-        target_forward = target_direction
-    else:
-        target_forward = -state.transform.basis.z
-
-    if target_forward.dot(stable_forward) > STABLE_FORWARD_DRIFT:
-        stable_forward = target_forward
-    elif not desired_angular_velocity.is_zero_approx():
-        # NOTE: rotate with desired angular velocity, maintains forward relative to legs
-        stable_forward = stable_forward.rotated(-desired_angular_velocity.normalized(), desired_angular_velocity.length() * state.step)
-
-    # Calculate preferred forward and right from current orientation
-    var preferred_right: Vector3 = stable_forward.cross(preferred_up).normalized()
-    var preferred_forward: Vector3 = preferred_up.cross(preferred_right).normalized()
-
-    var current_forward: Vector3 = -state.transform.basis.z
-    var current_right: Vector3 = state.transform.basis.x
-
     var yaw: float
     if can_do_yaw:
         # Only yaw when this is true:
         # r > pow(0.03125 - 0.03125 * cos_theta, 0.25)
         # NOTE: xz_dot == r
         var xz_dot: float = 1.0 - absf(preferred_up.dot(target_direction))
-        var cos_theta: float = preferred_forward.dot(target_direction)
+        var cos_theta: float = current_forward.dot(target_direction)
         if xz_dot > pow(0.03125 - 0.03125 * cos_theta, 0.25):
             yaw = current_forward.signed_angle_2(target_direction, preferred_up)
-    else:
-        yaw = current_forward.signed_angle_2(preferred_forward, preferred_up)
 
-    var roll: float = current_right.signed_angle_2(preferred_right, -preferred_forward)
-    var pitch: float = current_forward.signed_angle_2(preferred_forward, preferred_right)
+    var current_right: Vector3 = state.transform.basis.x
+    var future_forward: Vector3 = current_forward.rotated(preferred_up, yaw)
+    var future_right: Vector3 = current_right.rotated(preferred_up, yaw)
 
-    var angular: Vector3 = Vector3(pitch, yaw, roll)
+    # clamp target_direction to +-X degrees from the ground plane
+    var clamped_direction: Vector3 = target_direction
+    const MAX_PITCH: float = deg_to_rad(7.0)
+    const MAX_PITCH_COS_THETA: float = cos(PI * 0.5 - MAX_PITCH)
+    var pitch_cos_theta: float = clamped_direction.dot(preferred_up)
+    if absf(pitch_cos_theta) > MAX_PITCH_COS_THETA:
+        # Calculate ground forward
+        var ground_forward: Vector3 = preferred_up.cross(future_right).normalized()
+        clamped_direction = ground_forward.rotated(future_right, MAX_PITCH * signf(pitch_cos_theta))
 
-    # roughly 0.5 degrees
-    const LOW_ANGLE: float = 7.62e-5
-    if has_target_direction or angular.length_squared() > LOW_ANGLE:
-        has_desired_rotation = true
+        # Since we have clamped, check again for reaching the target
+        if current_forward.dot(clamped_direction) >= COS_LOW_ANGLE and angular_difference.length_squared() < LOW_ANGLE:
+            # Low angular velocity, facing the target, clear target
+            target_direction = Vector3.INF
+            has_desired_rotation = false
+            return
 
-    # Relative angular to rotate into preferred orientation
-    var max_angular: Vector3 = (angular * (1.0 + rotation_overshoot)) / state.step
-    var limited_angular: Vector3 = angular.sign() * max_angular.abs().minf(rotation_rate)
-    var relative_angular: Vector3 = state.transform.basis * limited_angular
+    var pitch: float = future_forward.signed_angle_2(clamped_direction, future_right)
+    var pitch_diff: float = leg_angular_controller.update(leg_angular_target.x, pitch, state.step)
+    leg_angular_target.x += pitch_diff * state.step
+    leg_angular_target.y = move_toward(leg_angular_target.y, yaw, rotation_rate * state.step)
 
-    var angular_delta: Vector3 = desired_angular_velocity + relative_angular - state.angular_velocity
-
-    state.angular_velocity += (angular_delta * grounded_leg_factor).limit_length(rotation_acceleration) * state.step
-
-    if relative_angular.length_squared() < LOW_ANGLE and angular_delta.length_squared() < LOW_ANGLE:
-        # Low angular velocity, facing the target, clear target
-        target_direction = Vector3.INF
+    # TODO: Control for target velocity
 
 ## Calculates a preferred up from ground points, creating a triangle for each
 ## set of three contact points. If only two points are available, up is calculated

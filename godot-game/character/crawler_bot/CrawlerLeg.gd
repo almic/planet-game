@@ -859,40 +859,44 @@ func _update_recovery_target() -> void:
 
 func _update_target_rest() -> void:
     # TODO: parameters?
-    const TRAVEL_RATE: float = 0.2
-    const REST_TARGET: float = 0.3
-
-    if is_grounded:
-        # When effectively pushing into the ground, very gently move rest towards the end point
-        var below_end_dist_sqr: float = ground_normal.dot(local_end_point - target_rest_position)
-        if below_end_dist_sqr > 0.0:
-            target_rest_position = target_rest_position.move_toward(local_end_point, sqrt(below_end_dist_sqr) * TRAVEL_RATE * body.delta_time)
-        # TODO: offsets for height/ upright, movement, rotation
-
-    if body.phys_state:
-        # Move rest target to oppose forward / rotation, such that this leg has a
-        # minimal impact on body movement.
-        var body_global_center: Transform3D = body.phys_state.transform.translated(body.phys_state.center_of_mass)
-        var rest_rel_to_body: Vector3 = (
-                body_global_center.affine_inverse()
-                * global_transform.translated_local(target_rest_position).origin
-        )
-
-        if not body.leg_angular_velocity.is_zero_approx():
-            body_global_center.basis = body_global_center.basis.rotated(
-                    -body.leg_angular_velocity.normalized(),
-                    body.leg_angular_velocity.length() * body.delta_time
-            )
-
-        if body.has_desired_forward:
-            var forward_velocity: Vector3 = body.desired_direction * body.desired_direction.dot(body.phys_state.linear_velocity)
-            body_global_center.origin -= forward_velocity * body.delta_time
-
-        target_rest_position = to_local(body_global_center * rest_rel_to_body)
+    const TRAVEL_RATE: float = 0.7
+    const REST_TARGET: float = 0.4
 
     # Converge targets, favoring target rest position
     var displacement: float = target_rest_position.distance_to(local_end_point)
     target.position = local_end_point.move_toward(target_rest_position, displacement * REST_TARGET)
+
+    var goal_rest_position: Vector3 = target.position
+
+    if is_grounded:
+        # When effectively pushing into the ground, very gently move rest towards the end point
+        var local_ground_normal: Vector3 = body.phys_state.transform.basis.inverse() * ground_normal
+        var below_end_dist: float = local_ground_normal.dot(local_end_point - goal_rest_position)
+        if below_end_dist > 0.0:
+            #goal_rest_position = goal_rest_position.move_toward(local_end_point, below_end_dist * TRAVEL_RATE * body.delta_time)
+            pass
+
+        #if InputManager.ticked_physics == 700:
+            #const D: float = 0.04
+            #var forward_length: float = (to_global(local_end_point) - body.phys_state.transform.origin).z
+            #if not is_zero_approx(forward_length):
+                #var unit_distance: float = forward_length / attachment_point.z
+                #if index < 2:
+                    #target_rest_position -= local_ground_normal * D * unit_distance
+                #elif index > 3:
+                    #target_rest_position += local_ground_normal * D * unit_distance
+
+        if body.has_desired_rotation and body.phys_state:
+            # For pitch, it is essentially a graph problem. Extract the X coordinate of the leg
+            # end point in body space (-Z in 3D), compute the vertical displacement needed for a
+            # given pitch, then apply that on the ground normal (so it should not slip)
+
+            if not is_zero_approx(attachment_point.z):
+                var radius: float = (body.phys_state.transform.affine_inverse() * to_global(local_end_point)).z
+                var disp: float = sin(body.leg_angular_target.x) * radius
+                goal_rest_position += local_ground_normal * disp
+
+    target.position = goal_rest_position
 
     displacement = target_rest_position.distance_to(target.position)
     target_rest_position = target_rest_position.move_toward(local_end_point, displacement * TRAVEL_RATE * body.delta_time)
