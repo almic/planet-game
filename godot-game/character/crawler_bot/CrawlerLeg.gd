@@ -649,29 +649,25 @@ func do_recover() -> void:
     _prepare_for_target(TargetFlags.WAIT_FOR_GROUND)
 
     # NOTE: with prior ground, use target system. otherwise, fallback behavior
-    # is in _update_recovery_target()
-    if ground_last_rid.is_valid() and ground_last_local.is_finite():
-        # Obtain current world coordinate of the contact point, which could move
-        # as if on a rotating/ translating platform
-        var ground_state := PhysicsServer3D.body_get_direct_state(ground_last_rid)
-        var ground_point: Vector3 = ground_state.transform * ground_last_local
+    # is in _update_recovery_target() which is called later
+    if (not ground_last_rid.is_valid()) or (not ground_last_local.is_finite()):
+        return
 
-        # Must be near enough to the leg right now
-        var dist_sqr: float = global_end_point.distance_squared_to(ground_point)
-        # TODO: parameter for max recover distance
-        if dist_sqr <= 0.09: # NOTE: 30cm
-            target_point_list.append(
-                Vector4(ground_point.x, ground_point.y, ground_point.z, -0.08)
-            )
-            return
+    # Obtain current world coordinate of the contact point, which could move
+    # as if on a rotating/ translating platform
+    var ground_state := PhysicsServer3D.body_get_direct_state(ground_last_rid)
+    var ground_point: Vector3 = ground_state.transform * ground_last_local
 
+    # Must be near enough to the leg right now
+    var dist_sqr: float = global_end_point.distance_squared_to(ground_point)
 
-    # 1. Try to return to the last ground contact point, using local space
-    # 2. Draw a line from current end position to "safe" location, move target
-    #    point a configured distance along that line.
-    # 3. When ground is detected, recovery is complete, and a step is now
-    #    possible to return to a comfortable position
-    pass
+    # TODO: parameter for max recover distance
+    if dist_sqr > 0.09: # NOTE: 30cm
+        return
+
+    target_point_list.append(
+        Vector4(ground_point.x, ground_point.y, ground_point.z, -0.08)
+    )
 
 ## Start a movement to the most recent step cast target
 func do_step() -> void:
@@ -753,18 +749,19 @@ func _update_target() -> void:
     if debug_enable and debug_move_reason and is_moving:
         _draw_move_reason()
 
-    if is_without_target:
-        if is_recovering:
-            # Recovering without ground, use safe location
-            _update_recovery_target()
-        else:
-            # At rest, travel towards leg end point
-            _update_target_rest()
+    # NOTE: on the first tick of recovery, a target may not yet exist
+    if is_without_target and (not is_recovering):
+        # At rest, travel towards leg end point
+        _update_target_rest()
 
         if debug_enable and debug_ik_target:
             _draw_ik_target()
 
         return
+
+    if is_recovering:
+        # Recovering without ground, use safe location
+        _update_recovery_target()
 
     # Motion is a step, and we got a new step target, update final goal point
     if is_stepping and time_since_start_step > 0.0 and step_cast.is_colliding():
@@ -863,9 +860,41 @@ func _update_target() -> void:
         _draw_ik_target()
 
 func _update_recovery_target() -> void:
-    # Select position between rest and attachment point, translate it below
-    # the rest plane, and move end point towards it by a fixed distance
-    var recovery_point: Vector3 = rest_position
+    # Do nothing if using a global target, this is a prior ground position
+    if target_point_list.size() > 0:
+        var target_point: Vector4 = target_point_list[target_point_list.size() - 1]
+        if target_point.w < 0.0:
+            return
+
+    # This is a local target (or not applied yet), it is halfway to the rest
+    # position, and translated in the direction of motion by some amount
+    var recovery_point: Vector3 = rest_position * 0.5
+    recovery_point.y = rest_position.y
+    var down_direction: Vector3
+    if not body.linear_direction.is_zero_approx():
+        down_direction = global_basis.inverse() * body.linear_direction
+    elif body.phys_state and not (body.phys_state.total_gravity * body.desired_gravity).is_zero_approx():
+        down_direction = global_basis.inverse() * (body.phys_state.total_gravity * body.desired_gravity).normalized()
+    else:
+        down_direction = Vector3.DOWN
+
+    # TODO: parameter for recovery offset
+    recovery_point += down_direction * 0.1
+
+    # TODO: parameter for travel rate
+    var initial_point: Vector3
+    if target_point_list.size() < 1:
+        initial_point = local_end_point
+    else:
+        initial_point = _get_target_point(target_point_list.size() - 1)
+
+    recovery_point = initial_point.move_toward(recovery_point, body.delta_time)
+    var recovery_point_4: Vector4 = Vector4(recovery_point.x, recovery_point.y, recovery_point.z, 0.08)
+
+    if target_point_list.size() < 1:
+        target_point_list.append(recovery_point_4)
+    else:
+        target_point_list[target_point_list.size() - 1] = recovery_point_4
 
 func _update_target_rest() -> void:
     # TODO: parameters?
