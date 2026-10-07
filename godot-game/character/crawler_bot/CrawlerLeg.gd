@@ -454,6 +454,12 @@ func _update_grounded() -> void:
 
     if has_ground:
         is_grounded = true
+        ground_last_rid = ground_cast.get_contact_body_rid(0)
+        var ground_body: Node3D = ground_cast.get_contact_body(0) as Node3D
+        if not ground_body:
+            push_error('Ground object "%s" was not a Node3D, cannot track ground!' % ground_cast.get_contact_body(0))
+            breakpoint
+        ground_last_local = ground_body.to_local(ground_position)
     elif is_grounded:
         is_grounded = false
         time_since_grounded = 0.0
@@ -578,9 +584,9 @@ func update() -> void:
 
             # Leg is doing nothing and without ground, it must recover ground
             if not leg.is_grounded:
-                #leg.do_recover()
-                #if leg.debug_enable and leg.debug_move_reason:
-                #    leg._debug_move_reason_text = "Recovering, not moving and no ground!"
+                leg.do_recover()
+                if leg.debug_enable and leg.debug_move_reason:
+                    leg._debug_move_reason_text = "Recovering, not moving and no ground!"
                 continue
 
             # This leg has no step target, it cannot step right now
@@ -640,7 +646,10 @@ func _can_move() -> bool:
 ## Start recovering from losing ground contact
 func do_recover() -> void:
     is_recovering = true
+    _prepare_for_target(TargetFlags.WAIT_FOR_GROUND)
 
+    # NOTE: with prior ground, use target system. otherwise, fallback behavior
+    # is in _update_recovery_target()
     if ground_last_rid.is_valid() and ground_last_local.is_finite():
         # Obtain current world coordinate of the contact point, which could move
         # as if on a rotating/ translating platform
@@ -651,11 +660,11 @@ func do_recover() -> void:
         var dist_sqr: float = global_end_point.distance_squared_to(ground_point)
         # TODO: parameter for max recover distance
         if dist_sqr <= 0.09: # NOTE: 30cm
-            _prepare_for_target(TargetFlags.WAIT_FOR_GROUND)
-
             target_point_list.append(
                 Vector4(ground_point.x, ground_point.y, ground_point.z, -0.08)
             )
+            return
+
 
     # 1. Try to return to the last ground contact point, using local space
     # 2. Draw a line from current end position to "safe" location, move target
@@ -796,6 +805,7 @@ func _update_target() -> void:
         if _should_wait_for_ground():
             if debug_enable and debug_ik_target:
                 _draw_ik_target()
+            target.position = local_target_point
             return
 
         target_point_index += 1
@@ -873,18 +883,7 @@ func _update_target_rest() -> void:
         var local_ground_normal: Vector3 = body.phys_state.transform.basis.inverse() * ground_normal
         var below_end_dist: float = local_ground_normal.dot(local_end_point - goal_rest_position)
         if below_end_dist > 0.0:
-            #goal_rest_position = goal_rest_position.move_toward(local_end_point, below_end_dist * TRAVEL_RATE * body.delta_time)
-            pass
-
-        #if InputManager.ticked_physics == 700:
-            #const D: float = 0.04
-            #var forward_length: float = (to_global(local_end_point) - body.phys_state.transform.origin).z
-            #if not is_zero_approx(forward_length):
-                #var unit_distance: float = forward_length / attachment_point.z
-                #if index < 2:
-                    #target_rest_position -= local_ground_normal * D * unit_distance
-                #elif index > 3:
-                    #target_rest_position += local_ground_normal * D * unit_distance
+            goal_rest_position = goal_rest_position.move_toward(local_end_point, below_end_dist * TRAVEL_RATE * body.delta_time)
 
         if body.has_desired_rotation and body.phys_state:
             # For pitch, it is essentially a graph problem. Extract the X coordinate of the leg
@@ -894,7 +893,7 @@ func _update_target_rest() -> void:
             if not is_zero_approx(attachment_point.z):
                 var radius: float = (body.phys_state.transform.affine_inverse() * to_global(local_end_point)).z
                 var disp: float = sin(body.leg_angular_target.x) * radius
-                goal_rest_position += local_ground_normal * disp
+                goal_rest_position += local_ground_normal * disp * TRAVEL_RATE
 
     target.position = goal_rest_position
 
@@ -926,7 +925,6 @@ func _should_wait_for_ground() -> bool:
     var dist_sqr: float = local_end_point.distance_squared_to(local_target_point)
 
     if dist_sqr <= GROUND_GOAL_DIST_SQR:
-        breakpoint # TODO: remove later
         return false
 
     # 3. passing the goal by some distance (maybe not count this?)
