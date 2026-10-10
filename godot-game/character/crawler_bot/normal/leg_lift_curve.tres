@@ -1,0 +1,7 @@
+[gd_resource type="Curve" format=3 uid="uid://dndsqoj5uuqtc"]
+
+[resource]
+resource_name = "LegLiftCurve"
+bake_resolution = 10
+_data = [Vector2(0, 0), 0.0, 3.999999999999872, 0, 0, Vector2(0.499999999999984, 0.999999999999968), 0.0, 0.0, 0, 0, Vector2(1, 0), -3.999999999999872, 0.0, 0, 0]
+point_count = 3

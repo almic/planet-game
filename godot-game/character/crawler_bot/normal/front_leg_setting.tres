@@ -2,6 +2,7 @@
 
 [ext_resource type="SpringCastSettings" uid="uid://8x8cm8ddcya1" path="res://character/crawler_bot/normal/leg_spring.tres" id="1_3ptg8"]
 [ext_resource type="Script" uid="uid://2nu0yn2lgo2m" path="res://character/crawler_bot/res/CrawlerLegSetting.gd" id="1_8m8ew"]
+[ext_resource type="Curve" uid="uid://dndsqoj5uuqtc" path="res://character/crawler_bot/normal/leg_lift_curve.tres" id="2_ffy6a"]
 [ext_resource type="Shape3D" uid="uid://db3u3bwwhmq8v" path="res://character/crawler_bot/normal/leg_cast_shape.tres" id="3_u7d7s"]
 
 [resource]
@@ -15,5 +16,6 @@ step_cast_end = -0.7
 step_cast_collision_mask = 48
 step_distance = 0.9
 rest_distance = 0.1
+leg_lift_curve = ExtResource("2_ffy6a")
 leg_lift_height = 0.7
 metadata/_custom_type_script = "uid://2nu0yn2lgo2m"

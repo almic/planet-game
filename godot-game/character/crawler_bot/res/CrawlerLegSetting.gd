@@ -93,10 +93,22 @@ var move_interp_rate: float = 1.0
 
 @export_subgroup('Style')
 
+## Curve of lift height over the travel distance, should start and end at zero,
+## and equal 1.0 somewhere in the middle.
+@export var leg_lift_curve: Curve
+
+## Actual lift height as a proportion of 1 units of lift to 2 units of travel,
+## as if it made a half-circle arc. If the lift height is 0.5m, and the leg
+## travels 1.0m, with a ratio of 0.8, the step height will be 0.5m * 0.8 = 0.4m.
+## The lift height is tanh(x) to the specified lift height, so larger steps
+## just reach the lift height earlier, but still look smooth.
+@export_range(0.01, 1.0, 0.01)
+var leg_lift_ratio: float = 0.95
+
 ## How much to lift the leg while taking a step, applies on the body's up axis
 @export_range(0.0, 1.0, 0.01, 'or_greater')
-var leg_lift_height: float = 0.3
+var leg_lift_height: float = 0.5
 
 ## How much to swing the leg out while taking a step, 1.0 is 100% swing
 @export_range(0.0, 1.0, 0.01, 'or_greater')
-var leg_swing_amount: float = 0.8
+var leg_swing_amount: float = 0.85

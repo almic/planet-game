@@ -40,6 +40,8 @@ var is_any_motor_broken: bool = false
 var bone_list: PackedInt32Array
 var part_list: Array[PhysicalBonePart3D]
 var part_count: int
+## Global point of the end of this chain
+var chain_end_point: Vector3
 
 
 func _ready() -> void:
@@ -178,9 +180,92 @@ func update() -> void:
 func on_pose_finalized() -> void:
     for index in range(part_count):
         var part := part_list[index]
+        part.ik_derivative = 0.0
+
         if not part.is_valid:
             continue
-        part.on_pose_finalized(skeleton, bone_list[index])
+
+        var bone_xform: Transform3D = skeleton.global_transform * skeleton.get_bone_global_pose(bone_list[index])
+        part.on_pose_finalized(bone_xform)
+
+    var target_node: Node3D = ik_node.get_node_or_null(ik_node.setting_list[ik_setting].target_node) as Node3D
+    if not target_node:
+        breakpoint
+
+    var target_point: Vector3 = target_node.global_position
+
+    # Calculate chain end point using length of skeleton end bone
+    var chain_bone_list: PackedInt32Array = ik_node.chain_bone_list[ik_setting]
+    var end_bone_idx: int = chain_bone_list[chain_bone_list.size() - 1]
+    var end_bone_length: float = skeleton.get_bone_rest(end_bone_idx).origin.length()
+    chain_end_point = part_list[part_count - 1].global_transform.translated_local(Vector3.UP * end_bone_length).origin
+
+    var total_distance: float = chain_end_point.distance_to(target_point)
+
+    if total_distance < 1e-4:
+        return
+
+    # Number of iterations for derivative calculation.
+    # NOTE: I dropped the crawler from a significant height with some rotation,
+    # this value was just beyond where I stopped noticing a difference
+    const ITERATIONS: int = 8
+
+    # NOTE: Use a small change to calculate derivative angles
+    var initial_end_point: Vector3 = chain_end_point
+    target_point = chain_end_point.move_toward(target_point, 0.005)
+    var derivative_distance: float = chain_end_point.distance_to(target_point)
+    var ik_work: Array[Transform3D] = []
+    ik_work.resize(part_count)
+    for index in range(part_count):
+        var part: PhysicalBonePart3D = part_list[index]
+        var body_joint: Transform3D = part.body_state.transform * part.bone_joint_data.xform_rel_body
+        ik_work[index] = part.parent_state.transform.affine_inverse() * body_joint
+
+        # Make target relative to first parent
+        if index == 0:
+            target_point = part.parent_state.transform.affine_inverse() * target_point
+            initial_end_point = part.parent_state.transform.affine_inverse() * initial_end_point
+
+    # NOTE: Simple IK iteration to determine local joint angle slopes
+    for i in range(ITERATIONS):
+        for index in range(part_count - 1, -1, -1):
+            var part := part_list[index]
+            if not part.is_valid:
+                continue
+
+            # IK Derivative calculation using instant angle changes over a small distance
+            var joint_xform: Transform3D = ik_work[index]
+
+            # Get joint and end point
+            var joint_global_xform: Transform3D = joint_xform
+            var end_point_xform: Transform3D = Transform3D.IDENTITY.translated_local(Vector3.UP * end_bone_length)
+            for part_idx in range(part_count - 1, -1, -1):
+                end_point_xform = ik_work[part_idx] * end_point_xform
+                if part_idx < index:
+                    joint_global_xform = ik_work[part_idx] * joint_global_xform
+
+            var end_point: Vector3 = end_point_xform.origin
+            var joint_point: Vector3 = joint_global_xform.origin
+            var local_axis: Vector3 = joint_global_xform.basis[part.bone_rotation_axis]
+
+            var to_target: Vector3 = target_point - joint_point
+            var to_end: Vector3 = end_point - joint_point
+            var rot_to_target: Quaternion = Quaternion(to_end, to_target)
+
+            rot_to_target = (Quaternion(rot_to_target * local_axis, local_axis) * rot_to_target).normalized()
+            var angle: float = rot_to_target.get_angle()
+            if rot_to_target.get_axis().dot(local_axis) < 0.0:
+                angle = -angle
+
+            part.ik_derivative += angle
+
+            # Scale part's ik derivative back up
+            if i == ITERATIONS - 1:
+                var travel_dist_sqr: float = end_point.distance_squared_to(initial_end_point)
+                if travel_dist_sqr > 1e-8:
+                    part.ik_derivative *= total_distance / sqrt(travel_dist_sqr)
+            else:
+                ik_work[index] = joint_xform.rotated_local(joint_xform.basis[part.bone_rotation_axis], angle)
 
 ## Activates all rigid body parts of this chain
 func activate(initial_state: PhysicsDirectBodyState3D) -> void:

@@ -151,6 +151,8 @@ var has_next_step_target: bool:
 var step_target_initial: Vector3
 ## During steps, this is updated for orientation prediction of the main body
 var step_target_current: Vector3
+## During steps, this is the normal of the ground being targeted, in global space
+var step_target_normal: Vector3
 
 ## When in motion, these are the targets for the leg. The W component encodes
 ## the goal distance, and when negative marks the point as global space.
@@ -648,23 +650,28 @@ func do_recover() -> void:
     is_recovering = true
     _prepare_for_target(TargetFlags.WAIT_FOR_GROUND)
 
-    # NOTE: with prior ground, use target system. otherwise, fallback behavior
-    # is in _update_recovery_target() which is called later
-    if (not ground_last_rid.is_valid()) or (not ground_last_local.is_finite()):
+    var ground_point: Vector3 = Vector3.INF
+    if ground_last_rid.is_valid() and ground_last_local.is_finite():
+        var ground_state := PhysicsServer3D.body_get_direct_state(ground_last_rid)
+        var last_ground_point: Vector3 = ground_state.transform * ground_last_local
+
+        # Must be near enough to the leg right now
+        var dist_sqr: float = global_end_point.distance_squared_to(last_ground_point)
+
+        # TODO: parameter for max recover distance
+        if dist_sqr <= 0.09: # NOTE: 30cm
+            ground_point = last_ground_point
+
+    if has_next_step_target and is_inf(ground_point.x):
+        ground_point = next_step_target_global
+
+    if is_inf(ground_point.x):
+        # NOTE: with prior ground, use target system. otherwise, fallback behavior
+        # is in _update_recovery_target() which is called later
         return
 
     # Obtain current world coordinate of the contact point, which could move
     # as if on a rotating/ translating platform
-    var ground_state := PhysicsServer3D.body_get_direct_state(ground_last_rid)
-    var ground_point: Vector3 = ground_state.transform * ground_last_local
-
-    # Must be near enough to the leg right now
-    var dist_sqr: float = global_end_point.distance_squared_to(ground_point)
-
-    # TODO: parameter for max recover distance
-    if dist_sqr > 0.09: # NOTE: 30cm
-        return
-
     target_point_list.append(
         Vector4(ground_point.x, ground_point.y, ground_point.z, -0.08)
     )
@@ -673,11 +680,15 @@ func do_recover() -> void:
 func do_step() -> void:
     step_target_initial = next_step_target_global
     step_target_current = step_target_initial
+    # NOTE: inconsistent, technically step_cast is allowed to be invalid here.
+    # this should be cached outside of do_step() with next_step_target_global
+    step_target_normal = step_cast.get_collision_normal(0)
 
     # Sometimes this leg is already very close, so just update the rest position
     # and don't count this as a real step
     var local_step_target: Vector3 = to_local(step_target_initial)
-    if local_step_target.distance_squared_to(local_end_point) < 2.5e-3:
+    var travel_distance_sqr: float = local_end_point.distance_squared_to(local_step_target)
+    if travel_distance_sqr < 1e-4: # NOTE: 1cm
         target_rest_position = local_step_target
         return
 
@@ -700,14 +711,27 @@ func do_step() -> void:
             or sweep_axis.is_zero_approx()
     )
 
-    # TODO: parameter for point count
+    # TODO: parameter for these constants
     const POINTS: int = 4
-    for i in range(1, POINTS + 2):
+    const TARGET_DIST_FLOOR: float = 0.05
+    const HEIGHT_OFFSET: float = 0.08
+    var lift_units: float = (sqrt(travel_distance_sqr) / (2.0 * setting.leg_lift_height))
+    var ground_local_y: float = to_local(step_target_current).y
+    for i in range(0, POINTS + 3):
         var point: Vector3
         var is_global: bool = false
-        if i == POINTS + 1:
+        if i == POINTS + 2:
             point = step_target_current
             is_global = true
+        elif i == POINTS + 1:
+            point = step_target_current
+            point += step_target_normal * HEIGHT_OFFSET
+            is_global = true
+        elif i == 0:
+            point = local_end_point
+            # NOTE: a leg is always grounded when starting a step, so this location
+            # is going to be slightly lifted from the ground
+            point.y += HEIGHT_OFFSET
         else:
             var progress: float = float(i) / float(POINTS)
             point = local_end_point.lerp(local_step_target, progress)
@@ -715,15 +739,39 @@ func do_step() -> void:
                 var rotated_point: Vector3 = start_normalized.rotated(sweep_axis, angle * progress)
                 rotated_point *= ((1.0 - progress) * start_length) + (progress * end_length)
                 point = point.lerp(rotated_point, setting.leg_swing_amount)
-            # TODO: parameter for lift height curve
-            point += Vector3.UP * minf(setting.leg_lift_height, setting.leg_lift_height * 2.0 * progress)
 
-        # TODO: parameter for target distance
-        var point_4: Vector4 = Vector4(point.x, point.y, point.z, 0.05)
+            var lift_amount: float = lift_units * setting.leg_lift_ratio
+            if setting.leg_lift_curve:
+                lift_amount *= setting.leg_lift_curve.sample_baked(progress)
+            # In case the end point is currently high enough, keep it
+            point.y = maxf(point.y, ground_local_y + HEIGHT_OFFSET + tanh(lift_amount) * setting.leg_lift_height)
+
+        var point_4: Vector4 = Vector4(point.x, point.y, point.z, TARGET_DIST_FLOOR)
         if is_global:
             point_4.w = -point_4.w
 
         target_point_list.append(point_4)
+
+    # Apply target distances based on point distances.
+    # Targets should be no greater than the smallest half distance to any
+    # point's neighbors, down to at least 1cm.
+    for i in range(target_point_list.size()):
+        var point_4: Vector4 = target_point_list[i]
+        var current_point: Vector3 = _get_target_point(i)
+        # TODO: parameter for maximum target distance
+        var target_dist_max: float = 0.08
+        if i > 0:
+            var prior_point: Vector3 = _get_target_point(i - 1)
+            target_dist_max = minf(target_dist_max, current_point.distance_to(prior_point) * 0.5)
+        if i + 1 < target_point_list.size():
+            var next_point: Vector3 = _get_target_point(i + 1)
+            target_dist_max = minf(target_dist_max, current_point.distance_to(next_point) * 0.5)
+        if point_4.w < 0.0:
+            point_4.w = -maxf(target_dist_max, -point_4.w)
+        else:
+            point_4.w = maxf(target_dist_max, point_4.w)
+        target_point_list[i] = point_4
+
 
 ## Clears target list, resets flags and indices. Skipping requires the target
 ## list to have the current position first, so this will automatically add it.
@@ -735,8 +783,8 @@ func _prepare_for_target(flags: int = 0) -> void:
 
     if target_allow_skipping_ahead:
         target_point_index = 1
-        var c: Vector3 = global_end_point
-        target_point_list.append(Vector4(c.x, c.y, c.z, -1.0))
+        var c: Vector3 = local_end_point
+        target_point_list.append(Vector4(c.x, c.y, c.z, 1.0))
     else:
         target_point_index = 0
     target_point_index_ik_checked = -1
@@ -760,25 +808,29 @@ func _update_target() -> void:
         return
 
     if is_recovering:
-        # Recovering without ground, use safe location
         _update_recovery_target()
 
-    # Motion is a step, and we got a new step target, update final goal point
+    # Motion is a step, and we got a new step target, update final goal points
     if is_stepping and time_since_start_step > 0.0 and step_cast.is_colliding():
         # Only update if new point is locally close to current target, otherwise
         # it will mess up the movement and we should just wait to make a new step
         var last: int = target_point_list.size() - 1
-        var step_target: Vector4 = target_point_list[last]
-        var max_travel: float = absf(step_target.w)
-        var new_point: Vector3 = step_target_initial.move_toward(next_step_target_global, max_travel)
+        var step_target_distance: float = target_point_list[last].w
+        var height_offset: float = step_target_normal.dot(_get_target_point(last - 1) - _get_target_point(last))
+        var new_point: Vector3 = step_target_initial.move_toward(next_step_target_global, absf(step_target_distance))
         step_target_current = new_point
-        target_point_list[last] = Vector4(new_point.x, new_point.y, new_point.z, step_target.w)
+        var new_target: Vector4 = Vector4(new_point.x, new_point.y, new_point.z, step_target_distance)
+        target_point_list[last] = new_target
+
+        # Update second-to-last target
+        step_target_distance = target_point_list[last - 1].w
+        new_point += step_target_normal * height_offset
+        new_target = Vector4(new_point.x, new_point.y, new_point.z, step_target_distance)
+        target_point_list[last - 1] = new_target
 
     # Moving through targets, check distances and update target
-    var target_point: Vector4 = target_point_list[target_point_index]
-    var local_target_point: Vector3 = Vector3(target_point.x, target_point.y, target_point.z)
-    if target_point.w < 0.0:
-        local_target_point = to_local(local_target_point)
+    var target_distance: float = absf(target_point_list[target_point_index].w)
+    var local_target_point: Vector3 = _get_target_point(target_point_index)
 
     # TODO: Add timer delays using target_data[index * span + 0] value.
     #       Probably flip a bool to use the above resting code but with a more
@@ -790,16 +842,20 @@ func _update_target() -> void:
 
     # During a step or recovery and we are at the last point, respond to ground
     if (
-        (is_recovering or is_stepping)
-        and ground_cast.is_colliding()
-        and target_point_index == target_point_list.size() - 1
+        is_grounded and (
+            is_recovering
+            or (
+                is_stepping
+                and target_point_index >= target_point_list.size() - 2
+            )
+        )
     ):
         has_reached_target = true
-    elif dist_sqr <= absf(target_point.w * target_point.w):
+    elif dist_sqr <= (target_distance * target_distance):
         has_reached_target = true
 
     if has_reached_target:
-        if _should_wait_for_ground():
+        if (not is_grounded) and _should_wait_for_ground():
             if debug_enable and debug_ik_target:
                 _draw_ik_target()
             target.position = local_target_point
@@ -860,7 +916,7 @@ func _update_target() -> void:
         _draw_ik_target()
 
 func _update_recovery_target() -> void:
-    # Do nothing if using a global target, this is a prior ground position
+    # Do nothing if using a global target, this is a ground position
     if target_point_list.size() > 0:
         var target_point: Vector4 = target_point_list[target_point_list.size() - 1]
         if target_point.w < 0.0:
@@ -942,10 +998,6 @@ func _should_wait_for_ground() -> bool:
 
     # Not at the final step goal, no need to wait here
     if target_point_index + 1 < target_point_list.size():
-        return false
-
-    # 1. touching ground is the end of the step
-    if is_grounded:
         return false
 
     # 2. being very near the goal (TODO: for a short time)
