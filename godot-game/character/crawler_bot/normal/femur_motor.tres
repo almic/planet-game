@@ -5,6 +5,7 @@
 [ext_resource type="Resource" uid="uid://di3wvep786dkx" path="res://character/crawler_bot/normal/femur_motor_velocity.tres" id="2_4f2xk"]
 
 [resource]
+resource_local_to_scene = true
 resource_name = "FemurMotor"
 script = ExtResource("1_lgbbw")
 max_acceleration = 20.420352248333657

@@ -7,6 +7,7 @@
 [ext_resource type="Resource" uid="uid://da5n6snt7g7mf" path="res://character/crawler_bot/normal/tarsus_part.tres" id="4_qjrq3"]
 
 [resource]
+resource_local_to_scene = true
 resource_name = "MiddleLeftChain"
 script = ExtResource("2_ass3p")
 root_bone = &"MiddleLeftFemur"

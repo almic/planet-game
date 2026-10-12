@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="7_yr7dv"]
 
 [resource]
+resource_local_to_scene = true
 resource_name = "TibiaPartFLBR"
 script = ExtResource("7_yr7dv")
 mesh = ExtResource("5_kdypb")

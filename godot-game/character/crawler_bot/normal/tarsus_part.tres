@@ -10,6 +10,7 @@
 [ext_resource type="Resource" uid="uid://cn7a03d8sukgt" path="res://character/crawler_bot/normal/tarsus_motor.tres" id="6_gtill"]
 
 [resource]
+resource_local_to_scene = true
 resource_name = "TarsusPart"
 script = ExtResource("3_65ewy")
 mesh = ExtResource("4_yhue1")

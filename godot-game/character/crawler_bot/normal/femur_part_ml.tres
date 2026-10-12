@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="6_a5ncq"]
 
 [resource]
+resource_local_to_scene = true
 resource_name = "FemurPartML"
 script = ExtResource("6_a5ncq")
 mesh = ExtResource("4_76vkb")

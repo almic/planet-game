@@ -1,6 +1,7 @@
 [gd_resource type="SpringCastSettings" format=3 uid="uid://8x8cm8ddcya1"]
 
 [resource]
+resource_local_to_scene = true
 resource_name = "CrawlerLegSpring"
 position = Vector3(0, 1.52, 0)
 direction = Vector3(0, 1, 0)

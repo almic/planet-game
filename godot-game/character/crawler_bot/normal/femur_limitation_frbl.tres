@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://def477t0ae837" path="res://addons/physical_skeleton/resource/joint_limitation.gd" id="1_b3lso"]
 
 [resource]
+resource_local_to_scene = true
 resource_name = "FemurFRBL"
 script = ExtResource("1_b3lso")
 angle = 0.8726646259971648

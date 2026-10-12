@@ -5,6 +5,7 @@
 [ext_resource type="Resource" uid="uid://iy14f27txtui" path="res://character/crawler_bot/normal/tibia_motor_velocity.tres" id="2_ockil"]
 
 [resource]
+resource_local_to_scene = true
 resource_name = "TibiaMotor"
 script = ExtResource("1_8lfhx")
 max_velocity = 6.283185307179586

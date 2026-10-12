@@ -6,6 +6,7 @@
 [ext_resource type="Curve" uid="uid://dndsqoj5uuqtc" path="res://character/crawler_bot/normal/leg_lift_curve.tres" id="2_xj2hw"]
 
 [resource]
+resource_local_to_scene = true
 resource_name = "BackLeg"
 script = ExtResource("1_xrlf6")
 ground_spring_setting = ExtResource("1_qfgcu")

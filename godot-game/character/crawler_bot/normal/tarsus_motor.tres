@@ -5,6 +5,7 @@
 [ext_resource type="Resource" uid="uid://eu1tnoyhbaog" path="res://character/crawler_bot/normal/tarsus_motor_velocity.tres" id="2_rrjcm"]
 
 [resource]
+resource_local_to_scene = true
 resource_name = "TarsusMotor"
 script = ExtResource("1_7kqob")
 max_velocity = 6.283185307179586

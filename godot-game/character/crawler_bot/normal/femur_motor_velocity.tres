@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://bddq06cxcp4p0" path="res://addons/physical_skeleton/resource/controller_parameters.gd" id="1_p4477"]
 
 [resource]
+resource_local_to_scene = true
 resource_name = "FemurMotorVelocity"
 script = ExtResource("1_p4477")
 proportional = 1.4

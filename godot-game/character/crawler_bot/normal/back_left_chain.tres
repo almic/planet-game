@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://bumtikmwn5lpl" path="res://addons/physical_skeleton/resource/chain_resource.gd" id="5_box7m"]
 
 [resource]
+resource_local_to_scene = true
 resource_name = "BackLeftChain"
 script = ExtResource("5_box7m")
 root_bone = &"BackLeftFemur"

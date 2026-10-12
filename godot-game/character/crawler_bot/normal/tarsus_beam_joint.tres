@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://bgui7td28pcg7" path="res://node/beam_joint/beam_joint_setting.gd" id="1_1pksf"]
 
 [resource]
+resource_local_to_scene = true
 resource_name = "TarsusBeamJoint"
 script = ExtResource("1_1pksf")
 relative_attach = -2
