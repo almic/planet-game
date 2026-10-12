@@ -188,7 +188,12 @@ func on_pose_finalized() -> void:
         var bone_xform: Transform3D = skeleton.global_transform * skeleton.get_bone_global_pose(bone_list[index])
         part.on_pose_finalized(bone_xform)
 
-    var target_node: Node3D = ik_node.get_node_or_null(ik_node.setting_list[ik_setting].target_node) as Node3D
+    # NOTE: assume that an empty path is intentional to disable the chain
+    var target_node_path: NodePath = ik_node.setting_list[ik_setting].target_node
+    if target_node_path.is_empty():
+        return
+
+    var target_node: Node3D = ik_node.get_node_or_null(target_node_path) as Node3D
     if not target_node:
         breakpoint
 
@@ -347,6 +352,8 @@ func _apply_damping(
 func finalize_motors() -> void:
     for index in range(part_count):
         var part: PhysicalBonePart3D = part_list[index]
+        if part.is_motor_broken:
+            continue
         part.apply_motor_parameters()
 
 func reload_chain() -> void:
@@ -384,7 +391,7 @@ func reload_chain() -> void:
         )
         return
 
-    if resource.get_unique_id() == -1:
+    if not resource.get_rid().is_valid():
         push_error(
             (
                 'PhysicalBoneChain3D %s resource named %s at %s has not had its unique id generated yet. '

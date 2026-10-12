@@ -39,19 +39,35 @@ var contract_limit: float = 0.1:
         contract_limit = value
         emit_changed()
 
+#region Breakable
+@export_group('Breakable', 'break')
+
+## If this joint can be destroyed by excessive force. To use this on custom
+## joints, you must apply the `PhysicalBonePart3D.META_BREAK_FORCE` meta data to
+## the Joint3D created from the custom builder. This will act as the max break
+## force value, using signals if `break_use_signal` is enabled.
+@export var break_enabled: bool = false
+
+## The force at which the joint breaks, or the minimum force to emit the signal
+## when `break_use_signal` is enabled. For custom Joint3D created from a custom
+## builder, have the builder apply the `PhysicalBonePart3D.META_BREAK_FORCE`
+## meta data to the Joint3D.
+@export_range(1.0, 10000.0, 0.1, 'or_greater', 'suffix:N')
+var break_max_force: float = 5000.0
+#endregion Breakable
 
 @export_group('Pitch', 'pitch')
 
-## Maximum counter-clockwise pitch rotation of the joint on Body B. Should be
-## wide enough to allow the bodies to rotate through the beam.
+## Maximum counter-clockwise pitch rotation of the joint on Body B. You probably
+## do not want this to be open at all.
 @export_range(0.0, 180.0, 0.1, 'radians_as_degrees')
 var pitch_upper: float = 0.0:
     set(value):
         pitch_upper = value
         emit_changed()
 
-## Maximum clockwise pitch rotation of the joint on Body B. Should be wide
-## enough to allow the bodies to rotate through the beam.
+## Maximum clockwise pitch rotation of the joint on Body B. You probably do not
+## want this to be open at all.
 @export_range(0.0, 180.0, 0.1, 'radians_as_degrees')
 var pitch_lower: float = 0.0:
     set(value):
@@ -69,7 +85,7 @@ var yaw_upper: float = 0.0:
         yaw_upper = value
         emit_changed()
 
-## Maximum clockwise yaw rotation of the joint on Body B.  You may consider
+## Maximum clockwise yaw rotation of the joint on Body B. You may consider
 ## opening this if one of the bodies is meant to swing along the other.
 @export_range(0.0, 180.0, 0.1, 'radians_as_degrees')
 var yaw_lower: float = 0.0:
@@ -80,16 +96,16 @@ var yaw_lower: float = 0.0:
 
 @export_group('Roll', 'roll')
 
-## Maximum counter-clockwise roll rotation of the joint on Body B. You probably
-## do not want this to be open at all.
+## Maximum counter-clockwise roll rotation of the joint on Body B. Should be
+## wide enough to allow the bodies to rotate through the beam.
 @export_range(0.0, 180.0, 0.1, 'radians_as_degrees')
 var roll_upper: float = 0.0:
     set(value):
         roll_upper = value
         emit_changed()
 
-## Maximum clockwise rotation of the joint on Body B.  You may consider opening
-## this if one of the bodies is meant to swing along the other.
+## Maximum clockwise roll rotation of the joint on Body B. Should be wide enough
+## to allow the bodies to rotate through the beam.
 @export_range(0.0, 180.0, 0.1, 'radians_as_degrees')
 var roll_lower: float = 0.0:
     set(value):

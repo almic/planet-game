@@ -46,6 +46,7 @@ var error_correction: float = 1.0
                 continue
             setting_list[index] = ChainResource.new()
             setting_list[index].resource_name = 'ChainResource'
+            setting_list[index].resource_local_to_scene = true
         _connect_setting_list()
         if is_node_ready():
             _update_chain_list()
@@ -225,8 +226,10 @@ func _process_modification_with_delta(delta: float) -> void:
 
         var target_node: Node3D = get_node_or_null(setting.target_node) as Node3D
         if not target_node:
+            # NOTE: if the target path was empty, assume it is intentional
+            if setting.target_node.is_empty():
+                continue
             breakpoint
-            continue
 
         var target_position: Vector3 = skeleton.to_local(target_node.global_position)
         if not target_position.is_finite():

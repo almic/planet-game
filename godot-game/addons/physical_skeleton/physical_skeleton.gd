@@ -6,7 +6,7 @@ class_name PhysicalSkeleton extends SkeletonModifier3D
 
 const META_OWNED: StringName = &'_physical_skeleton_owned'
 const META_CHAIN_ROOT: StringName = &'_physical_chain_root'
-const META_CHAIN_RESOURCE_ID: StringName = &'_physical_chain_resource_id'
+const META_CHAIN_ID: StringName = &'_physical_chain_resource_id'
 
 
 signal joint_force_exceeded(
@@ -109,7 +109,7 @@ var _bone_part_map: Dictionary[int, PhysicalBonePart3D]
 ## Node holding all the chain nodes
 var _chain_node_root: Node3D
 ## Map chain uids to chain nodes
-var _chain_node_map: Dictionary[int, PhysicalBoneChain3D]
+var _chain_node_map: Dictionary[RID, PhysicalBoneChain3D]
 
 
 var initialized: bool = false
@@ -232,9 +232,23 @@ func _setup() -> void:
 
         chain.set_joint_force_exceeded_signal(joint_force_exceeded)
 
-        var id: int = chain.get_meta(META_CHAIN_RESOURCE_ID, ResourceUID.INVALID_ID)
-        if id != ResourceUID.INVALID_ID:
-            _chain_node_map.set(id, chain)
+        var variant_id: Variant = chain.get_meta(META_CHAIN_ID, RID())
+        var id: RID
+        if typeof(variant_id) == TYPE_RID:
+            id = variant_id as RID
+        for i in range(4):
+            if id.is_valid() and (not _chain_node_map.has(id)):
+                # Apply id if we generated a new one
+                if i > 0:
+                    chain.set_meta(META_CHAIN_ID, id)
+                break
+
+            if i == 3:
+                push_error('Failed to allocate an unused RID three times! Bad!')
+                breakpoint
+
+            id = chain.resource.reallocate_rid()
+        _chain_node_map.set(id, chain)
 
     _chain_node_map.make_read_only()
     _bone_part_map.make_read_only()
@@ -341,7 +355,7 @@ func get_chain_node_root() -> Node3D:
 
 ## Finds a chain by its resource
 func get_chain_node(chain_resource: PhysicalBoneChainResource) -> PhysicalBoneChain3D:
-    return _chain_node_map.get(chain_resource.get_unique_id())
+    return _chain_node_map.get(chain_resource.get_rid())
 
 func build_chain(
     chain_resource: PhysicalBoneChainResource,
@@ -358,7 +372,7 @@ func build_chain(
 
     # Generate the custom unique id every build, copies can be made and bones
     # or paths can change
-    if chain_resource.get_unique_id() == ResourceUID.INVALID_ID:
+    if not chain_resource.get_rid().is_valid():
         push_error(
             (
                 'PhysicalSkeleton at %s method `build_chain()` called with an '
@@ -385,7 +399,7 @@ func build_chain(
     chain.set_meta(&'_custom_type_script', ResourceUID.id_to_text(ResourceLoader.get_resource_uid((chain.get_script() as Script).resource_path)))
     chain.set_meta(&'_edit_lock_', true)
     chain.resource = chain_resource
-    chain.set_meta(META_CHAIN_RESOURCE_ID, chain.resource.get_unique_id())
+    chain.set_meta(META_CHAIN_ID, chain.resource.get_rid())
     chain.name = chain.resource.resource_name
 
     chain._skip_ready = true
@@ -464,7 +478,7 @@ func prepare_custom_joints(chain_resource: PhysicalBoneChainResource, custom_joi
         )
         return false
 
-    var chain: PhysicalBoneChain3D = _chain_node_map.get(chain_resource.get_unique_id())
+    var chain: PhysicalBoneChain3D = _chain_node_map.get(chain_resource.get_rid())
     if not chain:
         push_error(
             (

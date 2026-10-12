@@ -111,7 +111,10 @@ var bone_name: StringName
 ## joints, you must apply the `PhysicalBonePart3D.META_BREAK_FORCE` meta data to
 ## the Joint3D created from the custom builder. This will act as the max break
 ## force value, using signals if `break_use_signal` is enabled.
-@export var break_enabled: bool = false
+@export var break_enabled: bool = false:
+    set(value):
+        break_enabled = value
+        setting_changed.emit(&'break_enabled')
 
 ## When enabled, the part will emit a signal when a joint's `break_max_force` is
 ## exceeded instead of instantly destroying the joint. Listeners must call the
@@ -123,7 +126,11 @@ var bone_name: StringName
 ## builder, have the builder apply the `PhysicalBonePart3D.META_BREAK_FORCE`
 ## meta data to the Joint3D.
 @export_range(1.0, 10000.0, 0.1, 'or_greater', 'suffix:N')
-var break_max_force: float = 5000.0
+var break_max_force: float = 5000.0:
+    set(value):
+        break_max_force = value
+        setting_changed.emit(&'break_max_force')
+
 #endregion Breakable
 
 #region IK Settings

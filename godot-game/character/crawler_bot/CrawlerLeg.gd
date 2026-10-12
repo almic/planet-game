@@ -1096,9 +1096,14 @@ func get_cross_paired_legs() -> Array[CrawlerLeg]:
 ## Callback for preparing custom joints and their resources, mainly to apply
 ## resource changes onto the joint. Return false to signal an error.
 func prepare_custom_joint(
-        _joint: Joint3D,
-        _joint_resource: Resource,
+        joint: Joint3D,
+        joint_resource: Resource,
 ) -> bool:
+    if joint_resource is BeamPivotJoint3DSetting:
+        if joint_resource.break_enabled:
+            joint.set_meta(PhysicalBonePart3D.META_BREAK_FORCE, joint_resource.break_max_force)
+        else:
+            joint.remove_meta(PhysicalBonePart3D.META_BREAK_FORCE)
     return true
 
 ## Callback for building custom joints. This should set the transform of the
@@ -1120,6 +1125,9 @@ func build_custom_joint(
     beam_joint.set_meta(&'_custom_type_script', ResourceUID.id_to_text(ResourceLoader.get_resource_uid((beam_joint.get_script() as Script).resource_path)))
     beam_joint.setting = beam_res
     beam_joint.name = beam_joint.setting.resource_name
+
+    if beam_res.break_enabled:
+        beam_joint.set_meta(PhysicalBonePart3D.META_BREAK_FORCE, beam_res.break_max_force)
 
     if beam_res.attach_to_main_body:
         beam_joint.node_a = main_body.get_path()

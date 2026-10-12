@@ -40,6 +40,7 @@ var rest_correction: float = deg_to_rad(1.0)
                 continue
             joint_list[index] = JointResource.new()
             joint_list[index].resource_name = 'JointResource'
+            joint_list[index].resource_local_to_scene = true
         joint_list_changed.emit()
 
 

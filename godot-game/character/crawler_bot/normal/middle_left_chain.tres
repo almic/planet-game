@@ -13,4 +13,5 @@ script = ExtResource("2_ass3p")
 root_bone = &"MiddleLeftFemur"
 end_bone = &"MiddleLeftTarsus_leaf"
 part_list = Array[ExtResource("1_odbbt")]([ExtResource("2_rb73x"), ExtResource("3_rb73x"), ExtResource("4_qjrq3")])
+_rid = RID(851615)
 metadata/_custom_type_script = "uid://bumtikmwn5lpl"

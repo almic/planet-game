@@ -46,9 +46,9 @@ var rest_correction_rate: float = deg_to_rad(1.0):
                 part.changed.connect(emit_changed)
         emit_changed()
 
-
-var _cached_unique_id: int = ResourceUID.INVALID_ID
-var _last_resource_path: String = ''
+@export_custom(PROPERTY_HINT_NONE, '', PROPERTY_USAGE_STORAGE)
+var _rid: RID:
+    get = _get_rid
 
 
 var callable_get_bone_name: Callable
@@ -129,8 +129,11 @@ func refresh_part_list_bone_names() -> void:
 
         part.bone_name = name_list[index]
 
-func get_unique_id() -> int:
-    if _cached_unique_id == ResourceUID.INVALID_ID or _last_resource_path != resource_path:
-        _cached_unique_id = ResourceLoader.get_resource_uid(resource_path)
-        _last_resource_path = resource_path
-    return _cached_unique_id
+func _get_rid() -> RID:
+    if not _rid.is_valid():
+        reallocate_rid()
+    return _rid
+
+func reallocate_rid() -> RID:
+    _rid = rid_from_int64(rid_allocate_id())
+    return _rid

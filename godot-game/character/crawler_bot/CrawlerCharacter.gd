@@ -173,6 +173,7 @@ var leg_set_second: Array[CrawlerLeg]
 
 var _is_update_ik_queued: bool = false
 
+
 func editor_rebuild_crawler() -> void:
     var dialog: Window
     if self != get_tree().edited_scene_root:
@@ -442,13 +443,14 @@ func damage(source: Object, amount: float, hit_point: Vector3) -> void:
     print('Took %f damage from %s at position %s' % [amount, source.name, str(hit_point)])
 
 func on_joint_force_exceeded(
-        joint: Joint3D,
-        force: float,
+        _joint: Joint3D,
+        _force: float,
         _max_force: float,
-        _part: PhysicalBonePart3D,
+        part: PhysicalBonePart3D,
         _chain: PhysicalBoneChain3D,
 ) -> void:
-    print('%d : %s: %.2f' % [Engine.get_physics_frames(), get_nice_path(joint), force])
+    #print('%d : %s: %.2f' % [Engine.get_physics_frames(), get_nice_path(joint), force])
+    part.set_should_break()
 
 func _update_body_mass() -> void:
     """
