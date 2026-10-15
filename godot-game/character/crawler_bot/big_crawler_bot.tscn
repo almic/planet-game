@@ -56,7 +56,7 @@ limitation_rotation_offset = Quaternion(0, 0, 0.08715574274766, 0.99619469809175
 resource_local_to_scene = true
 resource_name = "JointResource"
 script = ExtResource("7_wrlb8")
-limitation_angle = 0.8726646259971648
+limitation_angle = 1.2217304763960306
 
 [sub_resource type="Resource" id="Resource_tevyj"]
 resource_local_to_scene = true
@@ -86,7 +86,7 @@ limitation_rotation_offset = Quaternion(0, 0, -0.08715574274766, 0.9961946980917
 resource_local_to_scene = true
 resource_name = "JointResource"
 script = ExtResource("7_wrlb8")
-limitation_angle = 0.8726646259971648
+limitation_angle = 1.2217304763960306
 
 [sub_resource type="Resource" id="Resource_rjoxa"]
 resource_local_to_scene = true
@@ -116,7 +116,7 @@ limitation_rotation_offset = Quaternion(0, 0, -0.06104853953486, 0.9981347984218
 resource_local_to_scene = true
 resource_name = "JointResource"
 script = ExtResource("7_wrlb8")
-limitation_angle = 0.8726646259971648
+limitation_angle = 1.2217304763960306
 
 [sub_resource type="Resource" id="Resource_fy4h3"]
 resource_local_to_scene = true
@@ -146,7 +146,7 @@ limitation_rotation_offset = Quaternion(0, 0, 0.06104853953486, 0.99813479842187
 resource_local_to_scene = true
 resource_name = "JointResource"
 script = ExtResource("7_wrlb8")
-limitation_angle = 0.8726646259971648
+limitation_angle = 1.2217304763960306
 
 [sub_resource type="Resource" id="Resource_ldd6o"]
 resource_local_to_scene = true
@@ -176,7 +176,7 @@ limitation_rotation_offset = Quaternion(0, 0, -0.08715574274766, 0.9961946980917
 resource_local_to_scene = true
 resource_name = "JointResource"
 script = ExtResource("7_wrlb8")
-limitation_angle = 0.8726646259971648
+limitation_angle = 1.2217304763960306
 
 [sub_resource type="Resource" id="Resource_cjg8e"]
 resource_local_to_scene = true
@@ -206,7 +206,7 @@ limitation_rotation_offset = Quaternion(0, 0, 0.08715574274766, 0.99619469809175
 resource_local_to_scene = true
 resource_name = "JointResource"
 script = ExtResource("7_wrlb8")
-limitation_angle = 0.8726646259971648
+limitation_angle = 1.2217304763960306
 
 [sub_resource type="Resource" id="Resource_ps3yj"]
 resource_local_to_scene = true
@@ -503,8 +503,8 @@ metadata/_physical_skeleton_owned = true
 [node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain/TibiaPartFLBR" unique_id=1325512899]
 node_a = NodePath("../../FemurPartFLBR")
 node_b = NodePath("..")
-angular_limit_x/upper_angle = 0.4363323129985824
-angular_limit_x/lower_angle = -0.4363323129985824
+angular_limit_x/upper_angle = 0.6108652381980153
+angular_limit_x/lower_angle = -0.6108652381980153
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
 metadata/_edit_lock_ = true
@@ -627,8 +627,8 @@ metadata/_physical_skeleton_owned = true
 [node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontRightChain/TibiaPartFRBL" unique_id=1532438741]
 node_a = NodePath("../../FemurPartFRBL")
 node_b = NodePath("..")
-angular_limit_x/upper_angle = 0.4363323129985824
-angular_limit_x/lower_angle = -0.4363323129985824
+angular_limit_x/upper_angle = 0.6108652381980153
+angular_limit_x/lower_angle = -0.6108652381980153
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
 metadata/_edit_lock_ = true
@@ -749,8 +749,8 @@ metadata/_physical_skeleton_owned = true
 [node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleLeftChain/TibiaPartML" unique_id=1120072838]
 node_a = NodePath("../../FemurPartML")
 node_b = NodePath("..")
-angular_limit_x/upper_angle = 0.4363323129985824
-angular_limit_x/lower_angle = -0.4363323129985824
+angular_limit_x/upper_angle = 0.6108652381980153
+angular_limit_x/lower_angle = -0.6108652381980153
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
 metadata/_edit_lock_ = true
@@ -836,7 +836,7 @@ metadata/_physical_skeleton_owned = true
 [node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/FemurPartMR" unique_id=1679134239]
 node_a = NodePath("../../../../../..")
 node_b = NodePath("..")
-angular_limit_z/upper_angle = 0.3141592653589734
+angular_limit_z/upper_angle = 0.3141592653589793
 angular_limit_z/lower_angle = -0.5585053606381913
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
@@ -869,8 +869,8 @@ metadata/_physical_skeleton_owned = true
 [node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/MiddleRightChain/TibiaPartMR" unique_id=1713737133]
 node_a = NodePath("../../FemurPartMR")
 node_b = NodePath("..")
-angular_limit_x/upper_angle = 0.4363323129985824
-angular_limit_x/lower_angle = -0.4363323129985824
+angular_limit_x/upper_angle = 0.6108652381980153
+angular_limit_x/lower_angle = -0.6108652381980153
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
 metadata/_edit_lock_ = true
@@ -989,8 +989,8 @@ metadata/_physical_skeleton_owned = true
 [node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackLeftChain/TibiaPartFRBL" unique_id=1117256937]
 node_a = NodePath("../../FemurPartFRBL")
 node_b = NodePath("..")
-angular_limit_x/upper_angle = 0.4363323129985824
-angular_limit_x/lower_angle = -0.4363323129985824
+angular_limit_x/upper_angle = 0.6108652381980153
+angular_limit_x/lower_angle = -0.6108652381980153
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
 metadata/_edit_lock_ = true
@@ -1109,8 +1109,8 @@ metadata/_physical_skeleton_owned = true
 [node name="BoneJoint" type="Generic6DOFJoint3D" parent="big_crawler/Skeleton3D/ChainRootNode/BackRightChain/TibiaPartFLBR" unique_id=67105317]
 node_a = NodePath("../../FemurPartFLBR")
 node_b = NodePath("..")
-angular_limit_x/upper_angle = 0.4363323129985824
-angular_limit_x/lower_angle = -0.4363323129985824
+angular_limit_x/upper_angle = 0.6108652381980153
+angular_limit_x/lower_angle = -0.6108652381980153
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
 metadata/_edit_lock_ = true

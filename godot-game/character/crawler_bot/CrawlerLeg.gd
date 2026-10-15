@@ -323,7 +323,7 @@ func setup_target() -> void:
 ## Watches IK to check for targeting failures, where IK is unable to reach the
 ## current target position and needs to be reset.
 func on_ik_updated() -> void:
-    const SOFT_RATE: float = 0.5
+    const SOFT_RATE: float = 1.0
 
     # Need to verify that IK endpoint is within the current target distance,
     # otherwise it's a bug and devs should be notified with an error
@@ -332,32 +332,35 @@ func on_ik_updated() -> void:
         if body.leg_ik.has_made_progress(index):
             return
 
-        # This can imply flickering or an impossible location
-        if is_without_target:
-            # Move rest towards current bone
-            @warning_ignore("confusable_local_declaration")
-            var local_bone: Vector3 = to_local(
-                    body.skeleton.to_global(
-                        body.skeleton.get_bone_global_pose(target_bone_idx).origin
-                    )
-            )
-            target_rest_position = target_rest_position.lerp(local_bone, SOFT_RATE * body.delta_time)
-        else:
-            # Skip this target completely
-            # TODO: use a delay instead of giving up instantly!
-            # TODO: move point towards IK end point, this should allow the leg to continue moving
-            # to the new pose and continue normal logic
-            # IDEA: skip the delay, every frame this happens, move the target 50% to the IK end point
-            target_point_index += 1
-            if target_point_index >= target_point_list.size():
-                @warning_ignore("confusable_local_declaration")
-                var local_bone: Vector3 = to_local(
-                        body.skeleton.to_global(
-                            body.skeleton.get_bone_global_pose(target_bone_idx).origin
-                        )
+        var ik_end_point: Vector3 = to_local(
+                body.skeleton.to_global(
+                    body.skeleton.get_bone_global_pose(target_bone_idx).origin
                 )
-                _on_target_finished(local_bone)
+        )
 
+        # This can imply flickering or an impossible location, move rest point
+        if is_without_target:
+            target_rest_position = target_rest_position.lerp(ik_end_point, SOFT_RATE * body.delta_time)
+            return
+
+        # Move target towards the IK end point, maintaining global coordinates
+        var target_dist: float = target_point_list[target_point_index].w
+        var is_global: bool = target_dist < 0.0
+        var old_target: Vector3 = _get_target_point(target_point_index)
+        var new_target: Vector3 = old_target.lerp(ik_end_point, SOFT_RATE * body.delta_time)
+
+        print('Leg %d : Moved bad target %.4f' % [ index, old_target.distance_to(new_target) ])
+
+        if is_global:
+            new_target = to_global(new_target)
+
+        var target_4: Vector4 = Vector4(new_target.x, new_target.y, new_target.z, target_dist)
+        target_point_list[target_point_index] = target_4
+
+        # TODO: use a delay instead of giving up instantly!
+        # TODO: move point towards IK end point, this should allow the leg to continue moving
+        # to the new pose and continue normal logic
+        # IDEA: skip the delay, every frame this happens, move the target 50% to the IK end point
         return
 
     # Reached the goal, resting, do nothing

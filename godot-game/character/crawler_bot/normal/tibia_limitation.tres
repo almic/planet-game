@@ -6,5 +6,5 @@
 resource_local_to_scene = true
 resource_name = "TibiaLimitation"
 script = ExtResource("1_v0r6d")
-angle = 0.8726646259971648
+angle = 1.2217304763960306
 metadata/_custom_type_script = "uid://def477t0ae837"
