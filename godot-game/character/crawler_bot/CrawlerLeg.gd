@@ -560,7 +560,7 @@ func _update_step_cast() -> void:
             step_transform = target_transform
 
     # Local step cast rotation and translation
-    step_cast.transform = Transform3D.IDENTITY.translated(step_cast_rest_position)
+    step_cast.transform = Transform3D.IDENTITY
     if body.has_desired_forward and not is_zero_approx(setting.step_cast_angle):
         var rot_axis: Vector3 = (
                   body.phys_state.transform.basis.inverse()
@@ -569,8 +569,11 @@ func _update_step_cast() -> void:
         if not rot_axis.is_zero_approx():
             step_cast.transform = step_cast.transform.rotated(rot_axis.normalized(), setting.step_cast_angle)
 
-    step_cast.transform = step_cast.transform.translated_local(Vector3.UP * setting.step_cast_start)
-    step_cast.transform = step_transform * step_cast.transform
+    step_cast.transform.origin += (
+              (step_transform.basis * step_cast_rest_position)
+            + (Vector3.UP * setting.step_cast_start)
+            + step_transform.origin
+    )
 
     step_cast.force_shapecast_update()
 
