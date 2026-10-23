@@ -4,5 +4,8 @@
 
 [resource]
 script = ExtResource("1_d516b")
+name = &"jump"
 block_lower_priority_actions = false
+is_remappable = true
+display_name = "Jump"
 metadata/_custom_type_script = "uid://cluhc11vixkf1"

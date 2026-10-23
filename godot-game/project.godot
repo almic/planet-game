@@ -77,9 +77,11 @@ texture={
 3d_render/layer_2="ThirdPersonOnly"
 3d_physics/layer_1="Character"
 3d_physics/layer_2="Projectile"
+3d_physics/layer_3="Vehicle"
 3d_physics/layer_5="StaticWorld"
 3d_physics/layer_6="DynamicWorld"
 3d_physics/layer_7="Stairs"
+3d_physics/layer_9="InteractionArea"
 
 [physics]
 

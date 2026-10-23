@@ -1,0 +1,140 @@
+[gd_resource type="VehicleSettings" format=3 uid="uid://b6vga3mwrn23c"]
+
+[ext_resource type="VehicleEngineSettings" uid="uid://qjcruaw4y0jn" path="res://object/vehicle/recon_vehicle/recon_engine.tres" id="1_uhlxo"]
+[ext_resource type="VehicleTransmissionSettings" uid="uid://btgossyr732wu" path="res://object/vehicle/recon_vehicle/recon_transmission.tres" id="2_8eqgt"]
+
+[sub_resource type="AntiRollBarSettings" id="AntiRollBarSettings_jvju5"]
+
+[sub_resource type="AntiRollBarSettings" id="AntiRollBarSettings_omw0k"]
+left_wheel = 2
+right_wheel = 3
+
+[sub_resource type="VehicleDifferentialSettings" id="VehicleDifferentialSettings_dtwl6"]
+left_wheel_index = 0
+right_wheel_index = 1
+differential_ratio = 4.3
+torque_ratio = 0.5
+slip_ratio = 1.6
+
+[sub_resource type="VehicleDifferentialSettings" id="VehicleDifferentialSettings_ncli5"]
+left_wheel_index = 2
+right_wheel_index = 3
+differential_ratio = 4.3
+torque_ratio = 0.5
+slip_ratio = 1.6
+
+[sub_resource type="WheeledVehicleControllerSettings" id="WheeledVehicleControllerSettings_d4ea0"]
+engine = ExtResource("1_uhlxo")
+transmission = ExtResource("2_8eqgt")
+differentials = Array[VehicleDifferentialSettings]([SubResource("VehicleDifferentialSettings_dtwl6"), SubResource("VehicleDifferentialSettings_ncli5")])
+open_differential = true
+
+[sub_resource type="Curve" id="Curve_sxo6a"]
+_limits = [0.0, 1.2, 0.0, 20.0]
+_data = [Vector2(0, 0), 0.0, 0.400000015894572, 1, 1, Vector2(3, 1.2), 0.400000015894572, -0.0117647086872774, 1, 1, Vector2(20, 1), -0.0117647086872774, 0.0, 1, 1]
+point_count = 3
+
+[sub_resource type="Curve" id="Curve_hoofj"]
+_limits = [0.0, 1.2, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 20.00000124176346, 1, 1, Vector2(0.06, 1.2), 20.00000124176346, -1.4285717250741166, 1, 1, Vector2(0.2, 1), -1.4285717250741166, 0.0, 1, 1]
+point_count = 3
+
+[sub_resource type="WheelSettings" id="WheelSettings_hoofj"]
+position = Vector3(0.76, 0.58, 1.45)
+radius = 0.45
+width = 0.34
+kingpin_angle = 0.017453292
+caster_angle = 0.034906585
+toe = 0.008726646
+camber = 0.02617994
+suspension_max_length = 0.45
+suspension_min_length = 0.08
+suspension_forward_angle = 0.13962634
+suspension_sideways_angle = 0.13962634
+spring_frequency = 0.88
+spring_damping = 0.25
+max_steer_angle = 0.61086524
+lateral_friction = SubResource("Curve_sxo6a")
+longitudinal_friction = SubResource("Curve_hoofj")
+
+[sub_resource type="Curve" id="Curve_44n6i"]
+_limits = [0.0, 1.2, 0.0, 20.0]
+_data = [Vector2(0, 0), 0.0, 0.400000015894572, 1, 1, Vector2(3, 1.2), 0.400000015894572, -0.0117647086872774, 1, 1, Vector2(20, 1), -0.0117647086872774, 0.0, 1, 1]
+point_count = 3
+
+[sub_resource type="Curve" id="Curve_nymlj"]
+_limits = [0.0, 1.2, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 20.00000124176346, 1, 1, Vector2(0.06, 1.2), 20.00000124176346, -1.4285717250741166, 1, 1, Vector2(0.2, 1), -1.4285717250741166, 0.0, 1, 1]
+point_count = 3
+
+[sub_resource type="WheelSettings" id="WheelSettings_44n6i"]
+position = Vector3(-0.76, 0.58, 1.45)
+radius = 0.45
+width = 0.34
+kingpin_angle = -0.017453292
+caster_angle = 0.034906585
+toe = -0.008726646
+camber = -0.02617994
+suspension_max_length = 0.45
+suspension_min_length = 0.08
+suspension_forward_angle = 0.13962634
+suspension_sideways_angle = -0.13962634
+spring_frequency = 0.88
+spring_damping = 0.25
+max_steer_angle = 0.61086524
+lateral_friction = SubResource("Curve_44n6i")
+longitudinal_friction = SubResource("Curve_nymlj")
+
+[sub_resource type="Curve" id="Curve_y5ohc"]
+_limits = [0.0, 1.2, 0.0, 20.0]
+_data = [Vector2(0, 0), 0.0, 0.400000015894572, 1, 1, Vector2(3, 1.2), 0.400000015894572, -0.0117647086872774, 1, 1, Vector2(20, 1), -0.0117647086872774, 0.0, 1, 1]
+point_count = 3
+
+[sub_resource type="Curve" id="Curve_sgnoj"]
+_limits = [0.0, 1.2, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 20.00000124176346, 1, 1, Vector2(0.06, 1.2), 20.00000124176346, -1.4285717250741166, 1, 1, Vector2(0.2, 1), -1.4285717250741166, 0.0, 1, 1]
+point_count = 3
+
+[sub_resource type="WheelSettings" id="WheelSettings_nymlj"]
+position = Vector3(0.76, 0.58, -1.54)
+radius = 0.45
+width = 0.34
+camber = 0.02617994
+suspension_max_length = 0.45
+suspension_min_length = 0.08
+suspension_forward_angle = -0.13962634
+suspension_sideways_angle = 0.13962634
+spring_frequency = 0.88
+spring_damping = 0.25
+lateral_friction = SubResource("Curve_y5ohc")
+longitudinal_friction = SubResource("Curve_sgnoj")
+
+[sub_resource type="Curve" id="Curve_iqkp2"]
+_limits = [0.0, 1.2, 0.0, 20.0]
+_data = [Vector2(0, 0), 0.0, 0.400000015894572, 1, 1, Vector2(3, 1.2), 0.400000015894572, -0.0117647086872774, 1, 1, Vector2(20, 1), -0.0117647086872774, 0.0, 1, 1]
+point_count = 3
+
+[sub_resource type="Curve" id="Curve_b2sv0"]
+_limits = [0.0, 1.2, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 20.00000124176346, 1, 1, Vector2(0.06, 1.2), 20.00000124176346, -1.4285717250741166, 1, 1, Vector2(0.2, 1), -1.4285717250741166, 0.0, 1, 1]
+point_count = 3
+
+[sub_resource type="WheelSettings" id="WheelSettings_y5ohc"]
+position = Vector3(-0.76, 0.58, -1.54)
+radius = 0.45
+width = 0.34
+camber = -0.02617994
+suspension_max_length = 0.45
+suspension_min_length = 0.08
+suspension_forward_angle = -0.13962634
+suspension_sideways_angle = -0.13962634
+spring_frequency = 0.88
+spring_damping = 0.25
+lateral_friction = SubResource("Curve_iqkp2")
+longitudinal_friction = SubResource("Curve_b2sv0")
+
+[resource]
+resource_name = "Recon"
+wheels = Array[WheelBaseSettings]([SubResource("WheelSettings_hoofj"), SubResource("WheelSettings_44n6i"), SubResource("WheelSettings_nymlj"), SubResource("WheelSettings_y5ohc")])
+anti_roll_bars = Array[AntiRollBarSettings]([SubResource("AntiRollBarSettings_jvju5"), SubResource("AntiRollBarSettings_omw0k")])
+controller = SubResource("WheeledVehicleControllerSettings_d4ea0")
