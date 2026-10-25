@@ -6,6 +6,10 @@
 [ext_resource type="Texture2D" uid="uid://31027fxl4rpb" path="res://texture/dev/grid_orange.png" id="2_sxo6a"]
 [ext_resource type="Script" uid="uid://byjqqfft4em6x" path="res://node/interactable/interaction_area.gd" id="3_nymlj"]
 
+[sub_resource type="Curve" id="Curve_nymlj"]
+_data = [Vector2(0, 0.499999999999984), 0.0, 0.0, 0, 1, Vector2(0.0999999999999968, 0.499999999999984), 0.0, 0.5555555555555556, 1, 1, Vector2(0.999999999999968, 0.999999999999968), 0.5555555555555556, 0.0, 1, 0]
+point_count = 3
+
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_vmej4"]
 height = 1.5
 
@@ -74,20 +78,25 @@ height = 0.34
 radial_segments = 32
 rings = 0
 
-[node name="ReconVehicle" type="Vehicle" unique_id=1158425925 node_paths=PackedStringArray("exit_position", "camera_target")]
+[node name="ReconVehicle" type="Vehicle" unique_id=1158425925 node_paths=PackedStringArray("exit_position", "camera_target", "driver_entry", "passenger_entry")]
 collision_layer = 4
 collision_mask = 55
 mass = 2500.0
 center_of_mass_mode = 1
 center_of_mass = Vector3(0, 0.6199999999999992, 0)
+custom_integrator = true
 continuous_cd = true
 wheel_paths = Array[NodePath]([NodePath("wheel_FL"), NodePath("wheel_FR"), NodePath("wheel_BL"), NodePath("wheel_BR")])
 settings = ExtResource("1_44n6i")
 script = ExtResource("2_44n6i")
 exit_position = NodePath("ExitPoint")
 camera_target = NodePath("CameraTarget")
-steer_by_wheel = true
+driver_entry = NodePath("DriverSide")
+passenger_entry = [NodePath("PassengerSide")]
+steer_enable_virtual = true
 steer_enable_integrated = true
+forward_enable_virtual = true
+forward_input_curve = SubResource("Curve_nymlj")
 metadata/_custom_type_script = "uid://crxfo7nmk34jr"
 
 [node name="DriverSide" type="Area3D" parent="." unique_id=1468137433 node_paths=PackedStringArray("interaction_object")]

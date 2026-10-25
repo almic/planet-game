@@ -98,3 +98,20 @@ func _validate_property(property: Dictionary) -> void:
 func set_angle(value: float) -> void:
     required_angle = value
     _cos_required_angle = cos(required_angle)
+
+func get_global_direction() -> Vector3:
+    if required_direction == Direction.DIRECTION_NONE:
+        return Vector3.ZERO
+    if required_direction == Direction.DIRECTION_X_PLUS:
+        return global_basis * Vector3.RIGHT
+    if required_direction == Direction.DIRECTION_X_MINUS:
+        return global_basis * Vector3.LEFT
+    if required_direction == Direction.DIRECTION_Y_PLUS:
+        return global_basis * Vector3.UP
+    if required_direction == Direction.DIRECTION_Y_MINUS:
+        return global_basis * Vector3.DOWN
+    if required_direction == Direction.DIRECTION_Z_PLUS:
+        return global_basis * Vector3.MODEL_FRONT
+    if required_direction == Direction.DIRECTION_Z_MINUS:
+        return global_basis * Vector3.MODEL_REAR
+    return Vector3.ZERO

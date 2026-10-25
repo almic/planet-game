@@ -106,6 +106,7 @@ suspension_forward_angle = -0.13962634
 suspension_sideways_angle = 0.13962634
 spring_frequency = 0.88
 spring_damping = 0.25
+max_steer_angle = 0.0
 lateral_friction = SubResource("Curve_y5ohc")
 longitudinal_friction = SubResource("Curve_sgnoj")
 
@@ -130,6 +131,7 @@ suspension_forward_angle = -0.13962634
 suspension_sideways_angle = -0.13962634
 spring_frequency = 0.88
 spring_damping = 0.25
+max_steer_angle = 0.0
 lateral_friction = SubResource("Curve_iqkp2")
 longitudinal_friction = SubResource("Curve_b2sv0")
 

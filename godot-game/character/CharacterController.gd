@@ -184,6 +184,13 @@ var ground_rel_con_velocity: Vector3
 ## Calculated wall slide normal, only use when is_slipping is true
 var wall_slide_normal: Vector3
 
+## Current vehicle this character is in. When set, integrate forces copies the
+## velocities of the vehicle onto the character and fixes the character at the
+## vehicle_offset position.
+var vehicle: BaseVehicle = null
+
+var vehicle_offset: Vector3 = Vector3.ZERO
+
 
 func _ready() -> void:
 
@@ -222,6 +229,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
     if not manual_input_handling:
         _handle_input()
+
+    if vehicle != null:
+        _integrate_vehicle()
+        return
 
     # Apply damping forces immediately
     if not is_zero_approx(state.total_linear_damp):
@@ -464,6 +475,13 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                     _forward_debug_vec,
                     2.0
             )
+
+func _integrate_vehicle() -> void:
+    var vehicle_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(vehicle.get_rid())
+
+    phys_state.transform = vehicle_state.transform.translated_local(vehicle_offset)
+    phys_state.linear_velocity = vehicle_state.linear_velocity
+    phys_state.angular_velocity = vehicle_state.angular_velocity
 
 func _update_motion(state: PhysicsDirectBodyState3D) -> void:
     linear_speed = state.linear_velocity.length_squared()

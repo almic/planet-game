@@ -2,10 +2,6 @@
 class_name InteractionRay extends RayCast3D
 
 
-## The owner of this interaction ray, receives calls to 'on_interaction()' when
-## the action is active with the first interactable hit as the only parameter.
-@export var interactor: Node3D = null
-
 ## How far the interaction ray travels
 @export_range(0.01, 2.0, 0.01, 'or_greater', 'suffix:m')
 var distance: float = 1.0:
@@ -14,9 +10,6 @@ var distance: float = 1.0:
 ## How many interactions the ray can store
 @export_range(1, 5, 1, 'or_greater')
 var max_interactions: int = 3
-
-## Action which triggers interactions
-var action: GUIDEAction = null
 
 ## The list of InteractionArea currently being looked at, sorted by priority,
 ## where higher values appear first.
@@ -85,15 +78,26 @@ func update() -> void:
         if interaction_area == null:
             continue
 
-        interactables.append(interaction_area)
+        # Test interaction angle
+        if (
+            interaction_area.required_direction != InteractionArea.Direction.DIRECTION_NONE
+            and interaction_area._cos_required_angle > -1.0
+        ):
+            var cos_theta: float = (global_basis * Vector3.FORWARD).dot(interaction_area.get_global_direction())
+            if cos_theta < interaction_area._cos_required_angle:
+                continue
 
-    if interactables.size() == 0:
-        return
+        interactables.append(interaction_area)
 
     interactables.sort_custom(_sort_interactions)
 
-    if (interactor != null) and (action != null) and action.is_triggered():
-        interactor.call(&'on_interaction', interactables[0])
-
 func _sort_interactions(left: InteractionArea, right: InteractionArea) -> bool:
     return left.priority > right.priority
+
+## Performs an interaction with the first interactable obtained from the most
+## recent call to update().
+func interact(callback: Callable) -> void:
+    if interactables.size() == 0:
+        return
+
+    callback.call(interactables[0])

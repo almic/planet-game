@@ -13,6 +13,15 @@ var input_action_tick: GUIDEAction = preload("uid://cg84r7q1k81f6")
 var input_debug_context: GUIDEMappingContext = preload("uid://b65tjpa028uia")
 
 
+enum DeviceContext {
+    KEYBOARD,
+    CONTROLLER
+}
+
+## Current input device context, determines what UI elements are displayed
+var input_device_context: DeviceContext = DeviceContext.KEYBOARD
+
+
 var debug_mode: bool = true
 
 ## Number of physics updates actually made, excluding pause time
@@ -38,6 +47,10 @@ var allow_pause_on_exit: bool = true
 var pause_next_tick: bool = false
 
 
+func _init() -> void:
+    # Track when a controller is connected to update input device context
+    Input.joy_connection_changed.connect(on_joy_connection)
+
 func _ready() -> void:
     GUIDE.enable_mapping_context(input_global_context)
 
@@ -59,6 +72,21 @@ func _ready() -> void:
         breakpoint
 
 func _process(_delta: float) -> void:
+    # Switch input contexts when buttons are pressed
+    # TODO: in the future, accumulate mouse / stick motion to switch when those inputs
+    # are changing a lot over a short time (wiggling)
+    var input_state: GUIDEInputState = GUIDE._input_state
+    if input_device_context == DeviceContext.CONTROLLER:
+        if input_state.is_any_key_pressed() or input_state.is_any_mouse_button_pressed():
+            input_device_context = DeviceContext.KEYBOARD
+    elif input_device_context == DeviceContext.KEYBOARD:
+        if (
+            input_state.is_any_joy_button_pressed()
+            or input_state.get_joy_axis_value(GUIDEInputState.ANY_JOY_DEVICE_ID, JoyAxis.JOY_AXIS_TRIGGER_LEFT) >= 0.05
+            or input_state.get_joy_axis_value(GUIDEInputState.ANY_JOY_DEVICE_ID, JoyAxis.JOY_AXIS_TRIGGER_RIGHT) >= 0.05
+        ):
+            input_device_context = DeviceContext.CONTROLLER
+
     if input_action_pause.is_triggered():
         if is_paused():
             unpause()
@@ -83,6 +111,13 @@ func _process(_delta: float) -> void:
 func _physics_process(_d: float) -> void:
     if not get_tree().paused:
         ticked_physics += 1
+
+func on_joy_connection(_device: int, connected: bool) -> void:
+    # Automatically switch contexts in special cases
+    if connected:
+        input_device_context = DeviceContext.CONTROLLER
+    elif Input.get_connected_joypads().size() == 0:
+        input_device_context = DeviceContext.KEYBOARD
 
 func on_step_physics() -> void:
     if pause_next_tick:

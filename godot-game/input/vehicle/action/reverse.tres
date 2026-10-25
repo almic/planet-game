@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="GUIDEAction" format=3 uid="uid://iff0s084mt2p"]
+
+[ext_resource type="Script" uid="uid://cluhc11vixkf1" path="res://addons/guide/guide_action.gd" id="1_y23ch"]
+
+[resource]
+script = ExtResource("1_y23ch")
+name = &"reverse"
+is_remappable = true
+display_name = "Reverse"
+metadata/_custom_type_script = "uid://cluhc11vixkf1"

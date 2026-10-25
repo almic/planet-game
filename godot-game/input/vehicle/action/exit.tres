@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="GUIDEAction" format=3 uid="uid://c8ci36bxyiklw"]
+
+[ext_resource type="Script" uid="uid://cluhc11vixkf1" path="res://addons/guide/guide_action.gd" id="1_hm4gh"]
+
+[resource]
+script = ExtResource("1_hm4gh")
+name = &"exit"
+block_lower_priority_actions = false
+is_remappable = true
+display_name = "Exit"
+metadata/_custom_type_script = "uid://cluhc11vixkf1"
