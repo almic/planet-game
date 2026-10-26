@@ -38,6 +38,10 @@ albedo_color = Color(0, 0.78431374, 1, 1)
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_8eijk"]
 
+[sub_resource type="SystemFont" id="SystemFont_76stg"]
+font_names = PackedStringArray("Office Code Pro D")
+subpixel_positioning = 0
+
 [node name="Player" type="RigidBody3D" unique_id=1957397594 node_paths=PackedStringArray("camera_main", "camera_root", "camera_pitch", "camera_cast", "camera_interaction_ray", "spring")]
 physics_interpolation_mode = 1
 collision_mask = 55
@@ -138,3 +142,40 @@ process_mode = 3
 unique_name_in_owner = true
 process_mode = 3
 visible = false
+
+[node name="VehicleDebugger" type="GridContainer" parent="CanvasLayer" unique_id=1352421412]
+unique_name_in_owner = true
+visible = false
+offset_right = 40.0
+offset_bottom = 40.0
+columns = 2
+
+[node name="Gear" type="Label" parent="CanvasLayer/VehicleDebugger" unique_id=1890363825]
+layout_mode = 2
+theme_override_fonts/font = SubResource("SystemFont_76stg")
+text = "Gear:"
+
+[node name="GearValue" type="Label" parent="CanvasLayer/VehicleDebugger" unique_id=1267402119]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_fonts/font = SubResource("SystemFont_76stg")
+
+[node name="Speed" type="Label" parent="CanvasLayer/VehicleDebugger" unique_id=960993326]
+layout_mode = 2
+theme_override_fonts/font = SubResource("SystemFont_76stg")
+text = "Speed:"
+
+[node name="SpeedValue" type="Label" parent="CanvasLayer/VehicleDebugger" unique_id=290941278]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_fonts/font = SubResource("SystemFont_76stg")
+
+[node name="RPM" type="Label" parent="CanvasLayer/VehicleDebugger" unique_id=1095096962]
+layout_mode = 2
+theme_override_fonts/font = SubResource("SystemFont_76stg")
+text = "RPM:"
+
+[node name="RPMValue" type="Label" parent="CanvasLayer/VehicleDebugger" unique_id=828711763]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_fonts/font = SubResource("SystemFont_76stg")

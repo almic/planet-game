@@ -78,7 +78,7 @@ height = 0.34
 radial_segments = 32
 rings = 0
 
-[node name="ReconVehicle" type="Vehicle" unique_id=1158425925 node_paths=PackedStringArray("exit_position", "camera_target", "driver_entry", "passenger_entry")]
+[node name="ReconVehicle" type="Vehicle" unique_id=1158425925 node_paths=PackedStringArray("exit_position", "camera_target", "driver_entry")]
 collision_layer = 4
 collision_mask = 55
 mass = 2500.0
@@ -92,11 +92,14 @@ script = ExtResource("2_44n6i")
 exit_position = NodePath("ExitPoint")
 camera_target = NodePath("CameraTarget")
 driver_entry = NodePath("DriverSide")
-passenger_entry = [NodePath("PassengerSide")]
+air_friction_coef_plus = Vector3(1.0499999999999663, 0.7999999999999744, 0.3999999999999872)
+air_friction_coef_minus = Vector3(1.0499999999999663, 0.41999999999998655, 0.4499999999999856)
+air_friction_surface_area = Vector3(6.320599999999798, 8.486399999999728, 2.716999999999913)
 steer_enable_virtual = true
-steer_enable_integrated = true
+steer_integrated_feedback = 0.8
 forward_enable_virtual = true
 forward_input_curve = SubResource("Curve_nymlj")
+stat_speed_history = 20
 metadata/_custom_type_script = "uid://crxfo7nmk34jr"
 
 [node name="DriverSide" type="Area3D" parent="." unique_id=1468137433 node_paths=PackedStringArray("interaction_object")]
@@ -197,14 +200,14 @@ depth = 0.5
 material = SubResource("StandardMaterial3D_y5ohc")
 
 [node name="wheel_FL" type="Node3D" parent="." unique_id=1394522136]
-transform = Transform3D(0.02617695, 0.9996193, 0.008720556, 0.99965733, -0.026175955, -0.00022835583, 0, 0.008723546, -0.999962, 0.77102757, 0.5015348, 1.4610276)
+transform = Transform3D(0.02617695, 0.99950516, 0.017440448, 0.99965733, -0.026172966, -0.00045669425, 0, 0.017446427, -0.9998478, 0.77102757, 0.5015348, 1.4610276)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="wheel_FL" unique_id=1912090890]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.551115e-17, 0, 0)
 mesh = SubResource("CylinderMesh_nymlj")
 
 [node name="wheel_FR" type="Node3D" parent="." unique_id=1922894007]
-transform = Transform3D(-0.02617695, 0.9996193, -0.008720556, 0.99965733, 0.026175955, -0.00022835583, 0, -0.008723546, -0.999962, -0.77102757, 0.5015348, 1.4610276)
+transform = Transform3D(-0.02617695, 0.99950516, -0.017440448, 0.99965733, 0.026172966, -0.00045669425, 0, -0.017446427, -0.9998478, -0.77102757, 0.5015348, 1.4610276)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="wheel_FR" unique_id=219094054]
 mesh = SubResource("CylinderMesh_jvju5")

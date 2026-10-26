@@ -90,6 +90,12 @@ var debug_enable: bool = false
 @export var debug_guide_debugger: bool = false
 @onready var guide_debugger: MarginContainer = %GuideDebugger
 
+@export var debug_vehicle_debugger: bool = false
+@onready var vehicle_debugger: GridContainer = %VehicleDebugger
+@onready var vehicle_debug_gear_value: Label = %GearValue
+@onready var vehicle_debug_speed_value: Label = %SpeedValue
+@onready var vehicle_debug_rpm_value: Label = %RPMValue
+
 @onready var mesh_yaw: Node3D = %mesh_yaw
 
 @onready var collider_stand: CollisionShape3D = %collider_stand
@@ -234,15 +240,7 @@ func _process(delta: float) -> void:
     if input_action_interact.is_triggered():
         camera_interaction_ray.interact(on_interaction)
 
-    var want_guide_debug: bool = debug_enable and debug_guide_debugger
-    var showing_guide_debug: bool = guide_debugger.visible and guide_debugger.process_mode == ProcessMode.PROCESS_MODE_ALWAYS
-    if want_guide_debug != showing_guide_debug:
-        if want_guide_debug:
-            guide_debugger.process_mode = Node.PROCESS_MODE_ALWAYS
-            guide_debugger.visible = true
-        else:
-            guide_debugger.process_mode = Node.PROCESS_MODE_DISABLED
-            guide_debugger.visible = false
+    update_debug()
 
 func interpolate_camera(delta: float) -> void:
     if camera_interpolation == 1.0:
@@ -285,10 +283,12 @@ func _handle_input() -> void:
 
     if vehicle != null:
         input_vehicle()
-        return
+    else:
+        camera_interaction_ray.update()
+        input_first_person()
 
-    camera_interaction_ray.update()
-    input_first_person()
+    # NOTE: runs physics debug hints
+    update_debug()
 
 func input_first_person() -> void:
     var fake_shoot: bool = false
@@ -388,15 +388,17 @@ func input_vehicle() -> void:
 
     # Combine acceleration and reverse inputs
     var vehicle_forward: float = input_vehicle_accelerate.value_axis_1d
+    var vehicle_brake: float = input_vehicle_brake.value_axis_1d
+
     if input_vehicle_reverse.is_triggered():
         # Wait until neutral and slow speed to allow reversing
-        if vehicle.get_gear() > 0 and vehicle.get_kmh() > 1.0:
-            vehicle.brake(input_vehicle_reverse.value_axis_1d)
+        if vehicle.get_gear() > 0 and vehicle.get_kph() > 1.0:
+            vehicle_brake += input_vehicle_reverse.value_axis_1d
         else:
             vehicle_forward -= input_vehicle_reverse.value_axis_1d
 
     vehicle.forward(vehicle_forward)
-
+    vehicle.brake(vehicle_brake)
     vehicle.handbrake(input_vehicle_handbrake.value_axis_1d)
 
 ## Called from InteractionRay.update(), handles the highest priority interaction
@@ -418,3 +420,24 @@ func on_interaction(region: InteractionArea) -> void:
             GUIDE.disable_mapping_context(input_movement_context)
 
         return
+
+func update_debug() -> void:
+    if not Engine.is_in_physics_frame():
+        var want_guide_debug: bool = debug_enable and debug_guide_debugger
+        var showing_guide_debug: bool = guide_debugger.visible and guide_debugger.process_mode == ProcessMode.PROCESS_MODE_ALWAYS
+        if want_guide_debug != showing_guide_debug:
+            if want_guide_debug:
+                guide_debugger.process_mode = Node.PROCESS_MODE_ALWAYS
+                guide_debugger.visible = true
+            else:
+                guide_debugger.process_mode = Node.PROCESS_MODE_DISABLED
+                guide_debugger.visible = false
+
+        return
+
+    # The rest is for physics only
+    vehicle_debugger.visible = debug_enable and debug_vehicle_debugger and (vehicle != null)
+    if vehicle_debugger.visible and Engine.get_physics_frames() % 2 == 0:
+        vehicle_debug_gear_value.text = str(vehicle.get_gear())
+        vehicle_debug_speed_value.text = '%05.1f KPH' % vehicle.get_kph()
+        vehicle_debug_rpm_value.text = '%04d' % vehicle.get_rpm()

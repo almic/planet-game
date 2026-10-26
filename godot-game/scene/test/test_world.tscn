@@ -194,6 +194,81 @@ collision_mask = 0
 size = Vector3(200, 0.2, 200)
 material = ExtResource("1_1vq1p")
 
+[node name="CSGBox3D2" type="CSGBox3D" parent="Floor" unique_id=1873138249]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 199.99999999679855)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D3" type="CSGBox3D" parent="Floor" unique_id=2031626518]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 399.999999996784)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D4" type="CSGBox3D" parent="Floor" unique_id=801063096]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 599.999999996784)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D5" type="CSGBox3D" parent="Floor" unique_id=1301177741]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 799.9999999967695)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D6" type="CSGBox3D" parent="Floor" unique_id=1346916521]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 999.9999999967696)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D7" type="CSGBox3D" parent="Floor" unique_id=1972950881]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 1199.999999996755)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D8" type="CSGBox3D" parent="Floor" unique_id=563164331]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 1399.999999996755)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D9" type="CSGBox3D" parent="Floor" unique_id=419794965]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 1599.999999996755)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D10" type="CSGBox3D" parent="Floor" unique_id=1592073225]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 1799.9999999967404)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D11" type="CSGBox3D" parent="Floor" unique_id=1823073744]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 1999.9999999967404)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D12" type="CSGBox3D" parent="Floor" unique_id=220434121]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 2199.999999996726)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D13" type="CSGBox3D" parent="Floor" unique_id=250112897]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 2399.999999996726)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D14" type="CSGBox3D" parent="Floor" unique_id=1812591564]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 2599.9999999967113)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D15" type="CSGBox3D" parent="Floor" unique_id=376752265]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 2799.9999999967113)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D16" type="CSGBox3D" parent="Floor" unique_id=898080543]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 2999.9999999967113)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
 [node name="Step" type="CSGCombiner3D" parent="." unique_id=72050405]
 transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 20, 0, 14)
 use_collision = true
@@ -389,10 +464,8 @@ metadata/_edit_lock_ = true
 
 [node name="Player" parent="Characters" unique_id=1957397594 instance=ExtResource("1_fbyci")]
 transform = Transform3D(-1.8369701987210294e-16, 0, 1, 0, 1, 0, -1, 0, -1.8369701987210294e-16, -41.00000000320142, -0.11000000320200344, -6.000000003201421)
-debug_guide_debugger = true
-debug_enabled = true
-debug_velocity = true
-debug_friction = true
+debug_enable = true
+debug_vehicle_debugger = true
 metadata/_edit_group_ = true
 
 [node name="Camera3D" type="Camera3D" parent="Characters/Player" unique_id=1880891728]

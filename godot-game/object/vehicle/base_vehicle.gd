@@ -1,6 +1,9 @@
 class_name BaseVehicle extends Vehicle
 
 
+const TO_MILES: float = 1.0 / 1.609344
+
+
 @export var exit_position: Marker3D
 @export var camera_target: Marker3D
 
@@ -9,6 +12,18 @@ class_name BaseVehicle extends Vehicle
 
 @export var driver_entry: InteractionArea
 @export var passenger_entry: Array[InteractionArea]
+
+
+@export_group('Air Friction', 'air_friction')
+
+## The XYZ drag coefficients when direction of motion is aligned with the body's
+## local positive axes.
+@export var air_friction_coef_plus: Vector3 = Vector3.ONE
+## The XYZ drag coefficients when direction of motion is aligned with the body's
+## local negative axes.
+@export var air_friction_coef_minus: Vector3 = Vector3.ONE
+## The surface area of the body when viewed from the local XYZ axes
+@export var air_friction_surface_area: Vector3 = Vector3.ONE
 
 
 @export_group('Controls')
@@ -74,7 +89,15 @@ var forward_input_slip_rate: int = 5
 @export var forward_input_curve: Curve
 
 
-@export_group("Debug", "dbg")
+@export_group('Stats', 'stat')
+
+## When positive, enables speed history tracking for KPH and MPH. Set to zero
+## to disable.
+@export_range(0, 10, 1, 'or_greater')
+var stat_speed_history: int = 5
+
+
+@export_group('Debug', 'dbg')
 
 @export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
 var dbg_enable: bool = false
@@ -120,6 +143,9 @@ var _virtual_right_speed: float = 0.0
 
 var _flip_timer: float = 0.0
 var _do_flip: bool = false
+
+var _speed_history: PackedFloat32Array
+var _speed_history_index: int = -1
 
 
 func _ready() -> void:
@@ -204,17 +230,32 @@ func get_gear() -> int:
         return 0
     return controller.get_current_gear()
 
-func get_kmh() -> float:
+func get_kph() -> float:
+    if stat_speed_history == 0:
+        return get_current_kph()
+
+    return _speed_history.average()
+
+func get_mph() -> float:
+    return get_kph() * TO_MILES
+
+func get_current_kph() -> float:
+    if stat_speed_history > 0 and _speed_history_index >= 0:
+        return _speed_history[posmod(_speed_history_index - 1, stat_speed_history)]
+
     var controller: WheeledVehicleController = get_controller() as WheeledVehicleController
     if not controller:
         return 0
     return controller.get_speed_kmh()
 
-func get_mph() -> float:
+func get_current_mph() -> float:
+    return get_current_kph() * TO_MILES
+
+func get_rpm() -> float:
     var controller: WheeledVehicleController = get_controller() as WheeledVehicleController
     if not controller:
         return 0
-    return controller.get_speed_mph()
+    return controller.get_current_rpm()
 
 func _reset() -> void:
     _forward = 0
@@ -230,6 +271,42 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
         state.linear_velocity -= state.linear_velocity * state.total_linear_damp * state.step
     if not is_zero_approx(state.total_angular_damp):
         state.angular_velocity -= state.angular_velocity * state.total_angular_damp * state.step
+
+    # "Air drag"
+    # (1/2) * Density * v^2 * Area * Coefficient
+    var air_friction: Vector3 = Vector3.ZERO
+    var linear_speed: float = state.linear_velocity.length()
+
+    if not is_zero_approx(linear_speed):
+        var linear_direction: Vector3 = state.linear_velocity.normalized()
+        var alignment: Vector3 = Vector3(
+                state.transform.basis.tdotx(linear_direction),
+                state.transform.basis.tdoty(linear_direction),
+                state.transform.basis.tdotz(linear_direction)
+        )
+
+        var surface_area: float = (
+                  air_friction_surface_area.x * absf(alignment.x)
+                + air_friction_surface_area.y * absf(alignment.y)
+                + air_friction_surface_area.z * absf(alignment.z)
+        )
+
+        var blends: Vector3 = (alignment + Vector3.ONE) * 0.5
+        blends = air_friction_coef_minus * (Vector3.ONE - blends) + (air_friction_coef_plus * blends)
+        var drag_coef: float = (
+                  blends.x * absf(alignment.x)
+                + blends.y * absf(alignment.y)
+                + blends.z * absf(alignment.z)
+        )
+
+        air_friction = (
+                0.5 * 1.21 # Fluid density
+                * -linear_direction * linear_speed * linear_speed
+                * surface_area
+                * drag_coef
+        ) * state.inverse_mass # NOTE: Proportional to mass!!!
+
+    state.linear_velocity += air_friction * state.step
 
     # Gravity
     state.linear_velocity += state.total_gravity * desired_gravity * state.step
@@ -248,8 +325,27 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
     var controller: WheeledVehicleController = get_controller() as WheeledVehicleController
     if not controller:
+        if stat_speed_history > 0 and _speed_history_index >= 0:
+            # Clear speed when losing controller
+            _speed_history.fill(0)
+            _speed_history_index = -1
         _reset()
         return
+
+    if stat_speed_history > 0:
+        if _speed_history_index == -1:
+            _speed_history.resize(stat_speed_history)
+            _speed_history.fill(controller.get_speed_kmh())
+            _speed_history_index = 1 % stat_speed_history
+        elif _speed_history.size() != stat_speed_history:
+            var avg: float = _speed_history.average()
+            _speed_history.resize(stat_speed_history)
+            _speed_history.fill(avg)
+            _speed_history[0] = controller.get_speed_kmh()
+            _speed_history_index = 1 % stat_speed_history
+        else:
+            _speed_history[_speed_history_index] = controller.get_speed_kmh()
+            _speed_history_index = (_speed_history_index + 1) % stat_speed_history
 
     update_debug(delta)
 
