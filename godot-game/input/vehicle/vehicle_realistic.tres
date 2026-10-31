@@ -97,7 +97,8 @@ script = ExtResource("7_xxkgu")
 
 [sub_resource type="Resource" id="Resource_qfwy2"]
 script = ExtResource("8_6ggyg")
-curve = 2.0
+deadzone_upper_threshold = 0.95
+curve = 2.5
 
 [sub_resource type="Resource" id="Resource_g2cdu"]
 script = ExtResource("3_862cw")

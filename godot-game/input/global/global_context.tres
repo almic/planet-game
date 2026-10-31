@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://x74mnwgr08a7" path="res://addons/guide/triggers/guide_trigger.gd" id="6_mqr6k"]
 [ext_resource type="Script" uid="uid://b52rqq28tuqpg" path="res://addons/guide/triggers/guide_trigger_pressed.gd" id="7_gka2y"]
 [ext_resource type="Resource" uid="uid://b20e7e3b8jehd" path="res://input/global/action/camera_toggle.tres" id="8_dnmtw"]
+[ext_resource type="Script" uid="uid://rvttn472ix6v" path="res://addons/guide/inputs/guide_input_joy_button.gd" id="8_e6so0"]
 [ext_resource type="Resource" uid="uid://ejk3l3ante4e" path="res://input/debug/action/debug_action.tres" id="9_gka2y"]
 [ext_resource type="Resource" uid="uid://c8lqf68owbwtc" path="res://input/global/action/set_game_speed.tres" id="9_ntnj7"]
 [ext_resource type="Script" uid="uid://brsxcrai2te83" path="res://addons/guide/triggers/guide_trigger_chorded_action.gd" id="10_f4djr"]
@@ -29,16 +30,16 @@ script = ExtResource("3_dnmtw")
 input = SubResource("Resource_f4djr")
 triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_wod7k")])
 
-[sub_resource type="Resource" id="Resource_xbm0i"]
-script = ExtResource("4_5gd5r")
-key = 4194305
+[sub_resource type="Resource" id="Resource_665td"]
+script = ExtResource("8_e6so0")
+button = 6
 
 [sub_resource type="Resource" id="Resource_dnmtw"]
 script = ExtResource("7_gka2y")
 
 [sub_resource type="Resource" id="Resource_5gd5r"]
 script = ExtResource("3_dnmtw")
-input = SubResource("Resource_xbm0i")
+input = SubResource("Resource_665td")
 triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_dnmtw")])
 
 [sub_resource type="Resource" id="Resource_e6so0"]
@@ -62,10 +63,22 @@ script = ExtResource("3_dnmtw")
 input = SubResource("Resource_ilcyl")
 triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_eck40"), SubResource("Resource_mqr6k")])
 
+[sub_resource type="Resource" id="Resource_2nalw"]
+script = ExtResource("8_e6so0")
+button = 4
+
+[sub_resource type="Resource" id="Resource_gqv8k"]
+script = ExtResource("7_gka2y")
+
+[sub_resource type="Resource" id="Resource_04lue"]
+script = ExtResource("3_dnmtw")
+input = SubResource("Resource_2nalw")
+triggers = Array[ExtResource("6_mqr6k")]([SubResource("Resource_gqv8k")])
+
 [sub_resource type="Resource" id="Resource_df6c6"]
 script = ExtResource("1_awoth")
 action = ExtResource("8_dnmtw")
-input_mappings = Array[ExtResource("3_dnmtw")]([SubResource("Resource_gka2y")])
+input_mappings = Array[ExtResource("3_dnmtw")]([SubResource("Resource_gka2y"), SubResource("Resource_04lue")])
 
 [sub_resource type="Resource" id="Resource_8j1uv"]
 script = ExtResource("4_5gd5r")

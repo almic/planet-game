@@ -33,13 +33,69 @@ var crouch_safe_length: float = 0.45
 
 @export_group('Camera', 'camera')
 @export var camera_main: Camera3D
+
+## Target position of the camera rig
+@export var camera_target: Marker3D
+
+## Root of the camera, this is made the child of the active camera target
 @export var camera_root: Node3D
+
+## Yaw node of the camera, this receives yaw rotation
+@export var camera_yaw: Node3D
+
+## Pitch node of the camera, this receives pitch rotation
 @export var camera_pitch: Node3D
-@export var camera_cast: ShapeCast3D
+
+## InteractionRay used for interacting with things
 @export var camera_interaction_ray: InteractionRay
+
+## Shape cast used to keep camera away from obstacles
+@export var camera_cast: ShapeCast3D
+
+## Relative yaw offset for third person camera cast
+@export_range(-45.0, 45.0, 0.1, 'radians_as_degrees')
+var camera_third_person_yaw: float = deg_to_rad(20.0):
+    set(value):
+        camera_third_person_yaw = value
+        _update_camera_third_person()
+
+## Relative pitch offset for third person camera cast
+@export_range(-10.0, 45.0, 0.1, 'radians_as_degrees')
+var camera_third_person_pitch: float = deg_to_rad(20.0):
+    set(value):
+        camera_third_person_pitch = value
+        _update_camera_third_person()
+
+## Distance back of the camera in third person
+@export_range(0.01, 5.0, 0.01, 'or_greater', 'suffix:m')
+var camera_third_person_distance: float = 3.0:
+    set(value):
+        camera_third_person_distance = value
+        _update_camera_third_person()
+
+## Layer masked from the camera when in first person, only shown in third person
+@export_flags_3d_render
+var camera_third_person_mask: int = 2
+
+## The camera root orientation is maintained from its initial transform, setting
+## this value above zero will accumulate the parent's UP axis orientation over
+## time, keeping the camera steady but still moving with the target
+@export_range(0.0, 2.0, 0.01, 'or_greater')
+var camera_parent_feedback: float = 0.4
+
+## The camera root orientation is maintained from its initial transform, setting
+## this value above zero shifts it by that fraction towards the acculumated
+## parent UP axis orientation
+@export_range(0.0, 1.0, 0.01)
+var camera_parent_ratio: float = 0.3
+
+## Time for camera interpolation when switching between first and third person
 @export_range(0.1, 2.0, 0.01, 'or_greater', 'suffix:s')
 var camera_interpolation_time: float = 1.0
-@export_exp_easing() var camera_interpolation_curve: float = -2.0
+
+## Easing curve used for camera interpolation
+@export_exp_easing()
+var camera_interpolation_curve: float = -2.0
 
 
 @export_group('Input', 'input')
@@ -109,10 +165,20 @@ var camera_third_person: bool = false:
         if camera_third_person != value:
             camera_third_person = value
             camera_interpolation = clampf(1.0 - camera_interpolation, 0.0, 1.0)
+            if camera_third_person:
+                camera_main.cull_mask |= camera_third_person_mask
+            else:
+                camera_main.cull_mask &= ~camera_third_person_mask
 
 ## Interpolation from first person to third person camera locations. Set to zero
 ## to begin the animation, toggles to (1.0 - X) when switching camera modes.
 var camera_interpolation: float = 0.0
+
+## Initial global basis of the camera, for maintaining global orientation
+var initial_camera_basis: Basis
+
+## Parent camera orientation, accumulates parent UP axis rotation over time
+var camera_parent_orientation: Basis = Basis.IDENTITY
 
 ## Toggle walk mode
 var walk_mode: bool = false
@@ -145,9 +211,13 @@ func _ready() -> void:
         GUIDE.enable_mapping_context(input_camera_context)
         GUIDE.enable_mapping_context(input_movement_context)
 
-        InputManager.allow_mouse_capture = false
+        # InputManager.allow_mouse_capture = false
         InputManager.allow_pause_on_exit = false
         InputManager.pause()
+
+        initial_camera_basis = camera_root.global_basis
+        reparent_camera(camera_target)
+        set_camera_cast_position(camera_third_person_yaw, camera_third_person_pitch, camera_third_person_distance)
 
 func _process(delta: float) -> void:
     if Engine.is_editor_hint():
@@ -157,9 +227,9 @@ func _process(delta: float) -> void:
         camera_pitch.rotation.x - input_camera_look.value_axis_2d.y * input_camera_look_speed,
         LOOK_DOWN_MAX, LOOK_UP_MAX
     )
-    camera_root.rotation.y -= input_camera_look.value_axis_2d.x * input_camera_look_speed
+    camera_yaw.rotation.y -= input_camera_look.value_axis_2d.x * input_camera_look_speed
 
-    mesh_yaw.rotation.y = camera_root.rotation.y
+    mesh_yaw.rotation.y = camera_yaw.rotation.y
 
     if input_camera_toggle.is_triggered():
         camera_third_person = not camera_third_person
@@ -242,7 +312,39 @@ func _process(delta: float) -> void:
 
     update_debug()
 
+func set_camera_cast_position(yaw: float, pitch: float, distance: float) -> void:
+    var cast_target: Vector3 = Vector3(0.0, 0.0, distance)
+    cast_target = cast_target.rotated(Vector3.UP, yaw)
+    cast_target = cast_target.rotated(Vector3.LEFT.rotated(Vector3.UP, yaw), pitch)
+    camera_cast.target_position = cast_target
+
+func _update_camera_third_person() -> void:
+    # Apply new third person values if the camera is attached to the player
+    if (not camera_root) or camera_root.get_parent_node_3d() != camera_target:
+        return
+
+    set_camera_cast_position(camera_third_person_yaw, camera_third_person_pitch, camera_third_person_distance)
+
 func interpolate_camera(delta: float) -> void:
+    # NOTE: move camera root UP axis over time
+    if camera_parent_feedback > 0.0:
+        var parent_rotation: Quaternion = Quaternion(camera_parent_orientation.y, camera_root.get_parent_node_3d().global_basis.y)
+        var angle: float = parent_rotation.get_angle()
+        if angle != 0.0:
+            camera_parent_orientation = camera_parent_orientation.rotated(parent_rotation.get_axis().normalized(), angle * camera_parent_feedback * delta)
+
+    if camera_parent_ratio > 0.0:
+        var up_axis_rotation: Quaternion = Quaternion(Vector3.UP, camera_parent_orientation.y)
+        var angle: float = up_axis_rotation.get_angle()
+        if angle != 0.0:
+            var camera_target_orientation: Basis = initial_camera_basis.rotated(up_axis_rotation.get_axis().normalized(), angle)
+            camera_root.global_basis = initial_camera_basis.slerp(camera_target_orientation, camera_parent_ratio)
+    else:
+        camera_root.global_basis = initial_camera_basis
+
+    if not camera_root.position.is_zero_approx():
+        camera_root.position = camera_root.position.lerp(Vector3.ZERO, 0.1)
+
     if camera_interpolation == 1.0:
         if camera_third_person:
             camera_main.position = camera_cast.target_position * camera_cast.get_closest_collision_safe_fraction()
@@ -314,7 +416,7 @@ func input_first_person() -> void:
         if freecam_mode:
             desired_direction = camera_main.global_basis * desired_direction
         else:
-            desired_direction = camera_root.global_basis * desired_direction
+            desired_direction = camera_yaw.global_basis * desired_direction
 
         if freecam_mode:
             linear_damp = 1.0
@@ -371,6 +473,8 @@ func input_vehicle() -> void:
         vehicle_do_exit = false
         vehicle_entry_wait = true
 
+        var camera_xform: Transform3D = get_camera_xform()
+
         # NOTE: enable before calling exit so space queries have the right mask
         collision_enabled = true
         vehicle.exit(self)
@@ -378,6 +482,11 @@ func input_vehicle() -> void:
 
         GUIDE.enable_mapping_context(input_movement_context)
         GUIDE.disable_mapping_context(input_vehicle_context)
+
+        reparent_camera(camera_target)
+        apply_camera_xform(camera_xform)
+        set_camera_cast_position(camera_third_person_yaw, camera_third_person_pitch, camera_third_person_distance)
+        camera_third_person = false
 
         return
 
@@ -410,6 +519,7 @@ func on_interaction(region: InteractionArea) -> void:
         if vehicle_entry_wait:
             return
 
+        var camera_xform: Transform3D = get_camera_xform()
         var base_vehicle: BaseVehicle = object as BaseVehicle
         if base_vehicle.try_enter(self, region):
             vehicle = base_vehicle
@@ -419,7 +529,21 @@ func on_interaction(region: InteractionArea) -> void:
             GUIDE.enable_mapping_context(input_vehicle_context)
             GUIDE.disable_mapping_context(input_movement_context)
 
+            reparent_camera(vehicle.camera_target)
+            apply_camera_xform(camera_xform)
+            set_camera_cast_position(0.0, camera_third_person_pitch, vehicle.camera_distance)
+            camera_third_person = true
+
         return
+
+func get_camera_xform() -> Transform3D:
+    return camera_root.global_transform
+
+func apply_camera_xform(xform: Transform3D) -> void:
+    camera_root.transform = camera_root.get_parent_node_3d().global_transform.affine_inverse() * xform
+
+func reparent_camera(to: Node3D) -> void:
+    camera_root.reparent(to, true)
 
 func update_debug() -> void:
     if not Engine.is_in_physics_frame():

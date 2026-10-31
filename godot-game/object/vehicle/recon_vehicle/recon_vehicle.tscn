@@ -78,7 +78,7 @@ height = 0.34
 radial_segments = 32
 rings = 0
 
-[node name="ReconVehicle" type="Vehicle" unique_id=1158425925 node_paths=PackedStringArray("exit_position", "camera_target", "driver_entry")]
+[node name="ReconVehicle" type="Vehicle" unique_id=1158425925 node_paths=PackedStringArray("exit_position", "driver_entry", "camera_target")]
 collision_layer = 4
 collision_mask = 55
 mass = 2500.0
@@ -90,16 +90,16 @@ wheel_paths = Array[NodePath]([NodePath("wheel_FL"), NodePath("wheel_FR"), NodeP
 settings = ExtResource("1_44n6i")
 script = ExtResource("2_44n6i")
 exit_position = NodePath("ExitPoint")
-camera_target = NodePath("CameraTarget")
 driver_entry = NodePath("DriverSide")
+camera_target = NodePath("CameraTarget")
 air_friction_coef_plus = Vector3(1.0499999999999663, 0.7999999999999744, 0.3999999999999872)
 air_friction_coef_minus = Vector3(1.0499999999999663, 0.41999999999998655, 0.4499999999999856)
 air_friction_surface_area = Vector3(6.320599999999798, 8.486399999999728, 2.716999999999913)
-steer_enable_virtual = true
-steer_integrated_feedback = 0.8
 forward_enable_virtual = true
 forward_input_curve = SubResource("Curve_nymlj")
 stat_speed_history = 20
+debug_enable = true
+debug_steering_axes = true
 metadata/_custom_type_script = "uid://crxfo7nmk34jr"
 
 [node name="DriverSide" type="Area3D" parent="." unique_id=1468137433 node_paths=PackedStringArray("interaction_object")]

@@ -4,14 +4,23 @@ class_name BaseVehicle extends Vehicle
 const TO_MILES: float = 1.0 / 1.609344
 
 
-@export var exit_position: Marker3D
-@export var camera_target: Marker3D
 
 
 @export_group('Seats')
 
+@export var exit_position: Marker3D
 @export var driver_entry: InteractionArea
 @export var passenger_entry: Array[InteractionArea]
+
+
+@export_group('Camera', 'camera')
+
+## Target point of the camera for third-person passengers
+@export var camera_target: Marker3D
+
+## How far to push the camera back
+@export_range(0.01, 10.0, 0.01, 'or_greater')
+var camera_distance: float = 5.0
 
 
 @export_group('Air Friction', 'air_friction')
@@ -27,35 +36,6 @@ const TO_MILES: float = 1.0 / 1.609344
 
 
 @export_group('Controls')
-
-@export_subgroup('Steering', 'steer')
-
-## Make steering inputs turn a virtual wheel, instead of instantly applying a
-## turning value directly.
-@export var steer_enable_virtual: bool = false
-
-## Rate of forward input acceleration when driving
-@export_range(0.1, 50.0, 0.1)
-var steer_acceleration: float = 25
-
-## Limit of the forward input acceleration
-@export_range(0.1, 20.0, 0.1)
-var steer_acceleration_limit: float = 10.0
-
-## Steering curve, lower values approach input quicker. For instance, steering
-## right at 1.0 for 0.2 seconds will result in a final steer of ~0.544 with a
-## curve of 1. The constant rate of change is `(right * e) / curve`.
-@export_range(0.01, 2.0, 0.01, 'or_greater')
-var steer_wheel_curve: float = 1.0
-
-## Makes steering more realistic by having steered wheels apply turning back to
-## the virtual steering wheel.
-@export var steer_enable_integrated: bool = false
-
-## How much feedback to apply to the virtual wheel from the wheels.
-@export_range(0.01, 1.2, 0.01, 'or_greater')
-var steer_integrated_feedback: float = 1.2
-
 
 @export_subgroup('Forward', 'forward')
 
@@ -97,18 +77,21 @@ var forward_input_slip_rate: int = 5
 var stat_speed_history: int = 5
 
 
-@export_group('Debug', 'dbg')
+@export_group('Debug', 'debug')
 
 @export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
-var dbg_enable: bool = false
+var debug_enable: bool = false
+
+@export var debug_steering_axes: bool = false
+var _debug_steering_axes_ids: PackedInt32Array
 
 ## When accelerating while stationary (sleeping), start a timer which ends once
 ## the vehicle exceeds 60mph and print the timer
-@export var dbg_print_zero_sixty: bool = false
+@export var debug_print_zero_sixty: bool = false
 
-@export var dbg_show_wheel_slip: bool = false
+@export var debug_show_wheel_slip: bool = false
 
-@export var dbg_print_gear_changes: bool = false
+@export var debug_print_gear_changes: bool = false
 
 
 ## Current driver of this vehicle
@@ -119,6 +102,9 @@ var passengers: Array[Node3D] = []
 
 ## Multiplier to gravity acceleration
 var desired_gravity: float = 1.0
+
+## Current controller, this is updated each physics tick
+var controller: WheeledVehicleController = null
 
 
 var _forward: float = 0
@@ -136,10 +122,6 @@ var _virtual_forward: float = 0.0
 var _virtual_forward_speed: float = 0.0
 ## Ticks of slip during acceleration
 var _vehicle_forward_slip_ticks: int = 0
-## Current right input
-var _virtual_right: float = 0.0
-## Current right input speed
-var _virtual_right_speed: float = 0.0
 
 var _flip_timer: float = 0.0
 var _do_flip: bool = false
@@ -149,7 +131,7 @@ var _speed_history_index: int = -1
 
 
 func _ready() -> void:
-    if dbg_enable and dbg_show_wheel_slip:
+    if debug_enable and debug_show_wheel_slip:
         # Make all wheel materials unique copies
         for w in wheel_nodes:
             var mesh_instance: MeshInstance3D = w as MeshInstance3D
@@ -225,7 +207,6 @@ func get_exit_position() -> Vector3:
     return exit_position.global_position + settings.up
 
 func get_gear() -> int:
-    var controller: WheeledVehicleController = get_controller() as WheeledVehicleController
     if not controller:
         return 0
     return controller.get_current_gear()
@@ -243,7 +224,6 @@ func get_current_kph() -> float:
     if stat_speed_history > 0 and _speed_history_index >= 0:
         return _speed_history[posmod(_speed_history_index - 1, stat_speed_history)]
 
-    var controller: WheeledVehicleController = get_controller() as WheeledVehicleController
     if not controller:
         return 0
     return controller.get_speed_kmh()
@@ -252,7 +232,6 @@ func get_current_mph() -> float:
     return get_current_kph() * TO_MILES
 
 func get_rpm() -> float:
-    var controller: WheeledVehicleController = get_controller() as WheeledVehicleController
     if not controller:
         return 0
     return controller.get_current_rpm()
@@ -264,6 +243,8 @@ func _reset() -> void:
     _handbrake = 0
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
+    controller = get_controller() as WheeledVehicleController
+
     var delta: float = state.step
 
     # Apply damping forces immediately
@@ -323,7 +304,6 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
         state.apply_torque_impulse(global_basis.z * -side_dir * inertia.z * 1.2)
         _do_flip = false
 
-    var controller: WheeledVehicleController = get_controller() as WheeledVehicleController
     if not controller:
         if stat_speed_history > 0 and _speed_history_index >= 0:
             # Clear speed when losing controller
@@ -347,26 +327,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             _speed_history[_speed_history_index] = controller.get_speed_kmh()
             _speed_history_index = (_speed_history_index + 1) % stat_speed_history
 
-    update_debug(delta)
-
-    if steer_enable_virtual:
-        if steer_enable_integrated:
-            integrate_steering(state)
-            # update_right_two(state)
-
-        update_virtual_steer(delta)
-
-        # Smooth out the change in steering
-        const E = exp(1)
-        var current_right: float = controller.get_right_input()
-        var offset: float = minf(1.0, (absf(_virtual_right - current_right) * E * delta) / steer_wheel_curve)
-
-        _right = move_toward(current_right, _virtual_right, offset)
-    else:
-        if _virtual_right != 0.0:
-            _virtual_right = 0.0
-        if _virtual_right_speed != 0.0:
-            _virtual_right_speed = 0.0
+    update_debug(delta, state.transform)
 
     if forward_enable_virtual:
         update_virtual_forward(delta)
@@ -402,8 +363,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
         and is_zero_approx(_handbrake)
     ):
         if (
-                    dbg_enable
-                and dbg_print_zero_sixty
+                    debug_enable
+                and debug_print_zero_sixty
                 and sleeping
                 and _forward > 0.0
                 and _zero_sixty_timer == -1.0
@@ -411,6 +372,21 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
             _zero_sixty_timer = 0.0
         # Wake up when input is received
         sleeping = false
+
+    # Handle abrupt angle changes when changing keyboard steer
+    var reset_keyboard: bool = (
+            InputManager.is_keyboard()
+        and (not is_equal_approx(controller.get_right_input(), _right))
+    )
+    var reset_controller: bool = (
+            (not InputManager.is_keyboard())
+        and absf(controller.virtual_steer - _right) < 1e-6
+    )
+    if (
+            controller.virtual_steer_enabled
+            and (reset_keyboard or reset_controller)
+    ):
+        controller.virtual_steer_velocity = 0.0
 
     controller.set_driver_input(
             _forward,
@@ -426,75 +402,6 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
         #print(controller.get_current_rpm())
 
     _reset()
-
-func integrate_steering(state: PhysicsDirectBodyState3D) -> void:
-    # TODO: Do a better job of calculating the steering angle change, as the
-    # steer input is -1.0 - 1.0, but the steer angle and vehicle turn are in radians
-    var vehicle_turn: float = -state.transform.basis.tdoty(state.angular_velocity)
-    var controller: WheeledVehicleController = get_controller() as WheeledVehicleController
-
-    var avg_steer: float = 0.0
-    var steer_count: int = 0
-    var i: int = -1
-    for w in controller.get_wheel_info():
-        i += 1
-        if not w.has_contact:
-            continue
-        var w_setting: WheelSettings = settings.wheels[i] as WheelSettings
-        if w_setting.max_steer_angle == 0.0:
-            continue
-        avg_steer += w.steer_angle
-        steer_count += 1
-
-    if steer_count < 1:
-        return
-
-    avg_steer /= steer_count
-    if abs(avg_steer) < 1e-6:
-        return
-
-    if signf(vehicle_turn) == signf(avg_steer):
-        avg_steer = -avg_steer
-
-    vehicle_turn = abs(vehicle_turn) * state.step
-
-    _virtual_right = clampf(
-        _virtual_right + (
-            clampf(
-                (vehicle_turn / avg_steer) * steer_integrated_feedback,
-                -vehicle_turn, vehicle_turn
-            )
-        ),
-        -1.0, 1.0
-    )
-
-func update_virtual_steer(delta: float) -> void:
-    const DECAY_RATE: float = 0.33
-
-    # NOTE: slowly decay input speed, do not reset to zero
-    if _right == 0.0 and _virtual_right_speed != 0.0:
-        _virtual_right_speed = move_toward(
-                _virtual_right_speed,
-                0.0,
-                steer_acceleration * delta * DECAY_RATE
-        )
-
-    if _virtual_right == _right:
-        return
-
-    var sign_right: float = signf(_right)
-
-    # Reset acceleration when changing direction
-    if _right != 0.0 and signf(_virtual_right_speed) != sign_right:
-        _virtual_right_speed = 0.0
-
-    _virtual_right_speed = move_toward(
-            _virtual_right_speed,
-            sign_right * steer_acceleration_limit,
-            steer_acceleration * delta
-    )
-
-    _virtual_right = move_toward(_virtual_right, _right, absf(_virtual_right_speed) * delta)
 
 func update_virtual_forward(delta: float) -> void:
     # Rate of input acceleration decay
@@ -559,13 +466,26 @@ func flip(from: Vector3) -> void:
     _do_flip = true
     _flip_timer = 1.0
 
-func update_debug(delta: float) -> void:
-    if not dbg_enable:
+func update_debug(delta: float, xform: Transform3D) -> void:
+    if not debug_enable:
         return
 
-    var controller: WheeledVehicleController = get_controller() as WheeledVehicleController
+    if debug_steering_axes:
+        for i in range(settings.wheels.size()):
+            if i >= _debug_steering_axes_ids.size():
+                _debug_steering_axes_ids.append(0)
 
-    if dbg_show_wheel_slip:
+            var wheel_settings := settings.wheels[i]
+            var steer_axis_pos: Vector3 = wheel_settings.position + controller.get_suspension_length(i) * wheel_settings.get_suspension_direction()
+            _debug_steering_axes_ids[i] = DebugDraw.vector(
+                xform * steer_axis_pos,
+                xform.basis * wheel_settings.get_steering_axis(),
+                Color.DARK_GOLDENROD,
+                _debug_steering_axes_ids[i],
+                0.1
+            )
+
+    if debug_show_wheel_slip:
         var wheel_infos: Array[Dictionary] = controller.get_wheel_info()
         var i: int = 0
         for wheel in wheel_nodes:
@@ -580,7 +500,7 @@ func update_debug(delta: float) -> void:
                     mat.albedo_color = Color(remap(info['slip_long'], 0.0, 0.1, 0.0, 1.0), 1.0, 0.0)
             i += 1
 
-    if dbg_print_zero_sixty:
+    if debug_print_zero_sixty:
         var mph: float = linear_velocity.length() * 3.6 / 1.609344
         if _zero_sixty_timer != -1.0:
             _zero_sixty_timer += delta
@@ -593,7 +513,7 @@ func update_debug(delta: float) -> void:
                 print("0-60: %.3fs" % _zero_sixty_timer)
                 _zero_sixty_timer = -1.0
 
-    if dbg_print_gear_changes:
+    if debug_print_gear_changes:
         var gear: int = controller.get_current_gear()
         if _last_gear != gear:
             # GlobalWorld.print('Gear: %d -> %d' % [_last_gear, gear])

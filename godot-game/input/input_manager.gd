@@ -185,3 +185,7 @@ func unpause() -> void:
 ## Check if the game is paused
 func is_paused() -> bool:
     return get_tree().paused
+
+## Check if the current input context is keyboard input
+func is_keyboard() -> bool:
+    return input_device_context == DeviceContext.KEYBOARD

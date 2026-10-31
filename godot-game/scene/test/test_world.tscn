@@ -189,8 +189,19 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
 use_collision = true
 collision_layer = 16
 collision_mask = 0
+metadata/_edit_group_ = true
 
 [node name="CSGBox3D" type="CSGBox3D" parent="Floor" unique_id=1741334788]
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D17" type="CSGBox3D" parent="Floor" unique_id=1811875261]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 199.99999999679855, -3.2014214e-09, -3.2014214e-09)
+size = Vector3(200, 0.2, 200)
+material = ExtResource("1_1vq1p")
+
+[node name="CSGBox3D18" type="CSGBox3D" parent="Floor" unique_id=2059139454]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 199.99999999679855, -3.2014214e-09, 199.99999999679855)
 size = Vector3(200, 0.2, 200)
 material = ExtResource("1_1vq1p")
 
@@ -458,12 +469,136 @@ transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 25.05, -25)
 size = Vector3(30, 0.1, 20)
 material = ExtResource("3_qyrsn")
 
+[node name="SmoothRamp" type="CSGCombiner3D" parent="." unique_id=139526574]
+transform = Transform3D(6.123233995736766e-17, 0, -1, 0, 1, 0, 1, 0, 6.123233995736766e-17, 159.99999999679858, -3.2014214e-09, -20.00000000320142)
+use_collision = true
+collision_layer = 16
+collision_mask = 0
+metadata/_edit_group_ = true
+
+[node name="ramp_core" type="CSGPolygon3D" parent="SmoothRamp" unique_id=489583806]
+transform = Transform3D(6.123233995736766e-17, 0, 1, 0, 1, 0, -1, 0, 6.123233995736766e-17, 1.9999999999985505, 0, 19.69999999999589)
+polygon = PackedVector2Array(0, 0, 10.099999999999676, 0, 10.099999999999676, 4.749999999999848)
+depth = 4.0
+material = ExtResource("3_qyrsn")
+
+[node name="ramp_cut" type="CSGBox3D" parent="SmoothRamp" unique_id=1314343008]
+transform = Transform3D(1, 0, 0, 0, 0.8660254037844387, -0.49999999999999994, 0, 0.49999999999999994, 0.8660254037844387, -1.4495072e-12, 3.179999716288876, 13.340340657311565)
+operation = 2
+size = Vector3(4.099999999999869, 0.999999999999968, 7.999999999999743)
+material = ExtResource("3_qyrsn")
+
+[node name="entry_cut" type="CSGCylinder3D" parent="SmoothRamp" unique_id=199705332]
+transform = Transform3D(6.123233995736766e-17, -1, 0, -1, -6.123233995736766e-17, -1.2246467991473532e-16, 1.2246467991473532e-16, 7.498798913309288e-33, -1, -1.4495072e-12, 7, 19.69999999999589)
+operation = 2
+radius = 7.0
+height = 4.1
+sides = 54
+material = ExtResource("3_qyrsn")
+
+[node name="exit_bulk" type="CSGCombiner3D" parent="SmoothRamp" unique_id=359144408]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.4495072e-12, 5.840599999995902, 5.880000000003456)
+
+[node name="core" type="CSGBox3D" parent="SmoothRamp/exit_bulk" unique_id=1680932157]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.919999807476769, 1.9200003349779635)
+size = Vector3(3.999999999999872, 5.8399999999998125, 3.839999999999877)
+material = ExtResource("3_qyrsn")
+
+[node name="exit_intersect" type="CSGCylinder3D" parent="SmoothRamp/exit_bulk" unique_id=864488989]
+transform = Transform3D(6.123233995736766e-17, -1, 0, 1, 6.123233995736766e-17, 0, 0, 0, 1, -3.2014214e-09, -7.000000003201421, -3.2014214e-09)
+operation = 1
+radius = 7.0
+height = 4.1
+sides = 54
+material = ExtResource("3_qyrsn")
+
+[node name="platform" type="CSGBox3D" parent="SmoothRamp" unique_id=1705302230]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1999718e-09, 2.9200000794953667, 0.8800001152543331)
+size = Vector3(3.999999999999872, 5.8399999999998125, 9.999999999999678)
+material = ExtResource("3_qyrsn")
+
+[node name="CSGPolygon3D" type="CSGPolygon3D" parent="SmoothRamp" unique_id=1286416349]
+transform = Transform3D(6.123233995736766e-17, 0, 1, 0, 1, 0, -1, 0, 6.123233995736766e-17, 1.9999999967985784, -3.2014214e-09, -4.1200000032071955)
+polygon = PackedVector2Array(0, 0, 0, 5.839999999999813, 19.99999999999936, 0)
+depth = 4.0
+material = ExtResource("3_qyrsn")
+
+[node name="Bumps" type="CSGCombiner3D" parent="." unique_id=837881135]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 159.99999999679858, -0.5400000031950185, -5.000000003201421)
+use_collision = true
+collision_layer = 16
+collision_mask = 0
+metadata/_edit_group_ = true
+
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="Bumps" unique_id=1891019229]
+transform = Transform3D(6.123233995736766e-17, -1, 0, 1, 6.123233995736766e-17, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, -3.2014214e-09)
+radius = 1.2
+height = 5.0
+sides = 32
+material = ExtResource("3_qyrsn")
+
+[node name="CSGCylinder3D2" type="CSGCylinder3D" parent="Bumps" unique_id=1697564891]
+transform = Transform3D(6.123233995736766e-17, -1, 0, 1, 6.123233995736766e-17, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 1.9999999967985786)
+radius = 1.2
+height = 5.0
+sides = 32
+material = ExtResource("3_qyrsn")
+
+[node name="CSGCylinder3D3" type="CSGCylinder3D" parent="Bumps" unique_id=1556215578]
+transform = Transform3D(6.123233995736766e-17, -1, 0, 1, 6.123233995736766e-17, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 3.9999999967985786)
+radius = 1.2
+height = 5.0
+sides = 32
+material = ExtResource("3_qyrsn")
+
+[node name="CSGCylinder3D4" type="CSGCylinder3D" parent="Bumps" unique_id=148977261]
+transform = Transform3D(6.123233995736766e-17, -1, 0, 1, 6.123233995736766e-17, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 5.999999996798579)
+radius = 1.2
+height = 5.0
+sides = 32
+material = ExtResource("3_qyrsn")
+
+[node name="CSGCylinder3D5" type="CSGCylinder3D" parent="Bumps" unique_id=1080230029]
+transform = Transform3D(6.123233995736766e-17, -1, 0, 1, 6.123233995736766e-17, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, 7.999999996798579)
+radius = 1.2
+height = 5.0
+sides = 32
+material = ExtResource("3_qyrsn")
+
+[node name="CSGCylinder3D6" type="CSGCylinder3D" parent="Bumps" unique_id=1226531873]
+transform = Transform3D(6.123233995736766e-17, -1, 0, 1, 6.123233995736766e-17, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, -2.0000000032014214)
+radius = 1.2
+height = 5.0
+sides = 32
+material = ExtResource("3_qyrsn")
+
+[node name="CSGCylinder3D7" type="CSGCylinder3D" parent="Bumps" unique_id=1865176624]
+transform = Transform3D(6.123233995736766e-17, -1, 0, 1, 6.123233995736766e-17, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, -4.000000003201421)
+radius = 1.2
+height = 5.0
+sides = 32
+material = ExtResource("3_qyrsn")
+
+[node name="CSGCylinder3D8" type="CSGCylinder3D" parent="Bumps" unique_id=1726701063]
+transform = Transform3D(6.123233995736766e-17, -1, 0, 1, 6.123233995736766e-17, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, -6.000000003201421)
+radius = 1.2
+height = 5.0
+sides = 32
+material = ExtResource("3_qyrsn")
+
+[node name="CSGCylinder3D9" type="CSGCylinder3D" parent="Bumps" unique_id=807254553]
+transform = Transform3D(6.123233995736766e-17, -1, 0, 1, 6.123233995736766e-17, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, -8.000000003201421)
+radius = 1.2
+height = 5.0
+sides = 32
+material = ExtResource("3_qyrsn")
+
 [node name="Characters" type="Node3D" parent="." unique_id=272431613]
 process_mode = 1
 metadata/_edit_lock_ = true
 
 [node name="Player" parent="Characters" unique_id=1957397594 instance=ExtResource("1_fbyci")]
-transform = Transform3D(-1.8369701987210294e-16, 0, 1, 0, 1, 0, -1, 0, -1.8369701987210294e-16, -41.00000000320142, -0.11000000320200344, -6.000000003201421)
+transform = Transform3D(-1.8369701987210294e-16, 0, 1, 0, 1, 0, -1, 0, -1.8369701987210294e-16, -17.220000003202184, -0.11000000320200344, 122.00999999679448)
 debug_enable = true
 debug_vehicle_debugger = true
 metadata/_edit_group_ = true
@@ -485,7 +620,7 @@ size = 6.0
 metadata/_edit_lock_ = true
 
 [node name="ReconVehicle" parent="Vehicles" unique_id=1158425925 instance=ExtResource("7_76stg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.00000000320142, 0.9999999967985786, -6.000000003201421)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.220000003202184, 0.9999999967985786, 122.00999999679448)
 
 [node name="DynamicWorld" type="Node3D" parent="." unique_id=1772513136]
 process_mode = 1

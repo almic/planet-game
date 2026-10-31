@@ -42,7 +42,7 @@ albedo_color = Color(0, 0.78431374, 1, 1)
 font_names = PackedStringArray("Office Code Pro D")
 subpixel_positioning = 0
 
-[node name="Player" type="RigidBody3D" unique_id=1957397594 node_paths=PackedStringArray("camera_main", "camera_root", "camera_pitch", "camera_cast", "camera_interaction_ray", "spring")]
+[node name="Player" type="RigidBody3D" unique_id=1957397594 node_paths=PackedStringArray("camera_main", "camera_target", "camera_root", "camera_yaw", "camera_pitch", "camera_interaction_ray", "camera_cast", "spring")]
 physics_interpolation_mode = 1
 collision_mask = 55
 axis_lock_angular_x = true
@@ -53,11 +53,18 @@ physics_material_override = SubResource("PhysicsMaterial_y0s34")
 custom_integrator = true
 continuous_cd = true
 script = ExtResource("1_y0s34")
-camera_main = NodePath("camera_root/camera_pitch/forward_offset/camera")
-camera_root = NodePath("camera_root")
-camera_pitch = NodePath("camera_root/camera_pitch")
-camera_cast = NodePath("camera_root/camera_pitch/forward_offset/camera_cast")
-camera_interaction_ray = NodePath("camera_root/camera_pitch/forward_offset/camera/InteractionRay")
+camera_main = NodePath("camera_target/camera_root/camera_yaw/camera_pitch/forward_offset/camera")
+camera_target = NodePath("camera_target")
+camera_root = NodePath("camera_target/camera_root")
+camera_yaw = NodePath("camera_target/camera_root/camera_yaw")
+camera_pitch = NodePath("camera_target/camera_root/camera_yaw/camera_pitch")
+camera_interaction_ray = NodePath("camera_target/camera_root/camera_yaw/camera_pitch/forward_offset/camera/InteractionRay")
+camera_cast = NodePath("camera_target/camera_root/camera_yaw/camera_pitch/forward_offset/camera_cast")
+camera_third_person_yaw = 0.5235987755982988
+camera_third_person_pitch = 0.12217304763960309
+camera_third_person_distance = 2.15
+camera_parent_feedback = 3.0
+camera_parent_ratio = 0.2
 turning_retention = 0.85
 decline_speed_bonus = 1.03
 character_collision_mask = 55
@@ -101,22 +108,26 @@ layers = 2
 mesh = SubResource("CapsuleMesh_y0s34")
 surface_material_override/0 = SubResource("StandardMaterial3D_8eijk")
 
-[node name="camera_root" type="Node3D" parent="." unique_id=828140160]
+[node name="camera_target" type="Marker3D" parent="." unique_id=570133898]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.28, 0)
 
-[node name="camera_pitch" type="Node3D" parent="camera_root" unique_id=607697951]
+[node name="camera_root" type="Node3D" parent="camera_target" unique_id=828140160]
+
+[node name="camera_yaw" type="Node3D" parent="camera_target/camera_root" unique_id=1178713487]
+
+[node name="camera_pitch" type="Node3D" parent="camera_target/camera_root/camera_yaw" unique_id=607697951]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
 
-[node name="forward_offset" type="Node3D" parent="camera_root/camera_pitch" unique_id=796740534]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -3.2014214e-09, -0.05000000320433173)
+[node name="forward_offset" type="Node3D" parent="camera_target/camera_root/camera_yaw/camera_pitch" unique_id=796740534]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.05)
 
-[node name="camera_cast" type="ShapeCast3D" parent="camera_root/camera_pitch/forward_offset" unique_id=1306770407]
+[node name="camera_cast" type="ShapeCast3D" parent="camera_target/camera_root/camera_yaw/camera_pitch/forward_offset" unique_id=1306770407]
 shape = SubResource("SphereShape3D_8eijk")
-target_position = Vector3(1.1, 0.6, 2.2)
+target_position = Vector3(1.0669871130144208, 0.2620190883210671, 1.8480758907622132)
 max_results = 0
 collision_mask = 16
 
-[node name="camera" type="Camera3D" parent="camera_root/camera_pitch/forward_offset" unique_id=532242651]
+[node name="camera" type="Camera3D" parent="camera_target/camera_root/camera_yaw/camera_pitch/forward_offset" unique_id=532242651]
 physics_interpolation_mode = 2
 cull_mask = 1048573
 doppler_tracking = 2
@@ -124,7 +135,7 @@ current = true
 fov = 90.0
 far = 2000.0
 
-[node name="InteractionRay" type="RayCast3D" parent="camera_root/camera_pitch/forward_offset/camera" unique_id=1221076768]
+[node name="InteractionRay" type="RayCast3D" parent="camera_target/camera_root/camera_yaw/camera_pitch/forward_offset/camera" unique_id=1221076768]
 enabled = false
 target_position = Vector3(0, 0, -1.7)
 collision_mask = 256
@@ -145,9 +156,15 @@ visible = false
 
 [node name="VehicleDebugger" type="GridContainer" parent="CanvasLayer" unique_id=1352421412]
 unique_name_in_owner = true
-visible = false
-offset_right = 40.0
-offset_bottom = 40.0
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -63.0
+offset_top = -71.0
+grow_horizontal = 0
+grow_vertical = 0
 columns = 2
 
 [node name="Gear" type="Label" parent="CanvasLayer/VehicleDebugger" unique_id=1890363825]
