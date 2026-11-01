@@ -394,7 +394,7 @@ func update(skeleton: Skeleton3D, bone_idx: int) -> void:
         skeleton.set_bone_global_pose(bone_idx, skeleton.global_transform.affine_inverse() * body_state.transform)
 
         if bone_joint_data.is_breakable and _should_break(bone_joint_data.joint, bone_joint_data.offset):
-            print('Breaking joint %s' % [get_nice_path(bone_joint)])
+            #print('Breaking joint %s' % [get_nice_path(bone_joint)])
             is_motor_broken = true
             is_motor_powered = false
             bone_joint_data.is_destroyed = true
@@ -417,7 +417,7 @@ func update(skeleton: Skeleton3D, bone_idx: int) -> void:
         _update_joint(joint_data)
 
         if _should_break(joint_data.joint, joint_data.offset):
-            print('Breaking joint %s' % [get_nice_path(joint_data.joint)])
+            #print('Breaking joint %s' % [get_nice_path(joint_data.joint)])
             joint_data.is_destroyed = true
             joint_data.joint.queue_free()
             joint_data.joint = null
@@ -608,6 +608,11 @@ func apply_motor_parameters() -> void:
 
 ## IK Angle interpolation
 func _remap_target(value: float, threshold: float, window: float) -> float:
+    if window < 1e-6:
+        if absf(value) >= threshold:
+            return value
+        else:
+            return 0.0
     var x: float = clampf((absf(value) - threshold) / window, 0.0, 1.0)
     return value * (x * x * x * (x * (6.0 * x - 15.0) + 10.0))
 

@@ -71,6 +71,22 @@ func _set(property: StringName, value: Variant) -> bool:
             distance_joint.solver_priority = value - 1
     return false
 
+func _physics_process(_delta: float) -> void:
+    if Engine.is_editor_hint():
+        return
+
+    if not is_inside_tree():
+        return
+
+    var body_a: PhysicsBody3D = get_node_or_null(node_a)
+    if not body_a:
+        return
+
+    var beam_displacement: Vector3 = (body_a.global_transform * (setting.body_A_position + body_A_offset)) - global_position
+    beam_span = beam_displacement.length()
+    beam_angle = rad_to_deg(global_basis.get_rotation_quaternion().angle_to(_beam_initial_orientation))
+
+
 func set_setting(new_setting: BeamPivotJoint3DSetting) -> void:
     disconnect_resource()
     setting = new_setting

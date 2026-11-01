@@ -10,6 +10,11 @@ var _lastError: float = INF
 var _errorSum: float = 0.0
 
 
+func _init(p: float = 1.0, i: float = 0.5, d: float = 0.5) -> void:
+    proportional = p
+    integral = i
+    derivative = d
+
 func update(measure: float, target: float, delta: float) -> float:
     var error: float = target - measure
 
