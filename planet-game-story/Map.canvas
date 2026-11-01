@@ -12,7 +12,8 @@
 		{"id":"aaaf922f815d66bd","type":"text","text":"8km of road, the rest are direct paths off-road.\n8 min drive.","x":-240,"y":680,"width":260,"height":100},
 		{"id":"97bbc89384dbae4e","type":"text","text":"# [[Weapon Facility]]\n\n36.3km","x":60,"y":580,"width":180,"height":160,"color":"5"},
 		{"id":"490059ab4d24f8da","type":"file","file":"Image/map.png","x":-720,"y":-280,"width":400,"height":294,"color":"#ffffff"},
-		{"id":"bc4317b3a3b7dee0","type":"text","text":"Last 0.5km has usable road.\n18 min drive.","x":-540,"y":320,"width":170,"height":90}
+		{"id":"bc4317b3a3b7dee0","type":"text","text":"Last 0.5km has usable road.\n18 min drive.","x":-540,"y":320,"width":170,"height":90},
+		{"id":"f01b395cce8334fc","type":"text","text":"The game will take place on a shield volcano/ massive plateau. This offers the ability to have a driven vehicle and be limited by cliffs/ natural walls.","x":-829,"y":100,"width":349,"height":120}
 	],
 	"edges":[
 		{"id":"a036cfb594c79d72","fromNode":"21dec13b46134a2a","fromSide":"right","toNode":"9a17280a1d180872","toSide":"top","fromEnd":"arrow","label":"20km"},
