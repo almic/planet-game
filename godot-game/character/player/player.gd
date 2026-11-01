@@ -496,12 +496,39 @@ func input_vehicle() -> void:
     vehicle.steer(input_vehicle_steer.value_axis_1d)
 
     # Combine acceleration and reverse inputs
-    var vehicle_forward: float = input_vehicle_accelerate.value_axis_1d
+    var current_forward: float = vehicle.controller.get_forward_input()
+    var current_gear: int = vehicle.get_gear()
+
+    var vehicle_forward: float = 0.0
     var vehicle_brake: float = input_vehicle_brake.value_axis_1d
+    var has_motion: bool = (
+               vehicle.get_kph() >= 1.0
+            or vehicle.get_current_kph() >= 1.0
+            or vehicle.get_acceleration().length_squared() >= 1.0
+    )
+
+    if input_vehicle_accelerate.is_triggered():
+        # If in reverse, brake until neutral and low speed
+        if (
+                has_motion
+                and (
+                        current_gear < 0
+                    or (current_gear == 0 and current_forward <= 0.0)
+                )
+        ):
+            vehicle_brake += input_vehicle_accelerate.value_axis_1d
+        else:
+            vehicle_forward += input_vehicle_accelerate.value_axis_1d
 
     if input_vehicle_reverse.is_triggered():
-        # Wait until neutral and slow speed to allow reversing
-        if vehicle.get_gear() > 0 and vehicle.get_kph() > 1.0:
+        # Wait until neutral and low speed to allow reversing
+        if (
+                has_motion
+                and (
+                        current_gear > 0
+                    or (current_gear == 0 and current_forward >= 0.0)
+                )
+        ):
             vehicle_brake += input_vehicle_reverse.value_axis_1d
         else:
             vehicle_forward -= input_vehicle_reverse.value_axis_1d

@@ -183,10 +183,14 @@ func exit(node: Node3D) -> bool:
 
     if node == driver:
         driver = null
+        var exit_pos: Vector3 = get_exit_position()
+        node.global_position = exit_pos
         return true
 
     if node in passengers:
         passengers.erase(node)
+        var exit_pos: Vector3 = get_exit_position()
+        node.global_position = exit_pos
         return true
 
     return false
@@ -346,7 +350,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
         _vehicle_forward_slip_ticks += 1
         if _vehicle_forward_slip_ticks >= forward_input_slip_rate:
             _vehicle_forward_slip_ticks = 0
-            _forward = 0
+            # NOTE: do not zero, just reduce significantly
+            _forward *= 0.1
 
     if _forward > 0 and forward_input_speed_max > 0:
         _forward = remap(
