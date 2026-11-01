@@ -2,10 +2,6 @@
 extends CharacterController
 
 
-const LOOK_UP_MAX: float = deg_to_rad(89)
-const LOOK_DOWN_MAX: float = deg_to_rad(-88)
-
-
 @export_range(0.001, 10.0, 0.001, 'or_greater')
 var max_speed: float = 4.9
 
@@ -37,20 +33,11 @@ var crouch_safe_length: float = 0.45
 ## Target position of the camera rig
 @export var camera_target: Marker3D
 
-## Root of the camera, this is made the child of the active camera target
-@export var camera_root: Node3D
-
-## Yaw node of the camera, this receives yaw rotation
-@export var camera_yaw: Node3D
-
-## Pitch node of the camera, this receives pitch rotation
-@export var camera_pitch: Node3D
+## Camera rig to be controlled
+@export var camera_rig: CameraRig
 
 ## InteractionRay used for interacting with things
 @export var camera_interaction_ray: InteractionRay
-
-## Shape cast used to keep camera away from obstacles
-@export var camera_cast: ShapeCast3D
 
 ## Relative yaw offset for third person camera cast
 @export_range(-45.0, 45.0, 0.1, 'radians_as_degrees')
@@ -76,26 +63,6 @@ var camera_third_person_distance: float = 3.0:
 ## Layer masked from the camera when in first person, only shown in third person
 @export_flags_3d_render
 var camera_third_person_mask: int = 2
-
-## The camera root orientation is maintained from its initial transform, setting
-## this value above zero will accumulate the parent's UP axis orientation over
-## time, keeping the camera steady but still moving with the target
-@export_range(0.0, 2.0, 0.01, 'or_greater')
-var camera_parent_feedback: float = 0.4
-
-## The camera root orientation is maintained from its initial transform, setting
-## this value above zero shifts it by that fraction towards the acculumated
-## parent UP axis orientation
-@export_range(0.0, 1.0, 0.01)
-var camera_parent_ratio: float = 0.3
-
-## Time for camera interpolation when switching between first and third person
-@export_range(0.1, 2.0, 0.01, 'or_greater', 'suffix:s')
-var camera_interpolation_time: float = 1.0
-
-## Easing curve used for camera interpolation
-@export_exp_easing()
-var camera_interpolation_curve: float = -2.0
 
 
 @export_group('Input', 'input')
@@ -159,27 +126,6 @@ var debug_enable: bool = false
 
 var grenade: PackedScene = preload("uid://bbk6ygeifp3v3")
 
-## Toggle the camera mode
-var camera_third_person: bool = false:
-    set(value):
-        if camera_third_person != value:
-            camera_third_person = value
-            camera_interpolation = clampf(1.0 - camera_interpolation, 0.0, 1.0)
-            if camera_third_person:
-                camera_main.cull_mask |= camera_third_person_mask
-            else:
-                camera_main.cull_mask &= ~camera_third_person_mask
-
-## Interpolation from first person to third person camera locations. Set to zero
-## to begin the animation, toggles to (1.0 - X) when switching camera modes.
-var camera_interpolation: float = 0.0
-
-## Initial global basis of the camera, for maintaining global orientation
-var initial_camera_basis: Basis
-
-## Parent camera orientation, accumulates parent UP axis rotation over time
-var camera_parent_orientation: Basis = Basis.IDENTITY
-
 ## Toggle walk mode
 var walk_mode: bool = false
 
@@ -215,26 +161,22 @@ func _ready() -> void:
         InputManager.allow_pause_on_exit = false
         InputManager.pause()
 
-        initial_camera_basis = camera_root.global_basis
-        reparent_camera(camera_target)
-        set_camera_cast_position(camera_third_person_yaw, camera_third_person_pitch, camera_third_person_distance)
+        camera_rig.camera = camera_main
+        camera_rig.attach(camera_target)
+        camera_rig.set_cast(camera_third_person_yaw, camera_third_person_pitch, camera_third_person_distance)
 
 func _process(delta: float) -> void:
     if Engine.is_editor_hint():
         return
 
-    camera_pitch.rotation.x = clampf(
-        camera_pitch.rotation.x - input_camera_look.value_axis_2d.y * input_camera_look_speed,
-        LOOK_DOWN_MAX, LOOK_UP_MAX
-    )
-    camera_yaw.rotation.y -= input_camera_look.value_axis_2d.x * input_camera_look_speed
-
-    mesh_yaw.rotation.y = camera_yaw.rotation.y
+    camera_rig.pitch_angle -= input_camera_look.value_axis_2d.y * input_camera_look_speed
+    camera_rig.yaw_angle -= input_camera_look.value_axis_2d.x * input_camera_look_speed
+    mesh_yaw.rotation.y = camera_rig.yaw_angle
 
     if input_camera_toggle.is_triggered():
-        camera_third_person = not camera_third_person
+        set_third_person(not is_third_person())
 
-    interpolate_camera(delta)
+    camera_rig.update_camera(delta)
 
     if input_debug_noclip.is_triggered():
         freecam_mode = not freecam_mode
@@ -312,72 +254,12 @@ func _process(delta: float) -> void:
 
     update_debug()
 
-func set_camera_cast_position(yaw: float, pitch: float, distance: float) -> void:
-    var cast_target: Vector3 = Vector3(0.0, 0.0, distance)
-    cast_target = cast_target.rotated(Vector3.UP, yaw)
-    cast_target = cast_target.rotated(Vector3.LEFT.rotated(Vector3.UP, yaw), pitch)
-    camera_cast.target_position = cast_target
-
 func _update_camera_third_person() -> void:
     # Apply new third person values if the camera is attached to the player
-    if (not camera_root) or camera_root.get_parent_node_3d() != camera_target:
+    if (not camera_rig) or camera_rig.get_parent_node_3d() != camera_target:
         return
 
-    set_camera_cast_position(camera_third_person_yaw, camera_third_person_pitch, camera_third_person_distance)
-
-func interpolate_camera(delta: float) -> void:
-    # NOTE: move camera root UP axis over time
-    if camera_parent_feedback > 0.0:
-        var parent_rotation: Quaternion = Quaternion(camera_parent_orientation.y, camera_root.get_parent_node_3d().global_basis.y)
-        var angle: float = parent_rotation.get_angle()
-        if angle != 0.0:
-            camera_parent_orientation = camera_parent_orientation.rotated(parent_rotation.get_axis().normalized(), angle * camera_parent_feedback * delta)
-
-    if camera_parent_ratio > 0.0:
-        var up_axis_rotation: Quaternion = Quaternion(Vector3.UP, camera_parent_orientation.y)
-        var angle: float = up_axis_rotation.get_angle()
-        if angle != 0.0:
-            var camera_target_orientation: Basis = initial_camera_basis.rotated(up_axis_rotation.get_axis().normalized(), angle)
-            camera_root.global_basis = initial_camera_basis.slerp(camera_target_orientation, camera_parent_ratio)
-    else:
-        camera_root.global_basis = initial_camera_basis
-
-    if not camera_root.position.is_zero_approx():
-        camera_root.position = camera_root.position.lerp(Vector3.ZERO, 0.1)
-
-    if camera_interpolation == 1.0:
-        if camera_third_person:
-            camera_main.position = camera_cast.target_position * camera_cast.get_closest_collision_safe_fraction()
-        return
-
-    # Recalculate interpolation based on the distance along the camera cast,
-    # using the larger interpolation value.
-    var third_person_offset: Vector3 = camera_cast.target_position * camera_cast.get_closest_collision_safe_fraction()
-    var actual_interpolation: float
-    if third_person_offset.is_zero_approx():
-        actual_interpolation = 1.0
-    else:
-        actual_interpolation = clampf((camera_main.position / third_person_offset).length(), 0.0, 1.0)
-
-    # Flip when going to first person
-    if (not camera_third_person):
-        actual_interpolation = 1.0 - actual_interpolation
-
-    camera_interpolation = clampf(
-            camera_interpolation + (delta / camera_interpolation_time),
-            actual_interpolation, 1.0
-    )
-
-    if camera_third_person:
-        camera_main.position = Vector3.ZERO.lerp(third_person_offset, ease(camera_interpolation, camera_interpolation_curve))
-        return
-
-    # Snap camera to zero when completing first person interpolation
-    if camera_interpolation == 1.0:
-        camera_main.position = Vector3.ZERO
-        return
-
-    camera_main.position = third_person_offset.lerp(Vector3.ZERO, ease(camera_interpolation, camera_interpolation_curve))
+    camera_rig.set_cast(camera_third_person_yaw, camera_third_person_pitch, camera_third_person_distance)
 
 func _handle_input() -> void:
     if not is_node_ready():
@@ -416,7 +298,7 @@ func input_first_person() -> void:
         if freecam_mode:
             desired_direction = camera_main.global_basis * desired_direction
         else:
-            desired_direction = camera_yaw.global_basis * desired_direction
+            desired_direction = camera_rig.yaw_node.global_basis * desired_direction
 
         if freecam_mode:
             linear_damp = 1.0
@@ -473,7 +355,9 @@ func input_vehicle() -> void:
         vehicle_do_exit = false
         vehicle_entry_wait = true
 
-        var camera_xform: Transform3D = get_camera_xform()
+        camera_rig.attach(camera_target)
+        camera_rig.set_cast(camera_third_person_yaw, camera_third_person_pitch, camera_third_person_distance)
+        set_third_person(false)
 
         # NOTE: enable before calling exit so space queries have the right mask
         collision_enabled = true
@@ -482,11 +366,6 @@ func input_vehicle() -> void:
 
         GUIDE.enable_mapping_context(input_movement_context)
         GUIDE.disable_mapping_context(input_vehicle_context)
-
-        reparent_camera(camera_target)
-        apply_camera_xform(camera_xform)
-        set_camera_cast_position(camera_third_person_yaw, camera_third_person_pitch, camera_third_person_distance)
-        camera_third_person = false
 
         return
 
@@ -546,7 +425,7 @@ func on_interaction(region: InteractionArea) -> void:
         if vehicle_entry_wait:
             return
 
-        var camera_xform: Transform3D = get_camera_xform()
+        var initial_xform: Transform3D = camera_rig.global_transform
         var base_vehicle: BaseVehicle = object as BaseVehicle
         if base_vehicle.try_enter(self, region):
             vehicle = base_vehicle
@@ -556,21 +435,28 @@ func on_interaction(region: InteractionArea) -> void:
             GUIDE.enable_mapping_context(input_vehicle_context)
             GUIDE.disable_mapping_context(input_movement_context)
 
-            reparent_camera(vehicle.camera_target)
-            apply_camera_xform(camera_xform)
-            set_camera_cast_position(0.0, camera_third_person_pitch, vehicle.camera_distance)
-            camera_third_person = true
+            var settings := CameraRig.Settings.new()
+            settings.enable_initial_xform = true
+            settings.initial_global_xform = initial_xform
+
+            camera_rig.attach(vehicle.camera_target, settings)
+            camera_rig.set_cast(0.0, camera_third_person_pitch, vehicle.camera_distance)
+            set_third_person(true)
 
         return
 
-func get_camera_xform() -> Transform3D:
-    return camera_root.global_transform
+func is_third_person() -> bool:
+    return camera_rig.arm_enabled
 
-func apply_camera_xform(xform: Transform3D) -> void:
-    camera_root.transform = camera_root.get_parent_node_3d().global_transform.affine_inverse() * xform
+func set_third_person(third_person: bool = true) -> void:
+    if camera_rig.arm_enabled == third_person:
+        return
 
-func reparent_camera(to: Node3D) -> void:
-    camera_root.reparent(to, true)
+    camera_rig.arm_enabled = third_person
+    if third_person:
+        camera_main.cull_mask |= camera_third_person_mask
+    else:
+        camera_main.cull_mask &= ~camera_third_person_mask
 
 func update_debug() -> void:
     if not Engine.is_in_physics_frame():
