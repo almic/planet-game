@@ -479,7 +479,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 func _integrate_vehicle() -> void:
     var vehicle_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(vehicle.get_rid())
 
-    phys_state.transform = vehicle_state.transform.translated_local(vehicle_offset)
+    phys_state.transform.origin = vehicle_state.transform.translated_local(vehicle_offset).origin
     phys_state.linear_velocity = vehicle_state.linear_velocity
     phys_state.angular_velocity = vehicle_state.angular_velocity
 
