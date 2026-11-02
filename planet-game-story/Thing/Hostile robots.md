@@ -16,7 +16,7 @@ Some have transport functions, some are multipurpose, some are for [[The Planet#
 ## What I want to have
 - An enemy made to be shot by certain weapons (but all weapons are viable)
 - Bipedal Security Bots that use human tools and weapons to fight you. Without a weapon, they charge at you to punch you.
-- As you leave the [[Weapon Facility]] with [[The Sword]], a sword-wielding bi-ped comes out and you fight it with the sword. Or you can just blast it with a gun and then [[White Metal]] sounds sad "Well, don't bring a gun to a sword fight..." (wrong phrase on purpose)
+    - As you leave the [[Weapon Facility]] with [[The Sword]], a sword-wielding bi-ped comes out and you fight it with the sword. Or you can just blast it with a gun and then [[White Metal]] sounds sad "Well, don't bring a gun to a sword fight..." (wrong phrase on purpose)
 - Flying drones with several weak-spots which if shot together (like by the [[Security Gun]]) can break it very quickly
 - Blind robots that seek out noise and explode
 - Ancient robots that cannot move very quickly, see very well, are deaf, that just punch you
@@ -24,7 +24,8 @@ Some have transport functions, some are multipurpose, some are for [[The Planet#
 - [[Giant Deadly Robot]]
 - Robots parts have individual health bars
 - They have "structure" points which if depleted removes the part (dismantle). [[Shotgun]] can apply high structure damage to dismantle quickly.
-- They have "armor" points which, while present, reduce front damage. [[Rifle]] can have high armor damage, quickly removing armor, or piercing it. [[Shotgun]] less effective against armor, blocks dismantle, but does stagger armor.
+- They have "armor" points which, while present, reduce front damage. [[Rifle]] can have high armor damage, quickly removing armor, or piercing it. [[Shotgun]] less effective against armor, blocks dismantle, but does stagger armor. (EDIT: what the hell am I talking about here?)
+    - If impacting armor parts, damage armor and apply staggering? Rifle will destroy armor and deals reduced structure damage depending on how much armor is present?
 - Can be staggered by [[Shotgun]] due to impact force.
 - Dismantle mechanics, https://youtu.be/1e4fh01oViM
 

@@ -17,6 +17,62 @@
 - Be able to experiment without harsh punishment
 - Debug tools at the beginning
 
+# System Idea
+- One sidearm slot reserved for the main sidearm, which cannot be removed.
+- Second sidearm slots: can hold future tool, security gun, or sword
+- Two large weapon slots on the back: can hold rifle, security gun, or shotgun
+- The player is restricted to three weapons, plus the sidearm.
+- When getting the story weapon, it takes a back slot and cannot be removed.
+# Damage Algorithm
+```py
+structure = 100
+armor = 100
+max_armor = 100
+
+def damage(dmg):
+    global armor, max_armor, structure
+
+    armor_dmg = round(
+            dmg * (1.0 - ratio)
+            * math.sin(math.pi * (armor / max_armor) * 0.5)
+    )
+    armor = max(0, armor - armor_dmg)
+    pen_dmg = max(0, dmg - armor_dmg)
+    structure = max(0, structure - pen_dmg)
+
+    print('Armor:', armor, '\nStructure:', structure)
+```
+
+# Weapon Resource Parameters
+- Damage per hit
+- Hits per shot (e.g. 10 for shotgun, 1 for everything else)
+- Maximum reserve count, extra ammo capacity
+- Ammo count, capacity of the weapon
+- Reload time
+- Armor penetration ratio, `0.0 - 1.0`
+- Hit spread range (e.g. 5 degrees for shotgun)
+- Shock damage per hit (robots can be killed when accumulating too much shock)
+- Melee
+    - Melee-only flag (e.g. for the sword)
+    - Melee damage
+    - Melee time (how long the attack is active)
+    - Melee cooldown (reset timer before the weapon can be used again)
+- Automatic flag (fires continuously while triggered)
+    - fire rate, converted to physics ticks (display in editor with true fire rate)
+- Charge fire (holding will bank shots, fired when released)
+    - maximum shots
+    - charge rate (e.g. 2 shots per second)
+    - activation time (e.g. 0.5 seconds before first charge)
+    - fire delay, converted to physics ticks (display in editor with true delay)
+    - fire rate, converted to physics ticks (display in editor with true fire rate)
+    - if fire rate exceeds 1 per tick, then it will batch multiple in a single tick
+    - cooldown time (e.g. 0.3 seconds per shot fired)
+- Lock-on flag (will target enemies within a cone)
+    - maximum targets, overrides charge max shots when active
+    - target cone angle (only targets within cone)
+    - selector for closest targets or strongest targets
+    - target acquire rate (e.g. 2 targets per second), overrides charge rate when active
+
 # Game Interactions
 - Animations
 - Have a visual scene, includes arms
