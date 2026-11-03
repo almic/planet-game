@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WeaponParameters" format=3 uid="uid://cubwrxywo0iq4"]
+
+[ext_resource type="Script" uid="uid://nc634o152dor" path="res://node/weapon/weapon_parameters.gd" id="1_h0rdb"]
+
+[resource]
+script = ExtResource("1_h0rdb")
+ticks_between_shots = 20
+shots_per_fire_tick = 1
+charge_rate = 4
+ticks_between_charges = 25
+charge_fire_rate = 600
+ticks_between_charged_shots = 10
+shots_per_charged_fire_tick = 1
+ticks_between_target_lock = 25
+metadata/_custom_type_script = "uid://nc634o152dor"
