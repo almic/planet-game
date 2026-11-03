@@ -23,6 +23,14 @@
 - Two large weapon slots on the back: can hold rifle, security gun, or shotgun
 - The player is restricted to three weapons, plus the sidearm.
 - When getting the story weapon, it takes a back slot and cannot be removed.
+
+# Recoil methods
+- No recoil
+- Tilt camera up while firing
+    - Recover when no longer firing (not necessary with controller)
+- Follow animation spline while firing, with a loop point, recover when stopped
+- Impulses displace weapon while firing, recovering displacement over time
+
 # Damage Algorithm
 ```py
 structure = 100
@@ -57,11 +65,28 @@ def damage(dmg):
     - Melee damage
     - Melee time (how long the attack is active)
     - Melee cooldown (reset timer before the weapon can be used again)
+- Sound
+    - Audible range (in meters)
+- Recoil
+    - TODO: needs more thought, perhaps a velocity recovery + transform recovery to simplify implementation and tuning. probably implement a simple version and save the more complex two-point recoil for later.
+    - Impulse power (dimensionless term, higher = more recoil)
+    - Recover rate (percentage per second that recoil decays)
+    - Maximum impulse (recoil will not exceed this value)
+    - Angle bias (verticle angle offset of recoil)
+    - Variability (random angle variability)
+    - Linear / Angular ratio, `0.0 - 1.0`
+    - Pivot point, where rotation is determined
+- Key Weapon flag
+    - Key weapons cannot be removed from the inventory, only moved to different slots
+- Size flag
+    - Small, can be stored in medium slot
+    - Medium, can be stored in medium and large slot
+    - Large, can be stored in large slot
 - Automatic flag (fires continuously while triggered)
     - fire rate, converted to physics ticks (display in editor with true fire rate)
-- Charge fire (holding will bank shots, fired when released)
-    - maximum shots
-    - charge rate (e.g. 2 shots per second)
+- Charge flag (holding will bank shots, fired when released)
+    - maximum shots, ignored when Lock-on flag is active
+    - charge rate (e.g. 2 shots per second), ignored when Lock-on flag is active
     - activation time (e.g. 0.5 seconds before first charge)
     - fire delay, converted to physics ticks (display in editor with true delay)
     - fire rate, converted to physics ticks (display in editor with true fire rate)

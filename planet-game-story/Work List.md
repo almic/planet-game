@@ -14,7 +14,7 @@ All the things I would like to do.
 - [ ] Figure out what the behavior system will be for enemies. They should be as simple as possible. Please.
 
 ## Weapons
-- [ ] Commit to a weapon inventory system. I think all weapons is best.
+- [x] Commit to a weapon inventory system. I think all weapons is best.
 - [ ] Don't make any weapons until you have enemies to shoot
 - [ ] Plan the weapon resource type and actually create resources for all weapons, this ensures you have the layout ready before you implement the system
 - [ ] If you have enemies to shoot at, go ahead and start to write the weapon system
