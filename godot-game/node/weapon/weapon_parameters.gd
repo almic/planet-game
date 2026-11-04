@@ -129,6 +129,69 @@ var ticks_between_shots: int = 0
 var shots_per_fire_tick: int = 0
 #endregion Fire Rate
 
+#region Recoil
+@export_group('Recoil')
+
+@export_subgroup('Linear', 'recoil_linear')
+
+## Linear acceleration per shot fired
+@export_range(0.01, 10.0, 0.01, 'or_greater', 'suffix:m/s\u00B2')
+var recoil_linear_acceleration: float = 5.0
+
+## Linear acceleration angle bias, zero points straight back
+@export_range(-90.0, 90.0, 0.1, 'radians_as_degrees')
+var recoil_linear_bias: float = 0.0
+
+## Linear variability, random angle added to the current velocity direction
+@export_range(0.0, 90.0, 0.1, 'radians_as_degrees')
+var recoil_linear_variability: float = deg_to_rad(5.0)
+
+## Linear velocity damping, as a percentage per second
+@export_range(0.01, 20.0, 0.01, 'or_greater')
+var recoil_linear_damping: float = 10.0
+
+## Linear displacement recovery rate, as a percentage per second
+@export_range(0.01, 20.0, 0.01, 'or_greater')
+var recoil_linear_recovery: float = 10.0
+
+## Maximum linear displacement on the positive axes: right, up, and backwards
+@export var recoil_linear_limit_max: Vector3 = Vector3.ONE * 0.05
+
+## Maximum linear displacement on the negative axes: left, down, and forwards
+@export var recoil_linear_limit_min: Vector3 = Vector3.ONE * 0.01
+
+
+@export_subgroup('Angular', 'recoil_angular')
+
+## Angular acceleration per shot fired
+@export_range(0.0, 360.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s\u00B2')
+var recoil_angular_acceleration: float = deg_to_rad(20.0)
+
+## Angular acceleration angle bias, zero points straight up
+@export_range(-45.0, 45.0, 0.1, 'radians_as_degrees')
+var recoil_angular_bias: float = 0.0
+
+## Angular variability, random angle added to the current velocity direction
+@export_range(0.0, 90.0, 0.1, 'radians_as_degrees')
+var recoil_angular_variability: float = deg_to_rad(3.0)
+
+## Angular pivot point, relative to the weapon node itself, not the weapon's
+## offset. Positive Z is behind the weapon.
+@export var recoil_angular_pivot: Vector3 = Vector3(-0.05, 0.25, 0.0)
+
+## Angular velocity damping, as a percentage per second
+@export_range(0.01, 20.0, 0.01, 'or_greater')
+var recoil_angular_damping: float = 10.0
+
+## Angular displacement recovery rate, as a percentage per second
+@export_range(0.01, 20.0, 0.01, 'or_greater')
+var recoil_angular_recovery: float = 10.0
+
+## Maximum angular limit, as a cone facing forward (-Z) from the weapon node.
+@export_range(0.0, 180.0, 0.1, 'radians_as_degrees')
+var recoil_angular_limit: float = deg_to_rad(90.0)
+#endregion Recoil
+
 #region Charging
 @export_group('Charging')
 

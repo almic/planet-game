@@ -27,7 +27,8 @@
 # Recoil methods
 - No recoil
 - Tilt camera up while firing
-    - Recover when no longer firing (not necessary with controller)
+    - Recover when no longer firing? Could actually be fine on keyboard/ mouse... (not necessary with controller)
+    - Can also rotate weapon side-to-side during this
 - Follow animation spline while firing, with a loop point, recover when stopped
 - Impulses displace weapon while firing, recovering displacement over time
 
@@ -68,14 +69,20 @@ def damage(dmg):
 - Sound
     - Audible range (in meters)
 - Recoil
-    - TODO: needs more thought, perhaps a velocity recovery + transform recovery to simplify implementation and tuning. probably implement a simple version and save the more complex two-point recoil for later.
-    - Impulse power (dimensionless term, higher = more recoil)
-    - Recover rate (percentage per second that recoil decays)
-    - Maximum impulse (recoil will not exceed this value)
-    - Angle bias (verticle angle offset of recoil)
-    - Variability (random angle variability)
-    - Linear / Angular ratio, `0.0 - 1.0`
-    - Pivot point, where rotation is determined
+    - TODO: probably want a two-point pivot to make weapons rotate at a grip-point, in addition to a larger overall pivot at the elbow or shoulder point
+    - All accelerations are biased in the current velocity direction
+    - Linear acceleration
+    - Linear variability (random angle)
+    - Linear velocity damping (percentage per second that velocity decays)
+    - Linear recover rate (percentage per second that displacement decays)
+    - Max linear displacement
+    - Angular rise acceleration
+    - Angular variability (random angle)
+    - Rise angle bias (vertical angle offset of recoil)
+    - Angular velocity damping (percentage per second that velocity decays)
+    - Angular recover rate (percentage per second that displacement decays)
+    - Max cone angle
+    - Pivot point, where rotation is determined (relative to weapon node origin)
 - Key Weapon flag
     - Key weapons cannot be removed from the inventory, only moved to different slots
 - Size flag
