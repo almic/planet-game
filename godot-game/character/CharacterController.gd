@@ -137,6 +137,9 @@ var delta_time: float
 ## Stores the reference to this body state for the current physics update
 var phys_state: PhysicsDirectBodyState3D
 
+## If CharacterController should accelerate the body for movement, disable if
+## you accelerate the body for movement manually.
+var apply_movement: bool = true
 var desired_direction: Vector3 = Vector3.ZERO
 var desired_speed: float = 0.0
 var desired_incline_effect: float = 1.0
@@ -269,7 +272,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     state.linear_velocity += air_friction * state.step
 
     # When slipping, add an extra force orthogonal to gravity in the downhill direction
-    if not gravity.is_zero_approx() and is_slipping:
+    if apply_movement and (not gravity.is_zero_approx()) and is_slipping:
         var slip: Vector3 = ground_normal.cross(gravity).cross(ground_normal)
         if not slip.is_zero_approx():
             slip = slip.normalized()
@@ -364,7 +367,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
                         accel_multiplier *= bonus
 
             # Add extra ground friction for turning/ changing direction/ over speed
-            if not is_slipping:
+            if apply_movement and (not is_slipping):
                 # NOTE: this should allow maintaining high speed and changing direction, but only
                 # with long turns and still has some loss... you could only recover when
                 # speed_in_dir < limit_in_dir, and clamp to the limit, but this just sounds fun...
@@ -429,18 +432,19 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
         state.linear_velocity += jump
 
-    if is_on_floor:
-        # NOTE: Should be updated using new velocity, it is a little wrong like this
-        speed_in_dir = ground_rel_con_velocity.dot(forward)
-    else:
-        speed_in_dir = state.linear_velocity.dot(forward)
+    if apply_movement:
+        if is_on_floor:
+            # NOTE: Should be updated using new velocity, it is a little wrong like this
+            speed_in_dir = ground_rel_con_velocity.dot(forward)
+        else:
+            speed_in_dir = state.linear_velocity.dot(forward)
 
-    if speed_in_dir < limit_in_dir:
-        forward *= minf(acceleration * accel_multiplier, maxf(limit_in_dir - speed_in_dir, 0.0) / state.step)
-        state.linear_velocity += forward * state.step
-    elif speed_in_dir > limit_in_dir:
-        forward *= minf(deceleration, maxf(speed_in_dir - limit_in_dir, 0.0) / state.step)
-        state.linear_velocity -= forward * state.step
+        if speed_in_dir < limit_in_dir:
+            forward *= minf(acceleration * accel_multiplier, maxf(limit_in_dir - speed_in_dir, 0.0) / state.step)
+            state.linear_velocity += forward * state.step
+        elif speed_in_dir > limit_in_dir:
+            forward *= minf(deceleration, maxf(speed_in_dir - limit_in_dir, 0.0) / state.step)
+            state.linear_velocity -= forward * state.step
 
     _update_motion(state)
 

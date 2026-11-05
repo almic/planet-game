@@ -320,6 +320,9 @@ func rebuild_crawler(remove_unowned_nodes: bool = false, editor_mode: bool = fal
 func _ready() -> void:
     super._ready()
 
+    # NOTE: This body moves via the legs
+    apply_movement = false
+
     physical_skeleton.skeleton = skeleton
     physical_skeleton.joint_force_exceeded.connect(on_joint_force_exceeded)
 
@@ -645,8 +648,8 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
     var angular_difference: Vector3 = ground_angular_velocity - state.angular_velocity
     var current_forward: Vector3 = -state.transform.basis.z
 
-    # roughly 0.5 degrees
-    const LOW_ANGLE: float = 8.73e-3
+    # roughly 2 degrees
+    const LOW_ANGLE: float = 3.49e-2
     const COS_LOW_ANGLE: float = cos(LOW_ANGLE)
     if current_forward.dot(target_direction) >= COS_LOW_ANGLE and angular_difference.length_squared() < LOW_ANGLE:
         # Low angular velocity, facing the target, clear target
@@ -662,15 +665,14 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
         preferred_up = _calculate_preferred_up(valid_point_count, ground_points)
         preferred_up = state.transform.basis * preferred_up
 
-    var yaw: float
-    if can_do_yaw:
-        # Only yaw when this is true:
-        # r > pow(0.03125 - 0.03125 * cos_theta, 0.25)
-        # NOTE: xz_dot == r
-        var xz_dot: float = 1.0 - absf(preferred_up.dot(target_direction))
-        var cos_theta: float = current_forward.dot(target_direction)
-        if xz_dot > pow(0.03125 - 0.03125 * cos_theta, 0.25):
-            yaw = current_forward.signed_angle_2(target_direction, preferred_up)
+    var yaw: float = 0.0
+    # Only yaw when this is true:
+    # r > pow(0.03125 - 0.03125 * cos_theta, 0.25)
+    # NOTE: xz_dot == r
+    var xz_dot: float = 1.0 - absf(preferred_up.dot(target_direction))
+    var cos_theta: float = current_forward.dot(target_direction)
+    if xz_dot > pow(0.03125 - 0.03125 * cos_theta, 0.25):
+        yaw = current_forward.signed_angle_2(target_direction, preferred_up)
 
     var current_right: Vector3 = state.transform.basis.x
     var future_forward: Vector3 = current_forward.rotated(preferred_up, yaw)
@@ -696,6 +698,11 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
     var pitch: float = future_forward.signed_angle_2(clamped_direction, future_right)
     var pitch_diff: float = leg_angular_controller.update(leg_angular_target.x, pitch, state.step)
     leg_angular_target.x += pitch_diff * state.step
+
+    # Zero the yaw for this step
+    if not can_do_yaw:
+        yaw = 0.0
+
     leg_angular_target.y = move_toward(leg_angular_target.y, yaw, rotation_rate * state.step)
 
     # TODO: Control for target velocity
