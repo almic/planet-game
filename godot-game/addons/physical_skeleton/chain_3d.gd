@@ -180,6 +180,7 @@ func update() -> void:
 func on_pose_finalized() -> void:
     for index in range(part_count):
         var part := part_list[index]
+        # NOTE: because of early returns, zero the derivative here
         part.ik_derivative = 0.0
 
         if not part.is_valid:
@@ -217,7 +218,7 @@ func on_pose_finalized() -> void:
 
     # NOTE: Use a small change to calculate derivative angles
     var initial_end_point: Vector3 = chain_end_point
-    target_point = chain_end_point.move_toward(target_point, 0.005)
+    target_point = chain_end_point.move_toward(target_point, 0.01)
     var derivative_distance: float = chain_end_point.distance_to(target_point)
     var ik_work: Array[Transform3D] = []
     ik_work.resize(part_count)
