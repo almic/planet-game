@@ -252,6 +252,7 @@ physical_skeleton = NodePath("big_crawler/Skeleton3D/PhysicalSkeleton")
 total_mass = 18.0
 body_leg_mass_ratio = 4.0
 leg_segment_ratio = PackedFloat32Array(0.7, 0.6)
+max_speed = 0.5
 rotation_rate = 0.08726646259971647
 ik_max_iterations = 10
 ik_min_distance = 0.01
@@ -504,8 +505,8 @@ angular_limit_x/upper_angle = 0.6108652381980153
 angular_limit_x/lower_angle = -0.6108652381980153
 metadata/_physical_skeleton_owned = true
 metadata/_part_bone_joint = true
-metadata/_edit_lock_ = true
 metadata/_part_break_force = 800.0
+metadata/_edit_lock_ = true
 
 [node name="TarsusPart" type="RigidBody3D" parent="big_crawler/Skeleton3D/ChainRootNode/FrontLeftChain" unique_id=1375078630]
 transform = Transform3D(0.8090041097513164, -0.3701833075643623, -0.4565924541713195, 9.512787460920884e-17, -0.776778044701873, 0.6297744590479476, -0.5878029860467534, -0.5094901255862019, -0.628416630528407, -0.6753789166644286, 1.3204898589641512, -1.3430101113619606)

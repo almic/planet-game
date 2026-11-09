@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PhysicalSpringParameters" format=3 uid="uid://bjr7lmmhm1yaq"]
+
+[ext_resource type="Script" uid="uid://bov3imdtwsbku" path="res://addons/physical_skeleton/resource/spring_parameters.gd" id="1_cqkfi"]
+
+[resource]
+resource_name = "Femur Spring"
+script = ExtResource("1_cqkfi")
+use_frequency = true
+frequency = 60.0
+damping = 1.0
+metadata/_custom_type_script = "uid://bov3imdtwsbku"

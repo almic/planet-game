@@ -87,6 +87,10 @@ func _draw() -> void:
     )
 
     for series in series_list:
+        # NOTE: skip drawing when a series has fewer than 2 points
+        if series.data.size() < 2:
+            continue
+
         draw_rect(
                 Rect2(legend_x, legend_y + line_ascent - box_size, box_size, minf(box_size, line_ascent)),
                 series.color

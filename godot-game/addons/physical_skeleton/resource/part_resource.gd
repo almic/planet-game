@@ -263,11 +263,23 @@ var joint_angular_limit_z_lower: float = 0:
         setting_changed.emit(&'joint_angular_limit_z_lower')
 #endregion Joint Settings
 
+#region Spring Settings
+@export_group('Spring Settings')
+
+@export var spring_enabled: bool = false
+
+@export var spring_parameters: PhysicalSpringParameters:
+    set(value):
+        _disconnect_named(spring_parameters, &'spring_parameters')
+        spring_parameters = value
+        _connect_named_and_call(spring_parameters, &'spring_parameters')
+#endregion Spring Settings
+
 #region Motor Settings
 @export_group('Motor Settings')
 
 ## If the motor should be enabled at run-time
-@export var motor_enabled: bool = true
+@export var motor_enabled: bool = false
 
 ## Motor parameters
 @export var motor_parameters: PhysicalMotorParameters:

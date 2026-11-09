@@ -80,6 +80,8 @@ var _signal_should_break: bool = false
 var body_state: PhysicsDirectBodyState3D
 ## Physics State of the parent, cached in update()
 var parent_state: PhysicsDirectBodyState3D
+## Angular velocity of the joint on the rotation axis, calculated in update()
+var joint_velocity: float = 0.0
 ## The bone rotation in global space
 var bone_rotation: Basis
 ## Local axis index of the bone rotation
@@ -88,6 +90,8 @@ var bone_rotation_axis: int
 var bone_rotation_axis_vector: Vector3
 ## Calculated motor torque, used for constraints
 var desired_motor_torque: float
+## Internal velocity for spring-based joints, limits the rate of angle change
+var spring_velocity: float = 0.0
 
 ## Calculated joint angle from IK
 var _ik_angle: float
@@ -109,15 +113,32 @@ var _debug_layer: CanvasLayer = null
 @export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
 var debug_enable: bool = false
 
-## Displays a graph showing motor output and measures
+const DEG_12: float = deg_to_rad(12.0)
+const DEG_90: float = deg_to_rad(90.0)
+const DEG_270: float = deg_to_rad(270.0)
+
+var _debug_chart: DebugDraw.Chart = null
+
+## Displays a graph showing angle measures
+@export var debug_angle: bool = false
+var _debug_angle_error_id: int = 0
+const ANGLE_ERROR_RANGE: float = DEG_12
+var _debug_joint_velocity_id: int = 0
+const JOINT_VELOCITY_RANGE = DEG_270
+
+## Displays a graph showing motor output
 @export var debug_motor: bool = false
-var _debug_motor_chart: DebugDraw.Chart = null
-var _debug_motor_angle: bool = false
-var _debug_motor_velocity: bool = false
-var _debug_motor_angle_error_id: int = 0
 var _debug_motor_velocity_id: int = 0
-var _debug_motor_velocity_target_id: int = 0
+const MOTOR_VELOCITY_RANGE: float = DEG_270
 var _debug_motor_torque_id: int = 0
+var _debug_motor_torque_ratio_id: int = 0
+
+## Displays a graph showing spring output
+@export var debug_spring: bool = false
+var _debug_spring_target_id: int = 0
+const SPRING_TARGET_RANGE: float = DEG_90
+var _debug_spring_velocity_id: int = 0
+const SPRING_VELOCITY_RANGE: float = DEG_270
 #endregion Debug
 
 
@@ -425,10 +446,10 @@ func update(skeleton: Skeleton3D, bone_idx: int) -> void:
     if _debug_layer:
         _debug_layer.visible = debug_enable
 
-    if _debug_motor_chart:
-        _debug_motor_chart.visible = debug_enable and debug_motor
-    elif debug_enable and debug_motor:
-        _setup_debug_motor_chart()
+    if _debug_chart:
+        _debug_chart.visible = debug_enable and (debug_motor or debug_angle)
+    elif debug_enable:
+        _setup_debug_chart()
 
 func _update_joint(joint_data: JointData) -> void:
     var joint_parent_state := PhysicsServer3D.body_get_direct_state(joint_data.parent)
@@ -440,15 +461,14 @@ func _update_joint(joint_data: JointData) -> void:
 
 func _update_motor_state() -> void:
     var motor_should_be_powered: bool = is_powered and (not is_motor_broken)
-    if is_motor_powered == motor_should_be_powered:
-        return
+    var powered_changed: bool = is_motor_powered != motor_should_be_powered
     is_motor_powered = motor_should_be_powered
 
     # Setting only the limitation axis
-    var motor_axis: int = -1
-    if resource.ik_enabled:
-        motor_axis = resource.rotation_axis
+    if not resource.ik_enabled:
+        return
 
+    var motor_axis: int = resource.rotation_axis
     if motor_axis < 0 or motor_axis > 2:
         push_error(
             (
@@ -458,20 +478,23 @@ func _update_motor_state() -> void:
         )
         return
 
-    bone_joint.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, false)
-    bone_joint.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, false)
-    bone_joint.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, false)
+    for axis in range(3):
+        var has_motor: bool = bone_joint.get_flag(axis, Generic6DOFJoint3D.FLAG_ENABLE_MOTOR)
+        var has_spring: bool = bone_joint.get_flag(axis, Generic6DOFJoint3D.FLAG_ENABLE_ANGULAR_SPRING)
 
-    # NOTE: X and Z are most common, so these should be the faster paths
-    if motor_axis == 0:
-        bone_joint.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, true)
-        bone_joint.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_ACCELERATION_ANGULAR, is_motor_powered)
-    elif motor_axis == 2:
-        bone_joint.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, true)
-        bone_joint.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_ACCELERATION_ANGULAR, is_motor_powered)
-    else:
-        bone_joint.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, true)
-        bone_joint.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_ACCELERATION_ANGULAR, is_motor_powered)
+        if axis != motor_axis:
+            if has_motor:
+                bone_joint.set_flag(axis, Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, false)
+                bone_joint.set_flag(axis, Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_ACCELERATION_ANGULAR, false)
+            if has_spring:
+                bone_joint.set_flag(axis, Generic6DOFJoint3D.FLAG_ENABLE_ANGULAR_SPRING, false)
+        else:
+            if has_motor != resource.motor_enabled:
+                bone_joint.set_flag(axis, Generic6DOFJoint3D.FLAG_ENABLE_MOTOR, resource.motor_enabled)
+            if has_spring != resource.spring_enabled:
+                bone_joint.set_flag(motor_axis, Generic6DOFJoint3D.FLAG_ENABLE_ANGULAR_SPRING, resource.spring_enabled)
+            if powered_changed:
+                bone_joint.set_flag(motor_axis, Generic6DOFJoint3D.FLAG_ENABLE_MOTOR_PID_ACCELERATION_ANGULAR, is_motor_powered)
 
 func _should_break(joint: Joint3D, displacement: Transform3D) -> bool:
     var total_force: float = 0
@@ -515,6 +538,13 @@ func on_pose_finalized(bone_xform: Transform3D) -> void:
     bone_rotation_axis = axis
     bone_rotation_axis_vector = bone_rotation[axis]
 
+    var part_velocity: Vector3 = body_state.angular_velocity
+    var parent_velocity: Vector3 = parent_state.angular_velocity
+    joint_velocity = bone_rotation_axis_vector.dot(parent_velocity - part_velocity)
+
+    if debug_enable and debug_angle and _debug_chart:
+        _debug_chart.insert(_debug_joint_velocity_id, joint_velocity)
+
     var pose: Quaternion = bone_rotation
 
     # Relative to parent
@@ -542,10 +572,18 @@ func on_pose_finalized(bone_xform: Transform3D) -> void:
         angle = -angle
     _ik_error = _ik_angle - angle
 
-    if debug_enable and debug_motor and _debug_motor_chart:
-        _debug_joint_angle()
+    if debug_enable and debug_angle and _debug_chart:
+        var angle_error: float = clampf(_ik_error, -100.0, 100.0)
+        _debug_chart.insert(_debug_angle_error_id, angle_error)
 
 func apply_motor_parameters() -> void:
+    if resource.motor_enabled:
+        _update_motor()
+
+    if resource.spring_enabled:
+        _update_spring()
+
+func _update_motor() -> void:
     var angle_error: float = _remap_target(
             _ik_error,
             resource.motor_parameters.control_angle_threshold,
@@ -565,10 +603,6 @@ func apply_motor_parameters() -> void:
     if absf(_ik_error) > 1.74e-4:
         target_velocity *= clampf(ik_derivative / _ik_error, -1.0, 1.0)
 
-    var part_velocity: Vector3 = body_state.angular_velocity
-    var parent_velocity: Vector3 = parent_state.angular_velocity
-
-    var joint_velocity: float = bone_rotation_axis_vector.dot(parent_velocity - part_velocity)
     var max_accel: float = resource.motor_parameters.max_acceleration * body_state.step
 
     if signf(target_velocity) == signf(joint_velocity):
@@ -581,8 +615,8 @@ func apply_motor_parameters() -> void:
     var max_velocity: float = minf(absf(_ik_error) / body_state.step, resource.motor_parameters.max_velocity)
     target_velocity = signf(target_velocity) * minf(absf(target_velocity), max_velocity)
 
-    if debug_enable and debug_motor and _debug_motor_chart:
-        _debug_motor_chart.insert(_debug_motor_velocity_target_id, target_velocity)
+    if debug_enable and debug_motor and _debug_chart:
+        _debug_chart.insert(_debug_motor_velocity_id, target_velocity)
 
     var new_velocity: Vector3 = Vector3.ZERO
     new_velocity[bone_rotation_axis] = target_velocity
@@ -592,7 +626,7 @@ func apply_motor_parameters() -> void:
     var param: PhysicalControllerParameters = resource.motor_parameters.motor_controller
     bone_joint.set_motor_pid_acceleration(motor_axis, param.proportional, param.integral, param.derivative)
 
-    desired_motor_torque = _calculate_torque(target_velocity)
+    desired_motor_torque = _calculate_torque(joint_velocity)
 
     if bone_rotation_axis == 0:
         bone_joint.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, desired_motor_torque)
@@ -601,10 +635,66 @@ func apply_motor_parameters() -> void:
     else:
         bone_joint.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_DRIVE_TORQUE_LIMIT, desired_motor_torque)
 
-    if debug_enable and debug_motor and _debug_motor_chart:
-        _debug_motor_chart.insert(_debug_motor_velocity_id, joint_velocity)
+    if debug_enable and debug_motor and _debug_chart:
         var torque_ratio: float = desired_motor_torque / resource.motor_parameters.torque_powered_max
-        _debug_motor_chart.insert(_debug_motor_torque_id, torque_ratio)
+        _debug_chart.insert(_debug_motor_torque_ratio_id, torque_ratio)
+        var torque_applied: float = absf(bone_joint.get_applied_torque()) / resource.motor_parameters.torque_powered_max
+        _debug_chart.insert(_debug_motor_torque_id, torque_applied)
+
+func _update_spring() -> void:
+    var equilibrium: Vector3 = bone_joint.get_angular_spring_target()
+    var target: Vector3 = Vector3.ZERO
+    target[bone_rotation_axis] = -_ik_angle
+
+    # Accelerate in direction of change
+    var error: float = target[bone_rotation_axis] - equilibrium[bone_rotation_axis]
+    var part_velocity: Vector3 = body_state.angular_velocity
+    var parent_velocity: Vector3 = parent_state.angular_velocity
+
+    var max_velocity: float = resource.motor_parameters.max_velocity
+    var acceleration: float = resource.motor_parameters.max_acceleration * body_state.step
+    if joint_velocity != 0.0 and signf(error) != signf(joint_velocity):
+        spring_velocity = 0.0
+    else:
+        # Match joint velocity with some acceleration window
+        spring_velocity = joint_velocity + clampf(spring_velocity - joint_velocity, -acceleration, acceleration)
+
+    spring_velocity += signf(error) * acceleration
+    spring_velocity = clampf(spring_velocity, -max_velocity, max_velocity)
+
+    equilibrium = equilibrium.move_toward(target, minf(absf(spring_velocity * body_state.step), absf(error)))
+
+    if debug_enable and debug_spring and _debug_chart:
+        _debug_chart.insert(_debug_spring_target_id, equilibrium[bone_rotation_axis])
+        _debug_chart.insert(_debug_spring_velocity_id, spring_velocity)
+
+    bone_joint.set_angular_spring_target(equilibrium)
+
+    bone_joint.set_param(
+        bone_rotation_axis,
+        Generic6DOFJoint3D.PARAM_ANGULAR_SPRING_STIFFNESS,
+        resource.spring_parameters.stiffness
+    )
+
+    bone_joint.set_param(
+        bone_rotation_axis,
+        Generic6DOFJoint3D.PARAM_ANGULAR_SPRING_DAMPING,
+        resource.spring_parameters.damping
+    )
+
+    var rid: RID = bone_joint.get_rid()
+
+    JoltPhysicsServer3D.generic_6dof_joint_set_jolt_flag(
+        rid, bone_rotation_axis,
+        JoltPhysicsServer3D.G6DOF_JOINT_FLAG_ENABLE_ANGULAR_SPRING_FREQUENCY,
+        resource.spring_parameters.use_frequency
+    )
+
+    JoltPhysicsServer3D.generic_6dof_joint_set_jolt_param(
+        rid, bone_rotation_axis,
+        JoltPhysicsServer3D.G6DOF_JOINT_ANGULAR_SPRING_FREQUENCY,
+        resource.spring_parameters.frequency
+    )
 
 ## IK Angle interpolation
 func _remap_target(value: float, threshold: float, window: float) -> float:
@@ -762,7 +852,6 @@ func reload_part() -> void:
     _ensure_mesh_bone_inst()
 
 func _configure_joint(joint: Joint3D) -> JointData:
-
     var joint_data: JointData = JointData.new()
     joint_data.is_breakable = joint.has_meta(META_BREAK_FORCE)
 
@@ -822,16 +911,21 @@ func resource_modified(setting: StringName = &'') -> void:
     # GODOT PLEASE
     #region linear
     bone_joint.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_LINEAR_LIMIT, resource.joint_linear_limit_x_enabled)
-    bone_joint.set_param_x(Generic6DOFJoint3D.PARAM_LINEAR_LOWER_LIMIT, resource.joint_linear_limit_x_lower)
-    bone_joint.set_param_x(Generic6DOFJoint3D.PARAM_LINEAR_UPPER_LIMIT, resource.joint_linear_limit_x_upper)
-
     bone_joint.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_LINEAR_LIMIT, resource.joint_linear_limit_y_enabled)
-    bone_joint.set_param_y(Generic6DOFJoint3D.PARAM_LINEAR_LOWER_LIMIT, resource.joint_linear_limit_y_lower)
-    bone_joint.set_param_y(Generic6DOFJoint3D.PARAM_LINEAR_UPPER_LIMIT, resource.joint_linear_limit_y_upper)
-
     bone_joint.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_LINEAR_LIMIT, resource.joint_linear_limit_z_enabled)
-    bone_joint.set_param_z(Generic6DOFJoint3D.PARAM_LINEAR_LOWER_LIMIT, resource.joint_linear_limit_z_lower)
-    bone_joint.set_param_z(Generic6DOFJoint3D.PARAM_LINEAR_UPPER_LIMIT, resource.joint_linear_limit_z_upper)
+
+    bone_joint.set_linear_limit(
+            Vector3(
+                resource.joint_linear_limit_x_lower,
+                resource.joint_linear_limit_y_lower,
+                resource.joint_linear_limit_z_lower
+            ),
+            Vector3(
+                resource.joint_linear_limit_x_upper,
+                resource.joint_linear_limit_y_upper,
+                resource.joint_linear_limit_z_upper
+            )
+    )
     #endregion linear
     #region angular
     bone_joint.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_ANGULAR_LIMIT, resource.joint_angular_limit_x_enabled)
@@ -847,64 +941,70 @@ func resource_modified(setting: StringName = &'') -> void:
     bone_joint.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, resource.joint_angular_limit_z_upper)
     #endregion angular
 
-func _setup_debug_motor_chart() -> void:
-    _debug_motor_chart = DebugDraw.Chart.new()
-    _debug_motor_chart.name = name
+func _setup_debug_chart() -> void:
+    _debug_chart = DebugDraw.Chart.new()
+    _debug_chart.name = name
 
-    var error_scale: Vector4 = Vector4(INF, INF, -1.0, 1.0)
-    var deg_12: float = deg_to_rad(12.0)
-    var deg_270: float = deg_to_rad(270.0)
-
-    _debug_motor_angle_error_id = _debug_motor_chart.create_series(
+    _debug_angle_error_id = _debug_chart.create_series(
             "Angle Error",
-            Vector4(INF, INF, -deg_12, deg_12)
+            Vector4(INF, INF, -ANGLE_ERROR_RANGE, ANGLE_ERROR_RANGE)
     )
 
-    _debug_motor_velocity_id = _debug_motor_chart.create_series(
-            "Velocity",
-            Vector4(INF, INF, -deg_270, deg_270)
+    _debug_joint_velocity_id = _debug_chart.create_series(
+            "Joint Velocity",
+            Vector4(INF, INF, -MOTOR_VELOCITY_RANGE, MOTOR_VELOCITY_RANGE)
     )
 
-    _debug_motor_velocity_target_id = _debug_motor_chart.create_series(
-            "Target Velocity",
-            Vector4(INF, INF, -deg_270, deg_270)
+    _debug_motor_velocity_id = _debug_chart.create_series(
+            "Motor Velocity",
+            Vector4(INF, INF, -MOTOR_VELOCITY_RANGE, MOTOR_VELOCITY_RANGE)
     )
 
-    _debug_motor_torque_id = _debug_motor_chart.create_series(
-            "Torque",
+    _debug_motor_torque_id = _debug_chart.create_series(
+            "Applied Torque",
             Vector4(INF, INF, -0.2, 1.2)
     )
 
+    _debug_motor_torque_ratio_id = _debug_chart.create_series(
+            "Torque Ratio",
+            Vector4(INF, INF, -0.2, 1.2)
+    )
+
+    _debug_spring_target_id = _debug_chart.create_series(
+            "Spring Equilibrium",
+            Vector4(INF, INF, -SPRING_TARGET_RANGE, SPRING_TARGET_RANGE)
+    )
+
+    _debug_spring_velocity_id = _debug_chart.create_series(
+            "Spring Velocity",
+            Vector4(INF, INF, -SPRING_VELOCITY_RANGE, SPRING_VELOCITY_RANGE)
+    )
+
     for chart_id in [
-            _debug_motor_angle_error_id,
+            _debug_angle_error_id,
+            _debug_joint_velocity_id,
             _debug_motor_velocity_id,
-            _debug_motor_velocity_target_id,
             _debug_motor_torque_id,
+            _debug_motor_torque_ratio_id,
+            _debug_spring_target_id,
+            _debug_spring_velocity_id,
     ]:
-        _debug_motor_chart.set_data_limit(chart_id, 100)
+        _debug_chart.set_data_limit(chart_id, 100)
 
     # NOTE: the displayed velocity is technically last frame's velocity, so add
-    # a zero point to these to shift everything up
-    for chart_id in [
-            _debug_motor_angle_error_id,
-            _debug_motor_velocity_target_id,
-    ]:
-        _debug_motor_chart.insert(chart_id, 0.0)
+    # a zero point to motor velocity to shift it up
+    _debug_chart.insert(_debug_motor_velocity_id, 0.0)
 
     if not _debug_layer:
         _debug_layer = DebugDraw.get_layer(&'physical_bone_part_debug')
 
-    var motor_chart_grid: GridContainer = _debug_layer.find_child(&'chart_grid', false, false) as GridContainer
-    if not motor_chart_grid:
-        motor_chart_grid = GridContainer.new()
-        motor_chart_grid.name = &'chart_grid'
-        motor_chart_grid.anchor_bottom = 1.0
-        motor_chart_grid.anchor_right = 1.0
-        motor_chart_grid.columns = 1
-        _debug_layer.add_child(motor_chart_grid, true)
+    var chart_grid: GridContainer = _debug_layer.find_child(&'chart_grid', false, false) as GridContainer
+    if not chart_grid:
+        chart_grid = GridContainer.new()
+        chart_grid.name = &'chart_grid'
+        chart_grid.anchor_bottom = 1.0
+        chart_grid.anchor_right = 1.0
+        chart_grid.columns = 1
+        _debug_layer.add_child(chart_grid, true)
 
-    motor_chart_grid.add_child(_debug_motor_chart, true)
-
-func _debug_joint_angle() -> void:
-    var angle_error: float = clampf(_ik_error, -100.0, 100.0)
-    _debug_motor_chart.insert(_debug_motor_angle_error_id, angle_error)
+    chart_grid.add_child(_debug_chart, true)

@@ -7,6 +7,7 @@
 [ext_resource type="PhysicsMaterial" uid="uid://dgom72xev8omg" path="res://material/physic/metal.tres" id="5_t7ap1"]
 [ext_resource type="Resource" uid="uid://bkrl1hrdjaqd8" path="res://character/crawler_bot/normal/femur_motor.tres" id="5_xg6cu"]
 [ext_resource type="Script" uid="uid://beoy3te8b6dll" path="res://addons/physical_skeleton/resource/part_resource.gd" id="6_uwyns"]
+[ext_resource type="Resource" uid="uid://bjr7lmmhm1yaq" path="res://character/crawler_bot/normal/femur_spring.tres" id="8_8evdk"]
 
 [resource]
 resource_local_to_scene = true
@@ -29,4 +30,6 @@ limitation = ExtResource("3_o4abc")
 copy_ik_limitation_angle = true
 joint_angular_limit_z_upper = 0.785398163397451
 joint_angular_limit_z_lower = -0.4363323129985795
+spring_enabled = true
+spring_parameters = ExtResource("8_8evdk")
 motor_parameters = ExtResource("5_xg6cu")

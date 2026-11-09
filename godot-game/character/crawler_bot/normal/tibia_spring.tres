@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PhysicalSpringParameters" format=3 uid="uid://bapw4mt6x2qei"]
+
+[ext_resource type="Script" uid="uid://bov3imdtwsbku" path="res://addons/physical_skeleton/resource/spring_parameters.gd" id="1_8exl3"]
+
+[resource]
+resource_name = "Tibia Spring"
+script = ExtResource("1_8exl3")
+use_frequency = true
+frequency = 60.0
+damping = 2.0
+metadata/_custom_type_script = "uid://bov3imdtwsbku"

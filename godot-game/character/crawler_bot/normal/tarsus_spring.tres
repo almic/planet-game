@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PhysicalSpringParameters" format=3 uid="uid://d3vvlwfse6wsp"]
+
+[ext_resource type="Script" uid="uid://bov3imdtwsbku" path="res://addons/physical_skeleton/resource/spring_parameters.gd" id="1_3c1ro"]
+
+[resource]
+resource_name = "Tarsus Spring"
+script = ExtResource("1_3c1ro")
+use_frequency = true
+frequency = 50.0
+damping = 2.0
+metadata/_custom_type_script = "uid://bov3imdtwsbku"

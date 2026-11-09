@@ -1,0 +1,137 @@
+[gd_scene format=3 uid="uid://dffiql1vb2mjn"]
+
+[ext_resource type="Material" uid="uid://c4w0dvvh00ltw" path="res://material/dev/grid_black.tres" id="1_fpevj"]
+[ext_resource type="PackedScene" uid="uid://cetgr3wj5qd6v" path="res://character/player/player.tscn" id="2_d6c3x"]
+[ext_resource type="Material" uid="uid://b7tcfnn27e44y" path="res://material/dev/grid_red.tres" id="3_3xx8w"]
+[ext_resource type="Shape3D" uid="uid://biemjf2j15vco" path="res://character/crawler_bot/normal/tibia_collision_shape.tres" id="4_4u0ky"]
+[ext_resource type="BoxMesh" uid="uid://btoiao1l4fp0n" path="res://character/crawler_bot/normal/tibia_box_mesh.tres" id="5_pop1d"]
+[ext_resource type="Shape3D" uid="uid://drn7atwnqby6m" path="res://character/crawler_bot/normal/tarsus_collision_shape.tres" id="6_mttq3"]
+[ext_resource type="BoxMesh" uid="uid://bg5sh58i7q6tc" path="res://character/crawler_bot/normal/tarsus_box_mesh.tres" id="7_abf63"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_d6c3x"]
+sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+ground_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+
+[sub_resource type="Sky" id="Sky_3xx8w"]
+sky_material = SubResource("ProceduralSkyMaterial_d6c3x")
+
+[sub_resource type="Environment" id="Environment_rwvsl"]
+background_mode = 2
+sky = SubResource("Sky_3xx8w")
+glow_enabled = true
+
+[sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_rj0r8"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_vmej4"]
+radius = 0.3
+
+[sub_resource type="BoxMesh" id="BoxMesh_vmej4"]
+material = ExtResource("3_3xx8w")
+size = Vector3(0.499999999999984, 0.1999999999999936, 1.6999999999999456)
+
+[node name="Node3D" type="Node3D" unique_id=2111957702]
+metadata/_edit_lock_ = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1154389930]
+environment = SubResource("Environment_rwvsl")
+camera_attributes = SubResource("CameraAttributesPractical_rj0r8")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=2063915629]
+transform = Transform3D(-0.8660254037844387, -0.4330127018922192, 0.25, 0, 0.5000000000000001, 0.8660254037844386, -0.49999999999999994, 0.75, -0.43301270189221946, 0, 0, 0)
+shadow_enabled = true
+
+[node name="CSGCombiner3D" type="CSGCombiner3D" parent="." unique_id=417485131]
+use_collision = true
+collision_layer = 16
+collision_mask = 0
+
+[node name="CSGBox3D" type="CSGBox3D" parent="CSGCombiner3D" unique_id=759346136]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -0.05000000320433173, -3.2014214e-09)
+size = Vector3(19.99999999999936, 0.0999999999999968, 19.99999999999936)
+material = ExtResource("1_fpevj")
+
+[node name="Player" parent="." unique_id=1957397594 instance=ExtResource("2_d6c3x")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3.2899999999998943)
+
+[node name="Core" type="RigidBody3D" parent="." unique_id=541559508]
+transform = Transform3D(6.123233995736766e-17, 0, -1, 0, 1, 0, 1, 0, 6.123233995736766e-17, -3.2014214e-09, 0.9999999967985786, -3.2014214e-09)
+collision_mask = 55
+mass = 10.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Core" unique_id=858890011]
+transform = Transform3D(1, 0, 0, 0, 6.123233995736766e-17, 1, 0, -1, 6.123233995736766e-17, 0, 0, 0)
+shape = SubResource("CapsuleShape3D_vmej4")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Core" unique_id=1715430650]
+mesh = SubResource("BoxMesh_vmej4")
+
+[node name="Generic6DOFJoint3D" type="Generic6DOFJoint3D" parent="Core" unique_id=989992513]
+node_b = NodePath("..")
+linear_limit_x/enabled = false
+linear_limit_y/enabled = false
+linear_limit_z/enabled = false
+linear_spring_x/enabled = true
+linear_spring_x/stiffness = 1199.9999999999616
+linear_spring_x/damping = 599.9999999999808
+linear_spring_y/enabled = true
+linear_spring_y/stiffness = 1199.9999999999616
+linear_spring_y/damping = 599.9999999999808
+linear_spring_z/enabled = true
+linear_spring_z/stiffness = 1199.9999999999616
+linear_spring_z/damping = 599.9999999999808
+angular_limit_x/enabled = false
+angular_limit_y/enabled = false
+angular_limit_z/enabled = false
+angular_spring_x/enabled = true
+angular_spring_x/stiffness = 99.9999999999968
+angular_spring_x/damping = 59.99999999999808
+angular_spring_y/enabled = true
+angular_spring_y/stiffness = 99.9999999999968
+angular_spring_y/damping = 59.99999999999808
+angular_spring_z/enabled = true
+angular_spring_z/stiffness = 99.9999999999968
+angular_spring_z/damping = 59.99999999999808
+
+[node name="Tibia" type="RigidBody3D" parent="." unique_id=1582980298]
+transform = Transform3D(1, 0, 0, 0, 0.7071067811865475, -0.7071067811865476, 0, 0.7071067811865476, 0.7071067811865475, -3.2014214e-09, 1.2299999967985713, 0.4799999967985633)
+collision_mask = 55
+mass = 0.5
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tibia" unique_id=1769400410]
+shape = ExtResource("4_4u0ky")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tibia" unique_id=285952377]
+mesh = ExtResource("5_pop1d")
+
+[node name="Generic6DOFJoint3D" type="Generic6DOFJoint3D" parent="Tibia" unique_id=1639313330]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -0.36500000320666, -3.2014214e-09)
+node_a = NodePath("../../Core")
+node_b = NodePath("..")
+angular_limit_x/upper_angle = 0.3490658503988659
+angular_limit_x/lower_angle = -0.3490658503988659
+angular_spring_x/enabled = true
+angular_spring_x/stiffness = 599.9999999999808
+angular_spring_x/damping = 19.99999999999936
+angular_spring_x/equilibrium_point = 0.355523568631245
+
+[node name="Tarsus" type="RigidBody3D" parent="." unique_id=1477048077]
+transform = Transform3D(1, 0, 0, 0, -0.7071067811865476, -0.7071067811865475, 0, 0.7071067811865475, -0.7071067811865476, -6.4028427e-09, 0.887053207922684, 1.3391347314205453)
+collision_mask = 55
+mass = 0.25
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tarsus" unique_id=1431859805]
+shape = ExtResource("6_mttq3")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tarsus" unique_id=553645063]
+mesh = ExtResource("7_abf63")
+
+[node name="Generic6DOFJoint3D" type="Generic6DOFJoint3D" parent="Tarsus" unique_id=841600269]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2014214e-09, -0.8500000031926902, -3.2014214e-09)
+node_a = NodePath("../../Tibia")
+node_b = NodePath("..")
+angular_limit_x/upper_angle = 1.0471975511965976
+angular_limit_x/lower_angle = -0.3490658503988659
+angular_spring_x/enabled = true
+angular_spring_x/stiffness = 399.9999999999872
+angular_spring_x/damping = 19.99999999999936
+angular_spring_x/equilibrium_point = -0.140673537710743
