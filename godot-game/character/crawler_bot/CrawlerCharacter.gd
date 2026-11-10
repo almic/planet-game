@@ -54,20 +54,33 @@ var body_leg_mass_ratio: float = 5.0:
 
 @export_range(0.01, 8.0, 0.01, 'or_greater')
 var max_speed: float = 3.0
+#endregion Movement Parameters
+
+#region Rotation Parameters
+@export_group('Rotation Parameters', 'rotation')
+
+## Constraint used for rotating the body, will be teleported to the core center
+## of mass at runtime
+@export var rotation_constraint: Generic6DOFJoint3D = null
+
+## Angular spring frequency for rotation control
+@export_range(0.0, 20.0, 0.01, 'or_greater', 'suffix:Hz')
+var rotation_frequency: float = 10.0
+
+## Angular spring damping for rotation control
+@export_range(0.0, 1.0, 0.01, 'or_greater')
+var rotation_damping: float = 0.5
 
 @export_range(0.0, 30.0, 0.1, 'or_greater', 'radians_as_degrees')
-var max_pitch: float = deg_to_rad(12.0)
+var rotation_max_pitch: float = deg_to_rad(7.0)
 
 @export_range(0.0, 360.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s\u00B2')
 var rotation_acceleration: float = deg_to_rad(270.0)
 
 ## Maximum rotation speed when turning
 @export_range(0.1, 180.0, 0.1, 'or_greater', 'radians_as_degrees', 'suffix:°/s')
-var rotation_rate: float = deg_to_rad(180.0)
-
-@export_range(0.0, 1.0, 0.01, 'or_greater')
-var rotation_overshoot: float = 0.2
-#endregion Movement Parameters
+var rotation_max_speed: float = deg_to_rad(180.0)
+#endregion Rotation Parameters
 
 #region IK Parameters
 @export_group('IK Parameters', 'ik')
@@ -157,8 +170,8 @@ var has_desired_movement: bool:
         return has_desired_forward or has_desired_rotation
 
 var has_desired_rotation: bool = false
-var leg_angular_target: Vector2
-var leg_angular_controller: PIDController
+## Current leg angular delta to match a target orientation
+var leg_angular_target: Vector3
 var grounded_leg_count: int = 0
 var grounded_leg_avg_displacement: float
 var leg_update_data: PackedVector3Array
@@ -362,12 +375,6 @@ func _ready() -> void:
     physical_skeleton.modification_processed.connect(_update_legs)
     leg_ik.modification_processed.connect(physical_skeleton.on_pose_finalized)
 
-    # TODO: controller parameters
-    leg_angular_controller = PIDController.new()
-    leg_angular_controller.proportional = 1.5
-    leg_angular_controller.integral = 0.0
-    leg_angular_controller.derivative = 0.8
-
 func get_nice_path(to: Node = null) -> NodePath:
     if not is_inside_tree():
         return NodePath("")
@@ -502,6 +509,17 @@ func _update_body_mass() -> void:
 
             body.mass = remaining_mass * mass_ratio
             remaining_mass -= body.mass
+
+func _on_first_integration() -> void:
+    if rotation_constraint:
+        rotation_constraint.position = phys_state.center_of_mass_local
+        rotation_constraint.force_update_joint()
+        for axis in range(3):
+            JoltPhysicsServer3D.generic_6dof_joint_set_jolt_flag(
+                    rotation_constraint.get_rid(), axis,
+                    JoltPhysicsServer3D.G6DOF_JOINT_FLAG_ENABLE_ANGULAR_SPRING_FREQUENCY,
+                    true
+            )
 
 func _handle_input() -> void:
 
@@ -680,13 +698,12 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
 
     # clamp target_direction to +-X degrees from the ground plane
     var clamped_direction: Vector3 = target_direction
-    const MAX_PITCH: float = deg_to_rad(7.0)
-    const MAX_PITCH_COS_THETA: float = cos(PI * 0.5 - MAX_PITCH)
+    var max_pitch_cos_theta: float = cos(PI * 0.5 - rotation_max_pitch)
     var pitch_cos_theta: float = clamped_direction.dot(preferred_up)
-    if absf(pitch_cos_theta) > MAX_PITCH_COS_THETA:
+    if absf(pitch_cos_theta) > max_pitch_cos_theta:
         # Calculate ground forward
         var ground_forward: Vector3 = preferred_up.cross(future_right).normalized()
-        clamped_direction = ground_forward.rotated(future_right, MAX_PITCH * signf(pitch_cos_theta))
+        clamped_direction = ground_forward.rotated(future_right, rotation_max_pitch * signf(pitch_cos_theta))
 
         # Since we have clamped, check again for reaching the target
         if current_forward.dot(clamped_direction) >= COS_LOW_ANGLE and angular_difference.length_squared() < LOW_ANGLE:
@@ -696,18 +713,31 @@ func _solve_rotation(state: PhysicsDirectBodyState3D) -> void:
             return
 
     var pitch: float = future_forward.signed_angle_2(clamped_direction, future_right)
-    var pitch_diff: float = leg_angular_controller.update(leg_angular_target.x, pitch, state.step)
-    leg_angular_target.x += pitch_diff * state.step
+    leg_angular_target.x = move_toward(leg_angular_target.x, pitch, rotation_max_speed * state.step)
 
-    # Zero the yaw for this step
-    if not can_do_yaw:
-        yaw = 0.0
+    var preferred_right: Vector3 = clamped_direction.cross(preferred_up).normalized()
+    var roll: float = future_right.signed_angle_2(preferred_right, future_forward)
+    leg_angular_target.z = move_toward(leg_angular_target.z, roll, rotation_max_speed * state.step)
 
-    leg_angular_target.y = move_toward(leg_angular_target.y, yaw, rotation_rate * state.step)
+    if can_do_yaw:
+        leg_angular_target.y = move_toward(leg_angular_target.y, yaw, rotation_max_speed * state.step)
+
+    if rotation_constraint:
+        for axis in range(3):
+            JoltPhysicsServer3D.generic_6dof_joint_set_jolt_param(
+                    rotation_constraint.get_rid(), axis,
+                    JoltPhysicsServer3D.G6DOF_JOINT_ANGULAR_SPRING_FREQUENCY,
+                    rotation_frequency
+            )
+            rotation_constraint.set_param(axis, Generic6DOFJoint3D.PARAM_ANGULAR_SPRING_DAMPING, rotation_damping)
+
+        var target: Quaternion = Basis(preferred_right, preferred_up.rotated(preferred_right, pitch), -clamped_direction).get_rotation_quaternion()
+        rotation_constraint.set_angular_target_rotation(target)
 
     # TODO: Control for target velocity
 
-## Calculates a preferred up from ground points, creating a triangle for each
+
+## Calculates a preferred up from local ground points, creating a triangle for each
 ## set of three contact points. If only two points are available, up is calculated
 ## as the direction closest to (0, 1, 0) that is perpendicular to the segment.
 func _calculate_preferred_up(valid_points: int, ground_points: PackedVector3Array) -> Vector3:
@@ -732,8 +762,8 @@ func _calculate_preferred_up(valid_points: int, ground_points: PackedVector3Arra
             break
 
         var forward: Vector3 = second_point - first_point
-        var right: Vector3 = Vector3.UP.cross(forward)
-        var up: Vector3 = forward.cross(right)
+        var right: Vector3 = forward.cross(Vector3.UP)
+        var up: Vector3 = right.cross(forward)
         if up.is_zero_approx():
             return Vector3.UP
 

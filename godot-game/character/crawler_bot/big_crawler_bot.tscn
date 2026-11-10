@@ -239,7 +239,7 @@ uv1_triplanar = true
 material = SubResource("StandardMaterial3D_xefeq")
 size = Vector3(0.4, 0.2, 0.3)
 
-[node name="CrawlerBot" type="RigidBody3D" unique_id=461561025 node_paths=PackedStringArray("skeleton", "leg_ik", "physical_skeleton")]
+[node name="CrawlerBot" type="RigidBody3D" unique_id=461561025 node_paths=PackedStringArray("skeleton", "leg_ik", "physical_skeleton", "rotation_constraint")]
 collision_mask = 55
 mass = 7.2
 physics_material_override = ExtResource("1_ro1ip")
@@ -253,7 +253,9 @@ total_mass = 18.0
 body_leg_mass_ratio = 4.0
 leg_segment_ratio = PackedFloat32Array(0.7, 0.6)
 max_speed = 0.5
-rotation_rate = 0.08726646259971647
+rotation_constraint = NodePath("rotation_constraint")
+rotation_frequency = 1.1
+rotation_damping = 1.0
 ik_max_iterations = 10
 ik_min_distance = 0.01
 ik_angular_delta_limit = 17.453292519943297
@@ -269,6 +271,18 @@ metadata/_custom_type_script = "uid://gy5qwm8j5pbh"
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=396952384]
 transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_3kbc3")
+
+[node name="rotation_constraint" type="Generic6DOFJoint3D" parent="." unique_id=420823831]
+node_b = NodePath("..")
+linear_limit_x/enabled = false
+linear_limit_y/enabled = false
+linear_limit_z/enabled = false
+angular_limit_x/enabled = false
+angular_limit_y/enabled = false
+angular_limit_z/enabled = false
+angular_spring_x/enabled = true
+angular_spring_y/enabled = true
+angular_spring_z/enabled = true
 
 [node name="big_crawler" parent="." unique_id=1739686264 instance=ExtResource("2_2g2re")]
 metadata/_edit_lock_ = true

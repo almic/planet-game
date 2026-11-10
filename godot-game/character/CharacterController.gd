@@ -148,6 +148,9 @@ var desired_jump_power: float = 0.0
 var desired_gravity: float = 1.0
 
 
+## Runs a setup method on the first integration
+var is_first_integration: bool = true
+
 ## The body's direction of motion
 var linear_direction: Vector3
 
@@ -229,6 +232,10 @@ func _handle_input() -> void:
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
     phys_state = state
     delta_time = state.step
+
+    if is_first_integration:
+        is_first_integration = false
+        _on_first_integration()
 
     if not manual_input_handling:
         _handle_input()
@@ -676,6 +683,10 @@ func _calculate_friction_recovery(forward: Vector3) -> Vector3:
         recovery += forward * friction.length() * keep
 
     return recovery
+
+## First time setup, called on the first _integrate_forces() run
+func _on_first_integration() -> void:
+    pass
 
 ## For custom forces that should be applied just before movement
 @warning_ignore("unused_parameter")
