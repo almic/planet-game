@@ -82,12 +82,8 @@ var body_state: PhysicsDirectBodyState3D
 var parent_state: PhysicsDirectBodyState3D
 ## Angular velocity of the joint on the rotation axis, calculated in update()
 var joint_velocity: float = 0.0
-## The bone rotation in global space
-var bone_rotation: Basis
 ## Local axis index of the bone rotation
 var bone_rotation_axis: int
-## Global-space bone rotation axis
-var bone_rotation_axis_vector: Vector3
 ## Calculated motor torque, used for constraints
 var desired_motor_torque: float
 ## Internal velocity for spring-based joints, limits the rate of angle change
@@ -99,8 +95,6 @@ var _ik_angle: float
 var _ik_error: float
 ## Instant rate of change of this joint to the IK target
 var ik_derivative: float
-## Target orientation for the joint
-var _ik_target: Quaternion
 ## Controller for ik angle
 var _ik_controller: PIDController
 
@@ -112,6 +106,10 @@ var _debug_layer: CanvasLayer = null
 
 @export_custom(PROPERTY_HINT_GROUP_ENABLE, 'checkbox_only')
 var debug_enable: bool = false
+
+## When true, this part will stop changing the joint motor velocity and spring
+## angle, but otherwise do everything else
+@export var debug_no_change: bool = false
 
 const DEG_12: float = deg_to_rad(12.0)
 const DEG_90: float = deg_to_rad(90.0)
@@ -519,7 +517,7 @@ func _should_break(joint: Joint3D, displacement: Transform3D) -> bool:
 func set_should_break() -> void:
     _signal_should_break = true
 
-func on_pose_finalized(bone_xform: Transform3D) -> void:
+func on_pose_finalized(bone_xform: Transform3D, bone_rest: Quaternion) -> void:
     _ensure_mesh_bone_inst()
     if mesh_bone_inst:
         mesh_bone_inst.global_transform = bone_xform.translated_local(resource.mesh_offset)
@@ -534,32 +532,29 @@ func on_pose_finalized(bone_xform: Transform3D) -> void:
         )
         return
 
-    bone_rotation = bone_xform.basis
     bone_rotation_axis = axis
-    bone_rotation_axis_vector = bone_rotation[axis]
 
     var part_velocity: Vector3 = body_state.angular_velocity
     var parent_velocity: Vector3 = parent_state.angular_velocity
-    joint_velocity = bone_rotation_axis_vector.dot(parent_velocity - part_velocity)
+    var rotation_axis: Vector3 = (body_state.transform.basis * bone_joint_data.xform_rel_body.basis)[bone_rotation_axis]
+    joint_velocity = rotation_axis.dot(parent_velocity - part_velocity)
 
     if debug_enable and debug_angle and _debug_chart:
         _debug_chart.insert(_debug_joint_velocity_id, joint_velocity)
 
-    var pose: Quaternion = bone_rotation
+    var pose: Quaternion = bone_xform.basis
 
-    # Relative to parent
-    var parent_rotation: Quaternion = parent_state.transform.basis.get_rotation_quaternion()
-    var parent_joint: Quaternion = parent_rotation * bone_joint_data.xform_rel_parent.basis.get_rotation_quaternion()
-    pose = (parent_joint.inverse() * pose).normalized()
+    # Relative to rest
+    pose = (bone_rest.inverse() * pose).normalized()
 
     # Axis correction
-    var local_axis: Vector3 = body_state.transform.basis.inverse() * bone_rotation_axis_vector
+    var local_axis: Vector3 = Vector3.ZERO
+    local_axis[bone_rotation_axis] = 1.0
     pose = (Quaternion(pose * local_axis, local_axis) * pose).normalized()
 
     if pose.w < 0.0:
         pose = -pose
 
-    _ik_target = pose
     _ik_angle = pose.get_angle()
     if pose.get_axis().dot(local_axis) < 0:
         _ik_angle = -_ik_angle
@@ -620,7 +615,11 @@ func _update_motor() -> void:
 
     var new_velocity: Vector3 = Vector3.ZERO
     new_velocity[bone_rotation_axis] = target_velocity
-    bone_joint.set_angular_target_velocity(new_velocity)
+
+    if debug_enable and debug_no_change:
+        pass
+    else:
+        bone_joint.set_angular_target_velocity(new_velocity)
 
     var motor_axis: Generic6DOFJoint3D.MotorAxis = Generic6DOFJoint3D.MOTOR_AXIS_ANGULAR + bone_rotation_axis
     var param: PhysicalControllerParameters = resource.motor_parameters.motor_controller
@@ -668,7 +667,10 @@ func _update_spring() -> void:
         _debug_chart.insert(_debug_spring_target_id, equilibrium[bone_rotation_axis])
         _debug_chart.insert(_debug_spring_velocity_id, spring_velocity)
 
-    bone_joint.set_angular_spring_target(equilibrium)
+    if debug_enable and debug_no_change:
+        pass
+    else:
+        bone_joint.set_angular_spring_target(equilibrium)
 
     bone_joint.set_param(
         bone_rotation_axis,

@@ -30,6 +30,9 @@ var debug_enable: bool = false
 ## Enables internal breakpoints, dev must write these in manually
 @export var debug_breakpoint: bool = false
 
+## Disables target point progression
+@export var debug_no_progress: bool = false
+
 ## Makes this leg raise to a high position
 @export var debug_raise: bool = false
 
@@ -49,6 +52,10 @@ var _debug_target_sphere: int = 0
 ## The target IK position for the leg
 @export var debug_ik_target: bool = false
 var _debug_ik_sphere: int = 0
+
+## Render an exaggerated motion vector for changes to the target IK position
+@export var debug_ik_target_motion: bool = false
+var _debug_ik_motion_vector: int = 0
 
 ## The ground contact normal of the leg
 @export var debug_ground_normal: bool = false
@@ -660,10 +667,14 @@ func update() -> void:
                     else:
                         leg._debug_move_reason_text = "Stepping with %s!" % leg.name
 
+    var original_position: Vector3 = target.position
     _update_target()
 
-    if debug_enable and debug_ik_target:
-        _draw_ik_target()
+    if debug_enable:
+        if debug_ik_target:
+            _draw_ik_target()
+        if debug_ik_target_motion:
+            _draw_ik_motion(original_position)
 
 ## Check this and cross-paired legs state to see if this leg is allowed to move,
 ## assuming it is currently stable. Unstable legs should always try to move.
@@ -864,6 +875,10 @@ func _update_target() -> void:
     # Moving through targets, check distances and update target
     var target_distance: float = absf(target_point_list[target_point_index].w)
     var local_target_point: Vector3 = _get_target_point(target_point_index)
+
+    if debug_enable and debug_no_progress:
+        target.position = local_target_point
+        return
 
     # TODO: Add timer delays using target_data[index * span + 0] value.
     #       Probably flip a bool to use the above resting code but with a more
@@ -1286,6 +1301,24 @@ func _draw_ik_target() -> void:
             0.02,
             Color.AQUA,
             _debug_ik_sphere
+    )
+
+func _draw_ik_motion(original_position: Vector3) -> void:
+    if not is_finite(original_position.x):
+        _debug_ik_motion_vector = DebugDraw.vector(
+                Vector3.ZERO,
+                Vector3.ZERO,
+                Color.DARK_TURQUOISE,
+                _debug_ik_motion_vector,
+                0.001
+        )
+        return
+    _debug_ik_motion_vector = DebugDraw.vector(
+            to_global(original_position),
+            global_basis * ((target.position - original_position) * 10.0).limit_length(1.0),
+            Color.DARK_TURQUOISE,
+            _debug_ik_motion_vector,
+            0.1
     )
 
 func _draw_ground_normal(clear: bool = false) -> void:

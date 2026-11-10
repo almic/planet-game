@@ -186,8 +186,12 @@ func on_pose_finalized() -> void:
         if not part.is_valid:
             continue
 
-        var bone_xform: Transform3D = skeleton.global_transform * skeleton.get_bone_global_pose(bone_list[index])
-        part.on_pose_finalized(bone_xform)
+        var bone_idx: int = bone_list[index]
+        var parent_state := PhysicsServer3D.body_get_direct_state(part.bone_joint_data.parent)
+        var bone_xform: Transform3D = skeleton.global_transform * skeleton.get_bone_global_pose(bone_idx)
+        var parent_pose: Basis = skeleton.get_bone_global_pose(skeleton.get_bone_parent(bone_idx)).basis
+        var bone_rest: Quaternion = skeleton.global_basis * parent_pose * skeleton.get_bone_rest(bone_idx).basis
+        part.on_pose_finalized(bone_xform, bone_rest)
 
     # NOTE: assume that an empty path is intentional to disable the chain
     var target_node_path: NodePath = ik_node.setting_list[ik_setting].target_node
@@ -328,17 +332,18 @@ func apply_forces(delta: float) -> void:
         index -= 1
 
         var part: PhysicalBonePart3D = part_list[index]
-        var joint_axis: Vector3 = part.bone_rotation_axis_vector
 
         var part_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(part.get_rid())
         var parent_state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(part.bone_joint_data.parent)
+
+        var joint_axis: Vector3 = part_state.transform.basis[part.bone_rotation_axis]
 
         # Damping is the only force right now
         if part.resource.motor_enabled and part.resource.motor_parameters.damping > 0.0:
             _apply_damping(
                     parent_state,
                     part_state,
-                    part.bone_rotation_axis_vector,
+                    joint_axis,
                     delta * part.resource.motor_parameters.damping
             )
 
