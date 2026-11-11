@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="CrawlerLegSetting" format=3 uid="uid://b76dud03hxddv"]
 
+[ext_resource type="Resource" uid="uid://rbwnu1r12d5m" path="res://character/crawler_bot/normal/grip_setting.tres" id="1_2pwcm"]
 [ext_resource type="Shape3D" uid="uid://db3u3bwwhmq8v" path="res://character/crawler_bot/normal/leg_cast_shape.tres" id="1_oa4c1"]
 [ext_resource type="Script" uid="uid://2nu0yn2lgo2m" path="res://character/crawler_bot/res/CrawlerLegSetting.gd" id="1_sgecx"]
 [ext_resource type="SpringCastSettings" uid="uid://8x8cm8ddcya1" path="res://character/crawler_bot/normal/leg_spring.tres" id="1_y3q10"]
@@ -10,6 +11,7 @@ resource_local_to_scene = true
 resource_name = "MiddleLeg"
 script = ExtResource("1_sgecx")
 ground_spring_setting = ExtResource("1_y3q10")
+ground_grip_setting = ExtResource("1_2pwcm")
 ground_collision_mask = 53
 step_cast_shape = ExtResource("1_oa4c1")
 step_cast_start = 1.2999999999999998

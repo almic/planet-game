@@ -49,6 +49,10 @@ var _debug_step_cast_vector: int = 0
 @export var debug_step_target: bool = false
 var _debug_target_sphere: int = 0
 
+## Draw a small sphere when the grip constraint is active
+@export var debug_grip: bool = false
+var _debug_grip_sphere: int = 0
+
 ## The target IK position for the leg
 @export var debug_ik_target: bool = false
 var _debug_ik_sphere: int = 0
@@ -219,6 +223,11 @@ var ground_friction: Vector3
 
 var ground_last_rid: RID
 var ground_last_local: Vector3
+
+## Constraint used for locking onto ground contact points
+var grip_constraint: Generic6DOFJoint3D
+## Cooldown timer for re-creating the grip constraint
+var grip_cooldown: float = 0.0
 #endregion Ground Stuff
 
 ## Bone of the end point of the leg, where the target is compared to
@@ -489,11 +498,15 @@ func _update_grounded() -> void:
             breakpoint
         ground_last_local = ground_body.to_local(ground_position)
 
+        _update_grip_constraint()
+
     elif is_grounded:
         is_grounded = false
         time_since_grounded = 0.0
         if debug_enable and debug_ground_normal:
             _draw_ground_normal(true)
+
+        _disable_grip_constraint()
 
     if not is_grounded:
         return
@@ -1044,6 +1057,78 @@ func _update_target_rest() -> void:
     # For the next tick, push target rest towards current end point
     target_rest_position = target_rest_position.lerp(local_end_point, TRAVEL_RATE * body.delta_time)
 
+func _update_grip_constraint() -> void:
+    if grip_cooldown > 0.0:
+        grip_cooldown = maxf(grip_cooldown - body.delta_time, 0.0)
+        if grip_cooldown != 0.0:
+            return
+
+    var inside_tree: bool = grip_constraint and grip_constraint.is_inside_tree()
+
+    if not grip_constraint:
+        grip_constraint = Generic6DOFJoint3D.new()
+        for axis in range(3):
+            grip_constraint.set_flag(axis, Generic6DOFJoint3D.FLAG_ENABLE_ANGULAR_LIMIT, false)
+            grip_constraint.set_flag(axis, Generic6DOFJoint3D.FLAG_ENABLE_LINEAR_LIMIT, false)
+            grip_constraint.set_flag(axis, Generic6DOFJoint3D.FLAG_ENABLE_LINEAR_SPRING, true)
+
+        grip_constraint.name = &'grip_constraint'
+        grip_constraint.node_b = ground_physical_part.get_path()
+
+    elif inside_tree and grip_constraint.get_applied_force() >= setting.ground_grip_setting.max_force:
+        grip_cooldown = setting.ground_grip_setting.cooldown
+        _disable_grip_constraint()
+        return
+
+    if inside_tree:
+        print(grip_constraint.get_applied_force())
+
+    var ground_body: PhysicsBody3D = ground_cast.get_contact_body(0) as PhysicsBody3D
+    var update_position: bool = not inside_tree
+    if ground_body:
+        if grip_constraint.node_a != ground_body.get_path():
+            grip_constraint.node_a = ground_body.get_path()
+            update_position = true
+    elif grip_constraint.node_a != NodePath():
+        grip_constraint.node_a = NodePath()
+        update_position = true
+
+    if update_position:
+        grip_constraint.position = ground_physical_part.to_local(ground_position)
+        grip_constraint.force_update_joint()
+
+    if not inside_tree:
+        ground_physical_part.add_child(grip_constraint)
+
+    for axis in range(3):
+        grip_constraint.set_param(
+                axis, Generic6DOFJoint3D.PARAM_LINEAR_SPRING_DAMPING,
+                setting.ground_grip_setting.damping
+        )
+        JoltPhysicsServer3D.generic_6dof_joint_set_jolt_flag(
+                grip_constraint.get_rid(), axis,
+                JoltPhysicsServer3D.G6DOF_JOINT_FLAG_ENABLE_LINEAR_SPRING_FREQUENCY,
+                true
+        )
+        JoltPhysicsServer3D.generic_6dof_joint_set_jolt_param(
+                grip_constraint.get_rid(), axis,
+                JoltPhysicsServer3D.G6DOF_JOINT_LINEAR_SPRING_FREQUENCY,
+                setting.ground_grip_setting.frequency
+        )
+
+    if debug_enable and debug_grip:
+        _draw_grip()
+
+
+func _disable_grip_constraint() -> void:
+    if debug_enable and debug_grip:
+        _draw_grip(true)
+
+    if (not grip_constraint) or (not grip_constraint.is_inside_tree()):
+        return
+
+    ground_physical_part.remove_child(grip_constraint)
+
 
 ## When targeting the final point, we may "reach" it without finding ground.
 ## This method returns true if the target should remain active, hoping to locate
@@ -1273,6 +1358,21 @@ func _draw_step_target(clear: bool = false) -> void:
             Color.DARK_MAGENTA * Color(1.0, 1.0, 1.0, 0.7),
             _debug_target_sphere,
             1.0
+    )
+
+func _draw_grip(clear: bool = false) -> void:
+    if clear:
+        _debug_grip_sphere = DebugDraw.sphere(
+            Vector3.ZERO, 0.0, Color.FLORAL_WHITE, _debug_grip_sphere, 0.01
+        )
+        return
+
+    _debug_grip_sphere = DebugDraw.sphere(
+            grip_constraint.get_constraint_body_a().origin,
+            0.04,
+            Color.FLORAL_WHITE,
+            _debug_grip_sphere,
+            0.1
     )
 
 func _draw_move_reason(clear: bool = false) -> void:

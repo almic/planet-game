@@ -6,6 +6,9 @@ class_name CrawlerLegSetting extends Resource
 ## The shape to use for ground detection
 @export var ground_spring_setting: SpringCastSettings
 
+## Settings for grip constraints
+@export var ground_grip_setting: LegGripSetting
+
 ## Collision mask for ground contact
 @export_flags_3d_physics var ground_collision_mask: int = 1
 

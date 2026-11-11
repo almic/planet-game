@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="LegGripSetting" format=3 uid="uid://rbwnu1r12d5m"]
+
+[ext_resource type="Script" uid="uid://bcspa6gfq17k5" path="res://character/crawler_bot/res/LegGripSetting.gd" id="1_ttapx"]
+
+[resource]
+resource_name = "Crawler Grip"
+script = ExtResource("1_ttapx")
+frequency = 50.0
+metadata/_custom_type_script = "uid://bcspa6gfq17k5"

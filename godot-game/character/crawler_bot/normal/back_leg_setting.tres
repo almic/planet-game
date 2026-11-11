@@ -2,6 +2,7 @@
 
 [ext_resource type="Shape3D" uid="uid://db3u3bwwhmq8v" path="res://character/crawler_bot/normal/leg_cast_shape.tres" id="1_pecwi"]
 [ext_resource type="SpringCastSettings" uid="uid://8x8cm8ddcya1" path="res://character/crawler_bot/normal/leg_spring.tres" id="1_qfgcu"]
+[ext_resource type="Resource" uid="uid://rbwnu1r12d5m" path="res://character/crawler_bot/normal/grip_setting.tres" id="1_sslxc"]
 [ext_resource type="Script" uid="uid://2nu0yn2lgo2m" path="res://character/crawler_bot/res/CrawlerLegSetting.gd" id="1_xrlf6"]
 [ext_resource type="Curve" uid="uid://dndsqoj5uuqtc" path="res://character/crawler_bot/normal/leg_lift_curve.tres" id="2_xj2hw"]
 
@@ -10,6 +11,7 @@ resource_local_to_scene = true
 resource_name = "BackLeg"
 script = ExtResource("1_xrlf6")
 ground_spring_setting = ExtResource("1_qfgcu")
+ground_grip_setting = ExtResource("1_sslxc")
 ground_collision_mask = 53
 step_cast_shape = ExtResource("1_pecwi")
 step_cast_start = 1.2999999999999998
